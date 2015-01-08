@@ -10,8 +10,8 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	g_roundCount++;
 	
-	g_jinraiScore	+=	GetTeamScore(TEAM_JINRAI);
-	g_nsfScore		+=	GetTeamScore(TEAM_NSF);
+	g_jinraiScore	=	GetTeamScore(TEAM_JINRAI);
+	g_nsfScore		=	GetTeamScore(TEAM_NSF);
 	
 	new roundLimit = GetConVarInt(g_hRoundLimit);
 	
