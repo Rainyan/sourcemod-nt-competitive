@@ -74,7 +74,7 @@ public Action:CheckIfEveryoneIsReady()
 		return Plugin_Stop;
 	}
 	
-	ToggleLive();
+	ToggleLive(); // Passed all checks, ready to go live
 	
 	return Plugin_Handled;
 }
