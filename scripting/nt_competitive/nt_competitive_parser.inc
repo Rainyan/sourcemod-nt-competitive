@@ -10,11 +10,12 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	g_roundCount++;
 	
-	g_jinraiScore	+=	GetTeamScore(TEAM_JINRAI);
-	g_nsfScore		+=	GetTeamScore(TEAM_NSF);
+	g_jinraiScore	= GetTeamScore(TEAM_JINRAI);
+	g_nsfScore		= GetTeamScore(TEAM_NSF);
 	
 	new roundLimit = GetConVarInt(g_hRoundLimit);
 	
+	// Announce match state below
 	if (g_jinraiScore > g_nsfScore + roundLimit - g_roundCount) // Jinrai wins, NSF can't catch up anymore
 		PrintToChatAll("%s JINRAI WINS %i - %i", g_tag, g_jinraiScore, g_nsfScore);
 	
@@ -28,17 +29,22 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		PrintToChatAll("%s MATCH POINT", g_tag);
 	
 	else if (g_roundCount == roundLimit) // Tie, we ran out of rounds to play
-		ToggleLive();
+		PrintToChatAll("%s MATCH TIED %i - %i", g_tag, g_nsfScore, g_jinraiScore);
 	
-	else
-		PrintToChatAll("%s MR%i round %i (%i rounds left)", g_tag, roundLimit, g_roundCount, roundLimit - g_roundCount);
+	else // None of the above. Just announce current round number.
+		PrintToChatAll("%s Round %i/%i", g_tag, roundLimit, g_roundCount, roundLimit - g_roundCount);
+	
+	
+	// Check if game ended, and toggle off live mode if appropriate
+	if ((g_jinraiScore > g_nsfScore + roundLimit - g_roundCount) || (g_nsfScore > g_jinraiScore + roundLimit - g_roundCount) || (g_roundCount == roundLimit))
+		ToggleLive();
 	
 	return Plugin_Handled;
 }
 
 public Action:Event_PlayerTeam(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if (!g_isLive || GetEventBool(event, "disconnect"))
+	if (!g_isLive || GetEventBool(event, "disconnect")) // Do nothing if not live or if event triggered by player disconnect
 		return Plugin_Continue;
 	
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
@@ -51,6 +57,6 @@ public Action:Event_PlayerTeam(Handle:event, const String:name[], bool:dontBroad
 
 public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	if (StringToInt(newVal) != 0)
+	if (StringToInt(newVal)) // If nonzero, we have a restart. So we reset the variable.
 		g_roundCount = 0;
 }

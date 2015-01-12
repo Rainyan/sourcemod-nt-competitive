@@ -4,7 +4,7 @@
 #define REASON_TIMEOUT 1
 
 new String:g_tag[] = "[COMP]";
-new String:g_teamName[] = {
+new String:g_teamName[][] = {
 	"Unassigned",
 	"Spectator",
 	"Jinrai",
@@ -74,7 +74,7 @@ public Action:CheckIfEveryoneIsReady()
 		return Plugin_Stop;
 	}
 	
-	ToggleLive();
+	ToggleLive(); // Passed all checks, ready to go live
 	
 	return Plugin_Handled;
 }
