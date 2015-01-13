@@ -1,6 +1,8 @@
 #pragma semicolon 1
 
-#define DEBUG 2
+//#define DEBUG 0 // Release
+//#define DEBUG 1 // Basic debug
+#define DEBUG 2 // Extended debug
 
 #include <sourcemod>
 #include <smlib>
