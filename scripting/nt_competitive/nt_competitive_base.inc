@@ -122,7 +122,12 @@ public Action:TogglePause()
 		}
 	
 		g_isPaused = true;
-		PrintToChatAll("%s Match paused for %i minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
+		PrintToChatAll("%s Match paused for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
+		
+		#if DEBUG > 1
+			PrintToServer("%s Match paused for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
+			PrintToServer("Max timeout: %f", GetConVarFloat(g_hMaxTimeout));
+		#endif
 		
 		CreateTimer(GetConVarFloat(g_hMaxTimeout), Timer_Unpause);
 		CreateTimer((GetConVarFloat(g_hMaxTimeout) / 2), Timer_UnpauseNotice_Half);
