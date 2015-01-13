@@ -1,6 +1,8 @@
 #pragma semicolon 1
 
-#define DEBUG 1
+//#define DEBUG 0 // Release
+//#define DEBUG 1 // Basic debug
+#define DEBUG 2 // Extended debug
 
 #include <sourcemod>
 #include <smlib>
@@ -9,7 +11,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.1"
+#define PLUGIN_VERSION "0.2"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -21,12 +23,12 @@ public Plugin:myinfo = {
 
 public OnPluginStart()
 {
-	RegConsoleCmd("sm_ready", Command_Ready, "Mark yourself as ready for a competitive match.");
-	RegConsoleCmd("sm_unready", Command_UnReady, "Mark yourself as not ready for a competitive match.");
-	RegConsoleCmd("sm_start", Command_OverrideStart, "Force a competitive match start when using an unexpected setup.");
-	RegConsoleCmd("sm_unstart", Command_UnOverrideStart, "Cancel !sm_start.");
-	RegConsoleCmd("sm_pause", Command_Pause, "Request a pause or timeout in a competitive match.");
-	RegConsoleCmd("sm_timeout", Command_Pause, "Request a pause or timeout in a competitive match.");
+	RegConsoleCmd("sm_ready",	Command_Ready,				"Mark yourself as ready for a competitive match.");
+	RegConsoleCmd("sm_unready",	Command_UnReady,			"Mark yourself as not ready for a competitive match.");
+	RegConsoleCmd("sm_start",	Command_OverrideStart,		"Force a competitive match start when using an unexpected setup.");
+	RegConsoleCmd("sm_unstart",	Command_UnOverrideStart,	"Cancel !sm_start.");
+	RegConsoleCmd("sm_pause",	Command_Pause,				"Request a pause or timeout in a competitive match.");
+	RegConsoleCmd("sm_timeout",	Command_Pause,				"Request a pause or timeout in a competitive match.");
 	
 	#if DEBUG
 		RegConsoleCmd("sm_forcelive", Command_ForceLive, "Force the competitive match to start. Debug command.");
@@ -35,14 +37,17 @@ public OnPluginStart()
 	HookEvent("game_round_start", Event_RoundStart);
 	HookEvent("player_team", Event_PlayerTeam);
 	
-	g_hRoundLimit = CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.");
-	AutoExecConfig(true);
-	g_hMatchSize = CreateConVar("sm_competitive_match_size", "10", "How many players participate in a default sized competitive match.");
-	g_hMaxTimeout = CreateConVar("sm_competitive_timeout_length", "180", "How long can a competitive time-out last, in seconds.");
+	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.");
+	g_hMatchSize		= CreateConVar("sm_competitive_match_size", "10", "How many players participate in a default sized competitive match.");
+	g_hMaxTimeout		= CreateConVar("sm_competitive_timeout_length", "180", "How long can a competitive time-out last, in seconds.");
 	
-	g_hNeoRestartThis = FindConVar("neo_restart_this");
+	g_hAlltalk			= FindConVar("sv_alltalk");
+	g_hNeoRestartThis	= FindConVar("neo_restart_this");
+	g_hPausable			= FindConVar("sv_pausable");
 	
 	HookConVarChange(g_hNeoRestartThis, Event_Restart);
+	
+	AutoExecConfig();
 }
 
 public OnMapStart()
@@ -52,7 +57,6 @@ public OnMapStart()
 
 public OnConfigsExecuted()
 {
-	g_hAlltalk = FindConVar("sv_alltalk");
 	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
 }
 
@@ -70,22 +74,16 @@ public Action:PauseRequest(client, reason)
 	switch (reason)
 	{
 		case REASON_TECHNICAL:
-		{
 			PrintToChatAll("%s Team %s wants to pause for a technical issue.", g_tag, g_teamName[team]);
-		}
 		
 		case REASON_TIMEOUT:
-		{
 			PrintToChatAll("%s Team %s wants a time-out.", g_tag, g_teamName[team]);
-		}
 	}
 	
 	new Float:currentTime = GetGameTime();
 	
 	if (currentTime - g_fRoundTime < 15) // We are in a freezetime, it's safe to pause
-	{
 		TogglePause();
-	}
 	
 	else
 	{

@@ -15,28 +15,45 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	new roundLimit = GetConVarInt(g_hRoundLimit);
 	
-	// Announce match state below
-	if (g_jinraiScore > g_nsfScore + roundLimit - g_roundCount) // Jinrai wins, NSF can't catch up anymore
+	// ** Announce match state below **
+	// Jinrai wins, NSF can't catch up anymore
+	if (g_jinraiScore > g_nsfScore + roundLimit - (g_roundCount - 1)) // (g_roundCount - 1) because we're counting rounds by incrementing inside the event. So first round is 1, not 0.
+	{
+		#if DEBUG > 1
+			PrintToServer("%s JINRAI WINS %i - %i", g_tag, g_jinraiScore, g_nsfScore);
+			PrintToServer("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore, g_nsfScore, roundLimit, g_roundCount);
+		#endif
+			
 		PrintToChatAll("%s JINRAI WINS %i - %i", g_tag, g_jinraiScore, g_nsfScore);
+	}
 	
-	else if (g_jinraiScore > g_nsfScore + roundLimit - g_roundCount - 1) // Jinrai has almost won, match point
-		PrintToChatAll("%s MATCH POINT", g_tag);
-	
-	else if (g_nsfScore > g_jinraiScore + roundLimit - g_roundCount) // NSF wins, Jinrai can't catch up anymore
+	// NSF wins, Jinrai can't catch up anymore
+	else if (g_nsfScore > g_jinraiScore + roundLimit - (g_roundCount - 1))
+	{
+		#if DEBUG > 1
+			PrintToServer("%s NSF WINS %i - %i", g_tag, g_nsfScore, g_jinraiScore);
+			PrintToServer("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore, g_jinraiScore, roundLimit, g_roundCount);
+		#endif
+		
 		PrintToChatAll("%s NSF WINS %i - %i", g_tag, g_nsfScore, g_jinraiScore);
+	}
 	
-	else if (g_nsfScore > g_jinraiScore + roundLimit - g_roundCount - 1) // NSF has almost won, match point
-		PrintToChatAll("%s MATCH POINT", g_tag);
-	
-	else if (g_roundCount == roundLimit) // Tie, we ran out of rounds to play
+	// Tie, we ran out of rounds to play
+	else if ((g_roundCount - 1) == roundLimit)
 		PrintToChatAll("%s MATCH TIED %i - %i", g_tag, g_nsfScore, g_jinraiScore);
 	
-	else // None of the above. Just announce current round number.
-		PrintToChatAll("%s Round %i/%i", g_tag, roundLimit, g_roundCount, roundLimit - g_roundCount);
+	// Match point, one team has almost won
+	else if ((g_jinraiScore > g_nsfScore + roundLimit - (g_roundCount - 1) - 1) || (g_nsfScore > g_jinraiScore + roundLimit - g_roundCount - 1))
+		PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundCount, roundLimit);
+	
+	// Just another round, simply announce round number
+	else
+		PrintToChatAll("%s Round %i/%i", g_tag, g_roundCount, roundLimit);
+	// ** Announce match state above **
 	
 	
 	// Check if game ended, and toggle off live mode if appropriate
-	if ((g_jinraiScore > g_nsfScore + roundLimit - g_roundCount) || (g_nsfScore > g_jinraiScore + roundLimit - g_roundCount) || (g_roundCount == roundLimit))
+	if ((g_jinraiScore > g_nsfScore + roundLimit - (g_roundCount - 1)) || (g_nsfScore > g_jinraiScore + roundLimit - (g_roundCount - 1)) || ((g_roundCount - 1) == roundLimit))
 		ToggleLive();
 	
 	return Plugin_Handled;

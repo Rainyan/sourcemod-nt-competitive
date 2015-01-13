@@ -17,21 +17,22 @@ new g_nsfScore;
 
 new Float:g_fRoundTime;
 
-new bool:g_isReady[MAXPLAYERS+1];
-//new bool:g_isCompetitor[MAXPLAYERS+1];
-new bool:g_isLive;
 new bool:g_isAlltalkByDefault;
+//new bool:g_isCompetitor[MAXPLAYERS+1];
 new bool:g_isExpectingOverride;
+new bool:g_isLive;
+new bool:g_isPaused;
+new bool:g_isReady[MAXPLAYERS+1];
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
-new bool:g_isPaused;
 
-//new Handle:g_hServerPassword;
-new Handle:g_hRoundLimit;
-new Handle:g_hNeoRestartThis;
 new Handle:g_hAlltalk;
 new Handle:g_hMatchSize;
 new Handle:g_hMaxTimeout;
+new Handle:g_hNeoRestartThis;
+new Handle:g_hPausable;
+new Handle:g_hRoundLimit;
+//new Handle:g_hServerPassword;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -85,9 +86,8 @@ public Action:ToggleLive()
 	{
 		g_isLive = true;
 		
-		if (g_hAlltalk)
-			SetConVarBool(g_hAlltalk, false);
-		
+		SetConVarBool(g_hAlltalk, false);
+		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
 		
 		PrintToChatAll("%s Game started message.", g_tag);
@@ -98,6 +98,9 @@ public Action:ToggleLive()
 	else
 	{	
 		g_isLive = false;
+		
+		if (g_isPaused)
+			TogglePause();
 		
 		g_roundCount = 0;
 		
@@ -112,8 +115,19 @@ public Action:TogglePause()
 {
 	if (!g_isPaused)
 	{
+		if (!g_isLive)
+		{
+			LogError("Attempted to pause while match isn't live.");
+			return Plugin_Handled;
+		}
+	
 		g_isPaused = true;
-		PrintToChatAll("%s Match paused for %i minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
+		PrintToChatAll("%s Match paused for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
+		
+		#if DEBUG > 1
+			PrintToServer("%s Match paused for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
+			PrintToServer("Max timeout: %f", GetConVarFloat(g_hMaxTimeout));
+		#endif
 		
 		CreateTimer(GetConVarFloat(g_hMaxTimeout), Timer_Unpause);
 		CreateTimer((GetConVarFloat(g_hMaxTimeout) / 2), Timer_UnpauseNotice_Half);
@@ -122,13 +136,46 @@ public Action:TogglePause()
 	else
 	{	
 		g_isPaused = false;
-		PrintToChatAll("%s Match unpaused.", g_tag);
 		
-		for (new i = 1; i == 3; i++)
-			CreateTimer(0.25, Timer_SpamLive);
+		if (g_isLive) // Only announce the unpause if a match is still going
+		{
+			PrintToChatAll("%s Match unpaused.", g_tag);
+			
+			for (new i = 1; i == 3; i++)
+				CreateTimer(0.25, Timer_SpamLive);
+		}
 	}
 	
-	ServerCommand("sv_pausable 1; pause; sv_pausable 0");
+	SetConVarBool(g_hPausable, true);
+	
+	new invalidClients;
+	for (new i = 1; i <= MaxClients; i++) // The server can't exec "pause" for some reason. So, instead, use the first valid client to execute it.
+	{
+		if (Client_IsValid(i))
+		{
+			ClientCommand(i, "pause");
+			#if DEBUG > 1
+				new String:clientName[MAX_NAME_LENGTH];
+				GetClientName(i, clientName, sizeof(clientName));
+				PrintToServer("Pause exec - found: %s", clientName);
+			#endif
+			break;
+		}
+		
+		invalidClients++;
+		
+		if (invalidClients == MaxClients)
+			LogError("Attempted pause command whilst no valid clients were connected.");
+	}
+	
+	CreateTimer(0.01, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here
+	
+	return Plugin_Handled;
+}
+
+public Action:Timer_DisablePause(Handle:timer)
+{
+	SetConVarBool(g_hPausable, false);
 }
 
 public Action:Timer_SpamLive(Handle:timer)
@@ -145,7 +192,7 @@ public Action:Timer_Unpause(Handle:timer)
 public Action:Timer_UnpauseNotice_Half(Handle:timer)
 {
 	if (g_isPaused)
-		PrintToChatAll("%s Pause time left: %i seconds", g_tag, RoundToNearest(GetConVarFloat(g_hMaxTimeout)));
+		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxTimeout)) / 2));
 }
 
 stock GetPlayersReady()
