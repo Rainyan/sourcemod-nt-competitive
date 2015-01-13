@@ -1,7 +1,7 @@
 sourcemod-nt-competitive
 ========================
 
-SourceMod plugin for competitive Neotokyo. WIP, does not properly function yet.
+SourceMod plugin for competitive Neotokyo. Still WIP, only basic functionality.
 
 Compile dependencies:
   - <a target="_blank" href="https://github.com/bcserv/smlib/">SMLIB</a>
