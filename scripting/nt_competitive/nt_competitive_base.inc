@@ -192,7 +192,7 @@ public Action:Timer_Unpause(Handle:timer)
 public Action:Timer_UnpauseNotice_Half(Handle:timer)
 {
 	if (g_isPaused)
-		PrintToChatAll("%s Pause time left: %i seconds", g_tag, RoundToNearest(GetConVarFloat(g_hMaxTimeout)));
+		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxTimeout)) / 2));
 }
 
 stock GetPlayersReady()
