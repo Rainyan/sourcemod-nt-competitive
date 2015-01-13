@@ -40,8 +40,9 @@ public OnPluginStart()
 	g_hMatchSize = CreateConVar("sm_competitive_match_size", "10", "How many players participate in a default sized competitive match.");
 	g_hMaxTimeout = CreateConVar("sm_competitive_timeout_length", "180", "How long can a competitive time-out last, in seconds.");
 	
-	g_hNeoRestartThis = FindConVar("neo_restart_this");
 	g_hAlltalk = FindConVar("sv_alltalk");
+	g_hNeoRestartThis = FindConVar("neo_restart_this");
+	g_hPausable = FindConVar("sv_pausable");
 	
 	HookConVarChange(g_hNeoRestartThis, Event_Restart);
 }

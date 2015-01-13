@@ -26,12 +26,13 @@ new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 new bool:g_isPaused;
 
-//new Handle:g_hServerPassword;
-new Handle:g_hRoundLimit;
-new Handle:g_hNeoRestartThis;
 new Handle:g_hAlltalk;
 new Handle:g_hMatchSize;
 new Handle:g_hMaxTimeout;
+new Handle:g_hNeoRestartThis;
+new Handle:g_hPausable;
+new Handle:g_hRoundLimit;
+//new Handle:g_hServerPassword;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -85,9 +86,8 @@ public Action:ToggleLive()
 	{
 		g_isLive = true;
 		
-		if (g_hAlltalk)
-			SetConVarBool(g_hAlltalk, false);
-		
+		SetConVarBool(g_hAlltalk, false);
+		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
 		
 		PrintToChatAll("%s Game started message.", g_tag);
@@ -128,7 +128,9 @@ public Action:TogglePause()
 			CreateTimer(0.25, Timer_SpamLive);
 	}
 	
-	ServerCommand("sv_pausable 1; pause; sv_pausable 0");
+	SetConVarBool(g_hPausable, true);
+	ServerCommand("pause");
+	SetConVarBool(g_hPausable, false);
 }
 
 public Action:Timer_SpamLive(Handle:timer)
