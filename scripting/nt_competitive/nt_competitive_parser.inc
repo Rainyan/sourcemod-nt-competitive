@@ -61,6 +61,8 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 public Action:Command_JoinTeam(client, args)
 {
+	// To-do: Allow team rejoining if player disconnects whilst live
+
 	if (!g_isLive)
 		return Plugin_Continue;
 	
