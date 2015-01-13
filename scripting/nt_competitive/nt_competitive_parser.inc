@@ -59,13 +59,12 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	return Plugin_Handled;
 }
 
-public Action:Event_PlayerTeam(Handle:event, const String:name[], bool:dontBroadcast)
+public Action:Command_JoinTeam(client, args)
 {
-	if (!g_isLive || GetEventBool(event, "disconnect")) // Do nothing if not live or if event triggered by player disconnect
+	// To-do: Allow team rejoining if player disconnects whilst live
+
+	if (!g_isLive)
 		return Plugin_Continue;
-	
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	//new team = GetEventInt(event, "team");
 	
 	PrintToChat(client, "%s Game is live, you cannot change your team right now!", g_tag);
 	
