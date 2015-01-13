@@ -1,6 +1,6 @@
 #pragma semicolon 1
 
-#define DEBUG 1
+#define DEBUG 2
 
 #include <sourcemod>
 #include <smlib>
