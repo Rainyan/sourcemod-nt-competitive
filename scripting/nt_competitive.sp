@@ -29,13 +29,13 @@ public OnPluginStart()
 	RegConsoleCmd("sm_unstart",	Command_UnOverrideStart,	"Cancel !sm_start.");
 	RegConsoleCmd("sm_pause",	Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("sm_timeout",	Command_Pause,				"Request a pause or timeout in a competitive match.");
+	RegConsoleCmd("jointeam",	Command_JoinTeam);
 	
 	#if DEBUG
 		RegAdminCmd("sm_forcelive", Command_ForceLive, ADMFLAG_GENERIC, "Force the competitive match to start. Debug command.");
 	#endif
 	
 	HookEvent("game_round_start", Event_RoundStart);
-	HookEvent("player_team", Event_PlayerTeam);
 	
 	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.");
 	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players participate in a default sized competitive match.");

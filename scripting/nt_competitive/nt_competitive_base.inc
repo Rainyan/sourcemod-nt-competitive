@@ -170,7 +170,7 @@ public Action:TogglePause()
 			LogError("Attempted pause command whilst no valid clients were connected.");
 	}
 	
-	CreateTimer(0.05, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here
+	CreateTimer(0.05, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here. 0.01 was occasionally too fast, 0.05 seems pretty safe.
 	
 	return Plugin_Handled;
 }
