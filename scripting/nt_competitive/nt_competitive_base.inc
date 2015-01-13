@@ -147,10 +147,35 @@ public Action:TogglePause()
 	}
 	
 	SetConVarBool(g_hPausable, true);
-	ServerCommand("pause");
-	SetConVarBool(g_hPausable, false);
+	
+	new invalidClients;
+	for (new i = 1; i <= MaxClients; i++) // The server can't exec "pause" for some reason. So, instead, use the first valid client to execute it.
+	{
+		if (Client_IsValid(i))
+		{
+			ClientCommand(i, "pause");
+			#if DEBUG > 1
+				new String:clientName[MAX_NAME_LENGTH];
+				GetClientName(i, clientName, sizeof(clientName));
+				PrintToServer("Pause exec - found: %s", clientName);
+			#endif
+			break;
+		}
+		
+		invalidClients++;
+		
+		if (invalidClients == MaxClients)
+			LogError("Attempted pause command whilst no valid clients were connected.");
+	}
+	
+	CreateTimer(0.01, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here
 	
 	return Plugin_Handled;
+}
+
+public Action:Timer_DisablePause(Handle:timer)
+{
+	SetConVarBool(g_hPausable, false);
 }
 
 public Action:Timer_SpamLive(Handle:timer)
