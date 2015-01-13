@@ -14,6 +14,8 @@ new String:g_teamName[][] = {
 new g_roundCount;
 new g_jinraiScore;
 new g_nsfScore;
+new pausingTeam;
+new g_spamTimerCount;
 
 new Float:g_fRoundTime;
 
@@ -23,6 +25,7 @@ new bool:g_isExpectingOverride;
 new bool:g_isLive;
 new bool:g_isPaused;
 new bool:g_isReady[MAXPLAYERS+1];
+new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 
@@ -33,6 +36,8 @@ new Handle:g_hNeoRestartThis;
 new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
 //new Handle:g_hServerPassword;
+
+new Handle:g_hTimerSpamLive;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -91,8 +96,7 @@ public Action:ToggleLive()
 		SetConVarBool(g_hNeoRestartThis, true);
 		
 		PrintToChatAll("%s Game started message.", g_tag);
-		for (new i = 1; i == 3; i++)
-			CreateTimer(0.25, Timer_SpamLive);
+		SpamTimer();
 	}
 	
 	else
@@ -140,9 +144,7 @@ public Action:TogglePause()
 		if (g_isLive) // Only announce the unpause if a match is still going
 		{
 			PrintToChatAll("%s Match unpaused.", g_tag);
-			
-			for (new i = 1; i == 3; i++)
-				CreateTimer(0.25, Timer_SpamLive);
+			SpamTimer();
 		}
 	}
 	
@@ -168,7 +170,7 @@ public Action:TogglePause()
 			LogError("Attempted pause command whilst no valid clients were connected.");
 	}
 	
-	CreateTimer(0.01, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here
+	CreateTimer(0.05, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here
 	
 	return Plugin_Handled;
 }
@@ -180,13 +182,32 @@ public Action:Timer_DisablePause(Handle:timer)
 
 public Action:Timer_SpamLive(Handle:timer)
 {
-	PrintToChatAll("%s LIVE", g_tag);
+	g_spamTimerCount++;
+	
+	if (g_spamTimerCount <= 3)
+		PrintToChatAll("%s LIVE", g_tag);
+	
+	else
+	{
+		if (g_hTimerSpamLive != INVALID_HANDLE)
+			KillTimer(g_hTimerSpamLive);
+		
+		g_spamTimerCount = 0;
+	}
+}
+
+public Action:SpamTimer()
+{
+	g_hTimerSpamLive = CreateTimer(0.33, Timer_SpamLive, _, TIMER_REPEAT);
 }
 
 public Action:Timer_Unpause(Handle:timer)
 {
 	if (g_isPaused)
+	{
+		PrintToChatAll("%s Maximum pause time has ended!", g_tag);
 		TogglePause();
+	}
 }
 
 public Action:Timer_UnpauseNotice_Half(Handle:timer)

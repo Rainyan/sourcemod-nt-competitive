@@ -67,9 +67,75 @@ public Action:Command_ForceLive(client, args)
 	return Plugin_Handled;
 }
 
+public Action:Command_Pause(client, args)
+{
+	if (!g_isLive)
+	{
+		ReplyToCommand(client, "%s Game is not live.", g_tag);
+		return Plugin_Stop;
+	}
+	
+	new team = GetClientTeam(client);
+	
+	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
+		return Plugin_Stop;
+	
+	if (g_isPaused)
+	{
+		new otherTeam;
+		
+		if (team == TEAM_JINRAI)
+			otherTeam = TEAM_NSF;
+		else
+			otherTeam = TEAM_JINRAI;
+		
+		if (!g_isTeamReadyForUnPause[pausingTeam] && team != pausingTeam)
+		{
+			PrintToChat(client, "%s Cannot unpause − the pause was initiated by %s", g_teamName[otherTeam]);
+			return Plugin_Stop;
+		}
+		
+		if (!g_isTeamReadyForUnPause[team])
+		{
+			new Handle:panel = CreatePanel();
+			SetPanelTitle(panel, "Unpause?");
+			
+			DrawPanelItem(panel, "Team is ready, request unpause");
+			DrawPanelItem(panel, "Cancel");
+			
+			SendPanelToClient(panel, client, PanelHandler_UnPause, MENU_TIME);
+			
+			CloseHandle(panel);
+			
+			return Plugin_Handled;
+		}
+		
+		g_isTeamReadyForUnPause[team] = false;
+		PrintToChatAll("%s Team %s cancelled being ready for unpause", g_tag, g_teamName[team]);
+		
+		return Plugin_Handled;
+	}
+	
+	new Handle:panel = CreatePanel();
+	SetPanelTitle(panel, "Request pause");
+	
+	DrawPanelText(panel, "Please select pause reason");
+	
+	DrawPanelItem(panel, "Technical difficulties");
+	DrawPanelItem(panel, "Time-out");
+	DrawPanelItem(panel, "Exit");
+	
+	SendPanelToClient(panel, client, PanelHandler_Pause, MENU_TIME);
+	
+	CloseHandle(panel);
+	
+	return Plugin_Handled;
+}
+
 public Action:PauseRequest(client, reason)
 {
 	new team = GetClientTeam(client);
+	pausingTeam = team;
 	
 	switch (reason)
 	{
@@ -90,6 +156,26 @@ public Action:PauseRequest(client, reason)
 		PrintToChatAll("Match will be paused during the next freezetime.");
 		g_shouldPause = true;
 	}
+}
+
+public Action:UnPauseRequest(client)
+{
+	new team = GetClientTeam(client);
+	new otherTeam;
+	
+	if (team == TEAM_JINRAI)
+		otherTeam = TEAM_NSF;
+	else
+		otherTeam = TEAM_JINRAI;
+	
+	g_isTeamReadyForUnPause[team] = true;
+	PrintToChatAll("%s Team %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
+	
+	if (g_isTeamReadyForUnPause[TEAM_JINRAI] && g_isTeamReadyForUnPause[TEAM_NSF])
+		TogglePause();
+	
+	else
+		PrintToChatAll("Waiting for %s to confirm unpause.", g_teamName[otherTeam]);
 }
 
 public Action:Command_OverrideStart(client, args)
