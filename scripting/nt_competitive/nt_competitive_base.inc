@@ -14,7 +14,7 @@ new String:g_teamName[][] = {
 new g_roundCount;
 new g_jinraiScore;
 new g_nsfScore;
-new pausingTeam;
+new g_pausingTeam;
 new g_spamTimerCount;
 
 new Float:g_fRoundTime;

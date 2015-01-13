@@ -89,7 +89,7 @@ public Action:Command_Pause(client, args)
 		else
 			otherTeam = TEAM_JINRAI;
 		
-		if (!g_isTeamReadyForUnPause[pausingTeam] && team != pausingTeam)
+		if (!g_isTeamReadyForUnPause[g_pausingTeam] && team != g_pausingTeam)
 		{
 			PrintToChat(client, "%s Cannot unpause − the pause was initiated by %s", g_teamName[otherTeam]);
 			return Plugin_Stop;
@@ -135,7 +135,7 @@ public Action:Command_Pause(client, args)
 public Action:PauseRequest(client, reason)
 {
 	new team = GetClientTeam(client);
-	pausingTeam = team;
+	g_pausingTeam = team;
 	
 	switch (reason)
 	{
