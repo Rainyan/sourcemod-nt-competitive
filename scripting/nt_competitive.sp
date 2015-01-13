@@ -41,6 +41,7 @@ public OnPluginStart()
 	g_hMaxTimeout = CreateConVar("sm_competitive_timeout_length", "180", "How long can a competitive time-out last, in seconds.");
 	
 	g_hNeoRestartThis = FindConVar("neo_restart_this");
+	g_hAlltalk = FindConVar("sv_alltalk");
 	
 	HookConVarChange(g_hNeoRestartThis, Event_Restart);
 }
@@ -52,7 +53,6 @@ public OnMapStart()
 
 public OnConfigsExecuted()
 {
-	g_hAlltalk = FindConVar("sv_alltalk");
 	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
 }
 
