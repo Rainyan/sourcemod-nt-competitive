@@ -31,9 +31,9 @@ public OnPluginStart()
 	RegConsoleCmd("sm_timeout",	Command_Pause,				"Request a pause or timeout in a competitive match.");
 	
 	#if DEBUG
-		RegConsoleCmd("sm_forcelive", Command_ForceLive, "Force the competitive match to start. Debug command.");
+		RegAdminCmd("sm_forcelive", Command_ForceLive, ADMFLAG_GENERIC, "Force the competitive match to start. Debug command.");
 	#endif
-
+	
 	HookEvent("game_round_start", Event_RoundStart);
 	HookEvent("player_team", Event_PlayerTeam);
 	
