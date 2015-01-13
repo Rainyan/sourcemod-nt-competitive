@@ -56,11 +56,11 @@ public Action:CheckIfEveryoneIsReady()
 		PrintToServer("%s Players ready: %i", g_tag, playersReady);
 	#endif
 	
-	if (players < playersReady)
-		LogError("More players ready than there are players total.");
-	
 	if (players > playersReady) // Everyone isn't ready, stop here
 		return Plugin_Stop;
+	
+	if (players < playersReady)
+		LogError("More players ready than there are players total.");
 	
 	if (players < GetConVarInt(g_hMatchSize)) // Everyone connected is ready, but there are less people than expected
 	{
