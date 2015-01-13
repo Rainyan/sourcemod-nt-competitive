@@ -38,8 +38,8 @@ public OnPluginStart()
 	HookEvent("player_team", Event_PlayerTeam);
 	
 	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.");
-	g_hMatchSize		= CreateConVar("sm_competitive_match_size", "10", "How many players participate in a default sized competitive match.");
-	g_hMaxTimeout		= CreateConVar("sm_competitive_timeout_length", "180", "How long can a competitive time-out last, in seconds.");
+	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players participate in a default sized competitive match.");
+	g_hMaxTimeout		= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.");
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
