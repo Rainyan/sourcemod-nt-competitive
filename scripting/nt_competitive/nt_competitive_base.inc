@@ -17,14 +17,14 @@ new g_nsfScore;
 
 new Float:g_fRoundTime;
 
-new bool:g_isReady[MAXPLAYERS+1];
-//new bool:g_isCompetitor[MAXPLAYERS+1];
-new bool:g_isLive;
 new bool:g_isAlltalkByDefault;
+//new bool:g_isCompetitor[MAXPLAYERS+1];
 new bool:g_isExpectingOverride;
+new bool:g_isLive;
+new bool:g_isPaused;
+new bool:g_isReady[MAXPLAYERS+1];
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
-new bool:g_isPaused;
 
 new Handle:g_hAlltalk;
 new Handle:g_hMatchSize;
@@ -99,6 +99,9 @@ public Action:ToggleLive()
 	{	
 		g_isLive = false;
 		
+		if (g_isPaused)
+			TogglePause();
+		
 		g_roundCount = 0;
 		
 		if (g_isAlltalkByDefault)
@@ -112,6 +115,12 @@ public Action:TogglePause()
 {
 	if (!g_isPaused)
 	{
+		if (!g_isLive)
+		{
+			LogError("Attempted to pause while match isn't live.");
+			return Plugin_Handled;
+		}
+	
 		g_isPaused = true;
 		PrintToChatAll("%s Match paused for %i minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
 		
@@ -122,15 +131,21 @@ public Action:TogglePause()
 	else
 	{	
 		g_isPaused = false;
-		PrintToChatAll("%s Match unpaused.", g_tag);
 		
-		for (new i = 1; i == 3; i++)
-			CreateTimer(0.25, Timer_SpamLive);
+		if (g_isLive) // Only announce the unpause if a match is still going
+		{
+			PrintToChatAll("%s Match unpaused.", g_tag);
+			
+			for (new i = 1; i == 3; i++)
+				CreateTimer(0.25, Timer_SpamLive);
+		}
 	}
 	
 	SetConVarBool(g_hPausable, true);
 	ServerCommand("pause");
 	SetConVarBool(g_hPausable, false);
+	
+	return Plugin_Handled;
 }
 
 public Action:Timer_SpamLive(Handle:timer)
