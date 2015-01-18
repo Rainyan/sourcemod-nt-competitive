@@ -11,10 +11,10 @@ new String:g_teamName[][] = {
 	"NSF"
 };
 
-new g_roundCount;
 new g_jinraiScore;
 new g_nsfScore;
 new g_pausingTeam;
+new g_roundCount;
 new g_spamTimerCount;
 
 new Float:g_fRoundTime;
@@ -159,7 +159,7 @@ public Action:TogglePause()
 			#if DEBUG > 1
 				new String:clientName[MAX_NAME_LENGTH];
 				GetClientName(i, clientName, sizeof(clientName));
-				PrintToServer("Pause exec - found: %s", clientName);
+				PrintToServer("Found client to toggle pause. Client int: %i, name: %s", i, clientName);
 			#endif
 			break;
 		}
@@ -167,7 +167,7 @@ public Action:TogglePause()
 		invalidClients++;
 		
 		if (invalidClients == MaxClients)
-			LogError("Attempted pause command whilst no valid clients were connected.");
+			LogError("Attempted pause command whilst no valid clients were connected inside TogglePause. This shouldn't happen.");
 	}
 	
 	CreateTimer(0.05, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here. 0.01 was occasionally too fast, 0.05 seems pretty safe.
@@ -182,6 +182,7 @@ public Action:Timer_DisablePause(Handle:timer)
 
 public Action:Timer_SpamLive(Handle:timer)
 {
+	// Print the LIVE message X times, then kill the repeat timer calling this
 	g_spamTimerCount++;
 	
 	if (g_spamTimerCount <= 3)
@@ -198,7 +199,7 @@ public Action:Timer_SpamLive(Handle:timer)
 
 public Action:SpamTimer()
 {
-	g_hTimerSpamLive = CreateTimer(0.33, Timer_SpamLive, _, TIMER_REPEAT);
+	g_hTimerSpamLive = CreateTimer(0.33, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
 }
 
 public Action:Timer_Unpause(Handle:timer)
@@ -212,6 +213,7 @@ public Action:Timer_Unpause(Handle:timer)
 
 public Action:Timer_UnpauseNotice_Half(Handle:timer)
 {
+	// Show notification when half of the max pause time has elapsed
 	if (g_isPaused)
 		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxTimeout)) / 2));
 }

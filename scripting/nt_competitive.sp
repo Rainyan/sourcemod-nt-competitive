@@ -163,6 +163,7 @@ public Action:UnPauseRequest(client)
 	new team = GetClientTeam(client);
 	new otherTeam;
 	
+	// We check for non playable teams already in Command_Pause before calling this
 	if (team == TEAM_JINRAI)
 		otherTeam = TEAM_NSF;
 	else
