@@ -1,17 +1,31 @@
+public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+	g_isSpawned[client] = true;
+}
+
 public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
-{	
+{
+	for (new i = 1; i<=MaxClients; i++)
+		g_isSpawned[i] = false;
+
 	if (!g_isLive)
 		return Plugin_Continue;
 	
-	if (g_shouldPause)
-		TogglePause();
-	
-	g_fRoundTime = GetGameTime();
+	g_fRoundTime	= GetGameTime();
 	
 	g_roundCount++;
 	
 	g_jinraiScore	= GetTeamScore(TEAM_JINRAI);
 	g_nsfScore		= GetTeamScore(TEAM_NSF);
+	
+	if (g_shouldPause)
+	{
+		g_shouldPause = false;
+		new Float:pauseTime = 5.0;
+		CreateTimer(pauseTime, Timer_TogglePause);
+		PrintToChatAll("%s Pausing the game...", g_tag);
+	}
 	
 	new roundLimit = GetConVarInt(g_hRoundLimit);
 	
