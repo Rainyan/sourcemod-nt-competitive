@@ -25,6 +25,7 @@ new bool:g_isExpectingOverride;
 new bool:g_isLive;
 new bool:g_isPaused;
 new bool:g_isReady[MAXPLAYERS+1];
+new bool:g_isSpawned[MAXPLAYERS+1];
 new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
@@ -37,7 +38,8 @@ new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
 //new Handle:g_hServerPassword;
 
-new Handle:g_hTimerSpamLive;
+new Handle:g_hTimerSpamLive = INVALID_HANDLE;
+new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -126,10 +128,11 @@ public Action:TogglePause()
 		}
 	
 		g_isPaused = true;
-		PrintToChatAll("%s Match paused for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
+		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxTimeout));
+		PrintToChatAll("%s Use !pause when ready.", g_tag);
 		
 		#if DEBUG > 1
-			PrintToServer("%s Match paused for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
+			PrintToServer("%s Pause duration: for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
 			PrintToServer("Max timeout: %f", GetConVarFloat(g_hMaxTimeout));
 		#endif
 		
@@ -150,29 +153,107 @@ public Action:TogglePause()
 	
 	SetConVarBool(g_hPausable, true);
 	
-	new invalidClients;
-	for (new i = 1; i <= MaxClients; i++) // The server can't exec "pause" for some reason. So, instead, use the first valid client to execute it.
-	{
-		if (Client_IsValid(i))
-		{
-			ClientCommand(i, "pause");
-			#if DEBUG > 1
-				new String:clientName[MAX_NAME_LENGTH];
-				GetClientName(i, clientName, sizeof(clientName));
-				PrintToServer("Found client to toggle pause. Client int: %i, name: %s", i, clientName);
-			#endif
-			break;
-		}
-		
-		invalidClients++;
-		
-		if (invalidClients == MaxClients)
-			LogError("Attempted pause command whilst no valid clients were connected inside TogglePause. This shouldn't happen.");
-	}
-	
-	CreateTimer(0.05, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here. 0.01 was occasionally too fast, 0.05 seems pretty safe.
+	CreateTimer(0.5, Timer_TogglePauseLoop);
 	
 	return Plugin_Handled;
+}
+
+public Action:Timer_TogglePauseLoop(Handle:timer)
+{
+	TogglePauseLoop();
+}
+
+public Action:TogglePauseLoop()
+{
+	new invalidClients;
+	new unspawnedClients[2];
+	new bool:forcePause;
+	
+	PrintToServer("MaxClients: %i", MaxClients);
+	
+	for (new i = 1; i <= MaxClients; i++) // The server can't exec "pause" for some reason. So, instead, use the first valid client to execute it.
+	{
+		unspawnedClients[0] = unspawnedClients[1];
+		if (Client_IsValid(i))
+		{
+			if (IsFakeClient(i))
+			{
+				invalidClients++;
+				continue;
+			}
+			
+			if (!g_isSpawned[i])
+				unspawnedClients[1]++;
+			
+			if (forcePause || unspawnedClients[1] <= unspawnedClients[0])
+			{
+				if (g_hTimerTogglePause != INVALID_HANDLE)
+				{
+					KillTimer(g_hTimerTogglePause);
+					g_hTimerTogglePause = INVALID_HANDLE;
+				}
+				
+				ClientCommand(i, "pause");
+				
+				#if DEBUG > 1
+					if (forcePause)
+						PrintToServer("Force pause detected.");
+					
+					new String:clientName[MAX_NAME_LENGTH];
+					GetClientName(i, clientName, sizeof(clientName));
+					PrintToServer("Found client to toggle pause. Client int: %i, name: %s", i, clientName);
+				#endif
+				
+				CreateTimer(0.05, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here. 0.01 was occasionally too fast, 0.05 seems pretty safe.
+				
+				break;
+			}
+		}
+		
+		else
+			invalidClients++;
+		
+		PrintToServer("invalidClients: %i", invalidClients);
+		
+		if (i == MaxClients && unspawnedClients[1] > 0) // This will keep looping in 1 second intervals for as long as there are valid unspawned clients
+		{
+			#if DEBUG > 1
+					PrintToServer("Found %i invalid clients. Found %i valid unspawned clients.", invalidClients, unspawnedClients[1]);
+			#endif
+			
+			if (g_hTimerTogglePause != INVALID_HANDLE)
+			{
+				KillTimer(g_hTimerTogglePause);
+				g_hTimerTogglePause = INVALID_HANDLE;
+			}
+			
+			if (GetGameTime() > g_fRoundTime + 13.9)
+			{
+				forcePause = true;
+				i = 0; // Reset loop
+				
+				#if DEBUG > 1
+					PrintToServer("New round is about to start! Force any valid client to toggle pause...");
+				#endif
+				
+				continue;
+			}
+			
+			g_hTimerTogglePause = CreateTimer(1.0, Timer_TogglePauseLoop);
+			
+			#if DEBUG > 1
+				PrintToServer("No valid spawned client found. Restarting loop in TogglePauseLoop");
+			#endif
+		}
+		
+		else if (invalidClients == MaxClients)
+			LogError("Attempted pause command whilst no valid clients were connected inside TogglePause. This shouldn't happen.");
+	}
+}
+
+public Action:Timer_TogglePause(Handle:timer)
+{
+	TogglePause();
 }
 
 public Action:Timer_DisablePause(Handle:timer)

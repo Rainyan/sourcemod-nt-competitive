@@ -35,7 +35,8 @@ public OnPluginStart()
 		RegAdminCmd("sm_forcelive", Command_ForceLive, ADMFLAG_GENERIC, "Force the competitive match to start. Debug command.");
 	#endif
 	
-	HookEvent("game_round_start", Event_RoundStart);
+	HookEvent("game_round_start",	Event_RoundStart);
+	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
 	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.");
 	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players participate in a default sized competitive match.");
