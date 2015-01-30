@@ -169,8 +169,6 @@ public Action:TogglePauseLoop()
 	new unspawnedClients[2];
 	new bool:forcePause;
 	
-	PrintToServer("MaxClients: %i", MaxClients);
-	
 	for (new i = 1; i <= MaxClients; i++) // The server can't exec "pause" for some reason. So, instead, use the first valid client to execute it.
 	{
 		unspawnedClients[0] = unspawnedClients[1];
@@ -212,8 +210,6 @@ public Action:TogglePauseLoop()
 		
 		else
 			invalidClients++;
-		
-		PrintToServer("invalidClients: %i", invalidClients);
 		
 		if (i == MaxClients && unspawnedClients[1] > 0) // This will keep looping in 1 second intervals for as long as there are valid unspawned clients
 		{
