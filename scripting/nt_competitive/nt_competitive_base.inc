@@ -272,7 +272,10 @@ public Action:Timer_SpamLive(Handle:timer)
 	else
 	{
 		if (g_hTimerSpamLive != INVALID_HANDLE)
+		{
 			KillTimer(g_hTimerSpamLive);
+			g_hTimerSpamLive = INVALID_HANDLE;
+		}
 		
 		g_spamTimerCount = 0;
 	}
