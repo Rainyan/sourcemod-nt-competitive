@@ -87,6 +87,39 @@ public Action:CheckIfEveryoneIsReady()
 	return Plugin_Handled;
 }
 
+public Action:ToggleRecording()
+{
+	if (g_isLive) // Start recording
+	{
+		for (new i = 1; i <= MaxClients; i++)
+		{
+			if (!Client_IsValid(i) || IsFakeClient(i))
+				continue;
+			
+			ClientCommand(i, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
+			ClientCommand(i, "record foobar"); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
+			
+			#if DEBUG > 1
+				ClientCommand(i, "say Test: Start demo.");
+			#endif
+		}
+	}
+	
+	else // Stop recording
+	{		
+		for (new i = 1; i <= MaxClients; i++)
+		{
+			if (!Client_IsValid(i) || IsFakeClient(i))
+				continue;
+			
+			ClientCommand(i, "stop");
+			#if DEBUG > 1
+				ClientCommand(i, "say Test: Stop demo.");
+			#endif
+		}
+	}
+}
+
 public Action:ToggleLive()
 {
 	if (!g_isLive)
@@ -96,6 +129,8 @@ public Action:ToggleLive()
 		SetConVarBool(g_hAlltalk, false);
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
+		
+		ToggleRecording();
 		
 		PrintToChatAll("%s Game started message.", g_tag);
 		SpamTimer();
@@ -107,6 +142,8 @@ public Action:ToggleLive()
 		
 		if (g_isPaused)
 			TogglePause();
+		
+		ToggleRecording();
 		
 		g_roundCount = 0;
 		
@@ -169,8 +206,6 @@ public Action:TogglePauseLoop()
 	new unspawnedClients[2];
 	new bool:forcePause;
 	
-	PrintToServer("MaxClients: %i", MaxClients);
-	
 	for (new i = 1; i <= MaxClients; i++) // The server can't exec "pause" for some reason. So, instead, use the first valid client to execute it.
 	{
 		unspawnedClients[0] = unspawnedClients[1];
@@ -212,8 +247,6 @@ public Action:TogglePauseLoop()
 		
 		else
 			invalidClients++;
-		
-		PrintToServer("invalidClients: %i", invalidClients);
 		
 		if (i == MaxClients && unspawnedClients[1] > 0) // This will keep looping in 1 second intervals for as long as there are valid unspawned clients
 		{

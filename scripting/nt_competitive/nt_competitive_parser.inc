@@ -6,7 +6,7 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 
 public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	for (new i = 1; i<=MaxClients; i++)
+	for (new i = 1; i <= MaxClients; i++)
 		g_isSpawned[i] = false;
 
 	if (!g_isLive)
