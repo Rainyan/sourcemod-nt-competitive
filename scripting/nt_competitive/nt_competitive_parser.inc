@@ -90,3 +90,14 @@ public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 	if (StringToInt(newVal)) // If nonzero, we have a restart. So we reset the variable.
 		g_roundCount = 0;
 }
+
+public Action:Hook_Fade(UserMsg:msg_id, Handle:bf, const players[], playersNum, bool:reliable, bool:init)
+{
+	if (GetConVarInt(g_hForceCamera))
+	{
+		if (BfReadShort(bf) == 640 && !IsPlayerAlive(players[0]))
+			return Plugin_Stop;
+	}
+	
+	return Plugin_Continue;
+}

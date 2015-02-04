@@ -31,6 +31,7 @@ new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 
 new Handle:g_hAlltalk;
+new Handle:g_hForceCamera;
 new Handle:g_hMatchSize;
 new Handle:g_hMaxTimeout;
 new Handle:g_hNeoRestartThis;
@@ -113,6 +114,7 @@ public Action:ToggleRecording()
 				continue;
 			
 			ClientCommand(i, "stop");
+			
 			#if DEBUG > 1
 				ClientCommand(i, "say Test: Stop demo.");
 			#endif
@@ -129,6 +131,7 @@ public Action:ToggleLive()
 		SetConVarBool(g_hAlltalk, false);
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
+		SetConVarBool(g_hForceCamera, true);
 		
 		ToggleRecording();
 		
@@ -137,7 +140,7 @@ public Action:ToggleLive()
 	}
 	
 	else
-	{	
+	{
 		g_isLive = false;
 		
 		if (g_isPaused)
@@ -146,6 +149,8 @@ public Action:ToggleLive()
 		ToggleRecording();
 		
 		g_roundCount = 0;
+		
+		SetConVarBool(g_hForceCamera, false);
 		
 		if (g_isAlltalkByDefault)
 			SetConVarBool(g_hAlltalk, true);
@@ -341,7 +346,7 @@ stock GetPlayersReady()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !g_isReady[i])
+		if (!Client_IsValid(i) || !g_isReady[i]) // Fake clients are never ready, so we don't need to check for them
 			continue;
 		
 		playersReady++;

@@ -1,3 +1,5 @@
+// Fade-to-black function borrowed from Agiel's nt_fadetoblack plugin (GPLv3)
+
 #pragma semicolon 1
 
 //#define DEBUG 0 // Release
@@ -43,10 +45,13 @@ public OnPluginStart()
 	g_hMaxTimeout		= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.");
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
+	g_hForceCamera		= FindConVar("mp_forcecamera");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
 	g_hPausable			= FindConVar("sv_pausable");
 	
 	HookConVarChange(g_hNeoRestartThis, Event_Restart);
+	
+	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true);
 	
 	AutoExecConfig();
 }
