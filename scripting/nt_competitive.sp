@@ -20,7 +20,7 @@ public Plugin:myinfo = {
 	description	=	"NT competitive setup",
 	author		=	"Rain",
 	version		=	PLUGIN_VERSION,
-	url			=	""
+	url			=	"https://github.com/Rainyan/sourcemod-nt-competitive"
 };
 
 public OnPluginStart()
