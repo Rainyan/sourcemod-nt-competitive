@@ -28,7 +28,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_ready",	Command_Ready,				"Mark yourself as ready for a competitive match.");
 	RegConsoleCmd("sm_unready",	Command_UnReady,			"Mark yourself as not ready for a competitive match.");
 	RegConsoleCmd("sm_start",	Command_OverrideStart,		"Force a competitive match start when using an unexpected setup.");
-	RegConsoleCmd("sm_unstart",	Command_UnOverrideStart,	"Cancel !sm_start.");
+	RegConsoleCmd("sm_unstart",	Command_UnOverrideStart,	"Cancel sm_start.");
 	RegConsoleCmd("sm_pause",	Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("sm_timeout",	Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("jointeam",	Command_JoinTeam); // There's no pick team event for NT, so we do this instead
