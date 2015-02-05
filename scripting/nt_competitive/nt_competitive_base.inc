@@ -25,6 +25,7 @@ new bool:g_isExpectingOverride;
 new bool:g_isLive;
 new bool:g_isPaused;
 new bool:g_isReady[MAXPLAYERS+1];
+new bool:g_isSourceTVRecording;
 new bool:g_isSpawned[MAXPLAYERS+1];
 new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
@@ -37,6 +38,8 @@ new Handle:g_hMaxTimeout;
 new Handle:g_hNeoRestartThis;
 new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
+new Handle:g_hSourceTVEnabled;
+new Handle:g_hSourceTVPath;
 //new Handle:g_hServerPassword;
 
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
@@ -124,6 +127,8 @@ public Action:ToggleRecording()
 
 public Action:ToggleLive()
 {
+	ToggleSourceTV();
+	
 	if (!g_isLive)
 	{
 		g_isLive = true;
@@ -338,6 +343,59 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 	// Show notification when half of the max pause time has elapsed
 	if (g_isPaused)
 		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxTimeout)) / 2));
+}
+
+public InitDirectory(const String:sDir[])
+{
+	decl String:sPieces[32][PLATFORM_MAX_PATH];
+	new String:sPath[PLATFORM_MAX_PATH];
+	new iNumPieces = ExplodeString(sDir, "/", sPieces, sizeof(sPieces), sizeof(sPieces[]));
+	
+	for(new i = 0; i < iNumPieces; i++)
+	{
+		Format(sPath, sizeof(sPath), "%s/%s", sPath, sPieces[i]);
+		if(!DirExists(sPath))
+			CreateDirectory(sPath, 509); // Note that folders must have the execute bit set on Linux.  On Windows, the mode is ignored.
+	}
+}
+
+public Action:ToggleSourceTV()
+{
+	if (g_isSourceTVRecording)
+	{
+		ServerCommand("tv_stoprecord");
+		g_isSourceTVRecording = false;
+		
+		#if DEBUG
+		PrintToServer("tv_stoprecord");
+		#endif
+	}
+	
+	else
+	{
+		if (!GetConVarBool(g_hSourceTVEnabled) || !g_isLive)
+			return Plugin_Stop;
+		
+		if (g_isSourceTVRecording)
+			ServerCommand("tv_stoprecord");
+		
+		new String:demoPath[PLATFORM_MAX_PATH];
+		new String:timestamp[16];
+		new String:mapName[32];
+		
+		GetConVarString(g_hSourceTVPath, demoPath, sizeof(demoPath));
+		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", GetTime());
+		GetCurrentMap(mapName, sizeof(mapName));
+		
+		ServerCommand("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName);
+		g_isSourceTVRecording = true;
+		
+		#if DEBUG
+			PrintToServer("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName);
+		#endif
+	}
+	
+	return Plugin_Handled;
 }
 
 stock GetPlayersReady()
