@@ -4,18 +4,18 @@ sourcemod-nt-competitive
 SourceMod plugin for competitive Neotokyo. WIP.
 
 Features:
-  - Ready up system.
-  - Count rounds, announce winner.
-  - Pausing system.
   - Automatic demo recording.
+  - Automatic SourceTV recording
+  - Count rounds, announce winner.
+  - Fade to black
+  - Pausing system.
+  - Ready up system.
 
 To-do:
-  - Panel menus for players/admins
   - Admin controls
   - Handle dis/reconnecting players and teams
-  - Fade to black
-  - Automatic SourceTV recording
   - Log competitive matches (wins, kills, weapons used, etc)
+  - Panel menus for players/admins
 
 Compile dependencies:
   - <a target="_blank" href="https://github.com/bcserv/smlib/">SMLIB</a>
