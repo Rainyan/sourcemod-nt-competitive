@@ -4,7 +4,7 @@
 #define REASON_TIMEOUT 1
 
 new String:g_tag[] = "[COMP]";
-new String:g_teamName[][] = {
+new String:g_teamName[][64] = {
 	"Unassigned",
 	"Spectator",
 	"Jinrai",
@@ -40,6 +40,8 @@ new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
 new Handle:g_hSourceTVEnabled;
 new Handle:g_hSourceTVPath;
+new Handle:g_hJinraiName;
+new Handle:g_hNSFName;
 //new Handle:g_hServerPassword;
 
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;

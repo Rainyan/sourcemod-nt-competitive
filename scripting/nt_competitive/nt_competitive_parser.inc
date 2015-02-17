@@ -91,6 +91,80 @@ public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 		g_roundCount = 0;
 }
 
+public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	new String:nsfName[sizeof(g_teamName[])];
+	GetConVarString(g_hNSFName, nsfName, sizeof(nsfName));
+	
+	if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "Jinrai"
+	{
+		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), "Jinrai");
+		
+		#if DEBUG
+			if (StrEqual(newVal, oldVal))
+				PrintToServer("newVal == oldVal, prevented infinite loop by defaulting Jinrai name");
+			
+			else
+				PrintToServer("Jinrai to default name.");
+		#endif
+	}
+	
+	else if (StrEqual(newVal, nsfName)) // Jinrai tried using NSF's current name
+	{
+		SetConVarString(g_hJinraiName, oldVal);
+		
+		#if DEBUG
+			PrintToServer("Jinrai name == NSF name");
+		#endif
+	}
+	
+	else // Name change ok
+	{
+		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), newVal);
+		
+		#if DEBUG
+			PrintToServer("Jinrai name: %s", newVal);
+		#endif
+	}
+}
+
+public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	new String:jinraiName[sizeof(g_teamName[])];
+	GetConVarString(g_hJinraiName, jinraiName, sizeof(jinraiName));
+	
+	if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "NSF"
+	{
+		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), "NSF");
+		
+		#if DEBUG
+			if (StrEqual(newVal, oldVal))
+				PrintToServer("newVal == oldVal, prevented infinite loop by defaulting NSF name");
+			
+			else
+				PrintToServer("NSF to default name.");
+		#endif
+	}
+	
+	else if (StrEqual(newVal, jinraiName)) // NSF tried using Jinrai's current name
+	{
+		SetConVarString(g_hNSFName, oldVal);
+		
+		#if DEBUG
+			PrintToServer("NSF name == Jinrai name");
+		#endif
+	}
+	
+	else // Name change ok
+	{
+		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), newVal);
+		
+		#if DEBUG
+			PrintToServer("NSF name: %s", newVal);
+		#endif
+	}
+}
+
 public Event_SourceTVEnabled(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	if (StringToInt(newVal) && !IsSourceTVBotConnected())

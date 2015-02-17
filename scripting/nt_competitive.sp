@@ -49,6 +49,8 @@ public OnPluginStart()
 	g_hMaxTimeout		= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.");
 	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled", "1", "Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
 	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder.");
+	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name", "", "Jinrai team's name. Will use \"Jinrai\" if left empty.");
+	g_hNSFName			= CreateConVar("sm_competitive_nsf_name", "", "NSF team's name. Will use \"NSF\" if left empty.");
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -58,6 +60,8 @@ public OnPluginStart()
 	HookConVarChange(g_hNeoRestartThis, Event_Restart);
 	HookConVarChange(g_hSourceTVEnabled, Event_SourceTVEnabled);
 	HookConVarChange(g_hSourceTVPath, Event_SourceTVPath);
+	HookConVarChange(g_hJinraiName, Event_TeamNameJinrai);
+	HookConVarChange(g_hNSFName, Event_TeamNameNSF);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true);
 	
