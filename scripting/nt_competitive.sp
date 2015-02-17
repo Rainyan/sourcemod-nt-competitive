@@ -1,3 +1,9 @@
+/*
+	GPLv3
+		- Fade-to-black function borrowed from Agiel's nt_fadetoblack plugin.
+		- SourceTV recording functions borrowed from Stevo.TVR's Auto Recorder plugin: http://forums.alliedmods.net/showthread.php?t=92072
+*/
+
 #pragma semicolon 1
 
 //#define DEBUG 0 // Release
@@ -18,7 +24,7 @@ public Plugin:myinfo = {
 	description	=	"NT competitive setup",
 	author		=	"Rain",
 	version		=	PLUGIN_VERSION,
-	url			=	""
+	url			=	"https://github.com/Rainyan/sourcemod-nt-competitive"
 };
 
 public OnPluginStart()
@@ -26,7 +32,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_ready",	Command_Ready,				"Mark yourself as ready for a competitive match.");
 	RegConsoleCmd("sm_unready",	Command_UnReady,			"Mark yourself as not ready for a competitive match.");
 	RegConsoleCmd("sm_start",	Command_OverrideStart,		"Force a competitive match start when using an unexpected setup.");
-	RegConsoleCmd("sm_unstart",	Command_UnOverrideStart,	"Cancel !sm_start.");
+	RegConsoleCmd("sm_unstart",	Command_UnOverrideStart,	"Cancel sm_start.");
 	RegConsoleCmd("sm_pause",	Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("sm_timeout",	Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("jointeam",	Command_JoinTeam); // There's no pick team event for NT, so we do this instead
@@ -39,14 +45,26 @@ public OnPluginStart()
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
 	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.");
-	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players participate in a default sized competitive match.");
+	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players total are expected to ready up before starting a competitive match.");
 	g_hMaxTimeout		= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.");
+	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled", "1", "Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
+	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder.");
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
+	g_hForceCamera		= FindConVar("mp_forcecamera");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
 	g_hPausable			= FindConVar("sv_pausable");
 	
 	HookConVarChange(g_hNeoRestartThis, Event_Restart);
+	HookConVarChange(g_hSourceTVEnabled, Event_SourceTVEnabled);
+	HookConVarChange(g_hSourceTVPath, Event_SourceTVPath);
+	
+	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true);
+	
+	new String:sourceTVPath[PLATFORM_MAX_PATH];
+	GetConVarString(g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath));
+	if (!DirExists(sourceTVPath))
+		InitDirectory(sourceTVPath);
 	
 	AutoExecConfig();
 }

@@ -25,17 +25,21 @@ new bool:g_isExpectingOverride;
 new bool:g_isLive;
 new bool:g_isPaused;
 new bool:g_isReady[MAXPLAYERS+1];
+new bool:g_isSourceTVRecording;
 new bool:g_isSpawned[MAXPLAYERS+1];
 new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 
 new Handle:g_hAlltalk;
+new Handle:g_hForceCamera;
 new Handle:g_hMatchSize;
 new Handle:g_hMaxTimeout;
 new Handle:g_hNeoRestartThis;
 new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
+new Handle:g_hSourceTVEnabled;
+new Handle:g_hSourceTVPath;
 //new Handle:g_hServerPassword;
 
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
@@ -113,6 +117,7 @@ public Action:ToggleRecording()
 				continue;
 			
 			ClientCommand(i, "stop");
+			
 			#if DEBUG > 1
 				ClientCommand(i, "say Test: Stop demo.");
 			#endif
@@ -122,6 +127,8 @@ public Action:ToggleRecording()
 
 public Action:ToggleLive()
 {
+	ToggleSourceTV();
+	
 	if (!g_isLive)
 	{
 		g_isLive = true;
@@ -129,6 +136,7 @@ public Action:ToggleLive()
 		SetConVarBool(g_hAlltalk, false);
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
+		SetConVarBool(g_hForceCamera, true);
 		
 		ToggleRecording();
 		
@@ -137,7 +145,7 @@ public Action:ToggleLive()
 	}
 	
 	else
-	{	
+	{
 		g_isLive = false;
 		
 		if (g_isPaused)
@@ -146,6 +154,8 @@ public Action:ToggleLive()
 		ToggleRecording();
 		
 		g_roundCount = 0;
+		
+		SetConVarBool(g_hForceCamera, false);
 		
 		if (g_isAlltalkByDefault)
 			SetConVarBool(g_hAlltalk, true);
@@ -335,13 +345,108 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxTimeout)) / 2));
 }
 
+public InitDirectory(const String:sDir[])
+{
+	decl String:sPieces[32][PLATFORM_MAX_PATH];
+	new String:sPath[PLATFORM_MAX_PATH];
+	new iNumPieces = ExplodeString(sDir, "/", sPieces, sizeof(sPieces), sizeof(sPieces[]));
+	
+	for(new i = 0; i < iNumPieces; i++)
+	{
+		Format(sPath, sizeof(sPath), "%s/%s", sPath, sPieces[i]);
+		if(!DirExists(sPath))
+			CreateDirectory(sPath, 509); // Note that folders must have the execute bit set on Linux.  On Windows, the mode is ignored.
+	}
+}
+
+public Action:ToggleSourceTV()
+{
+	if (g_isSourceTVRecording)
+	{
+		ServerCommand("tv_stoprecord");
+		g_isSourceTVRecording = false;
+		
+		#if DEBUG
+			PrintToServer("tv_stoprecord");
+		#endif
+	}
+	
+	else
+	{
+		if (!GetConVarBool(g_hSourceTVEnabled) || !g_isLive)
+			return Plugin_Stop;
+		
+		if (!IsSourceTVBotConnected())
+		{
+			#if DEBUG
+				PrintToServer("ToggleSourceTV: SourceTV bot not found.");
+			#endif
+			
+			return Plugin_Stop;
+		}
+		
+		if (g_isSourceTVRecording)
+			ServerCommand("tv_stoprecord");
+		
+		new String:demoPath[PLATFORM_MAX_PATH];
+		new String:timestamp[16];
+		new String:mapName[32];
+		
+		GetConVarString(g_hSourceTVPath, demoPath, sizeof(demoPath));
+		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", GetTime());
+		GetCurrentMap(mapName, sizeof(mapName));
+		
+		ServerCommand("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName); // SourceTV bot needs to be connected for this to do anything
+		g_isSourceTVRecording = true;
+		
+		#if DEBUG
+			PrintToServer("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName);
+		#endif
+	}
+	
+	return Plugin_Handled;
+}
+
+bool:IsSourceTVBotConnected()
+{
+	// Get the SourceTV bot's name cvar, and figure out if bot is connected
+	new Handle:hBotName = FindConVar("tv_name");
+	new String:botName[MAX_NAME_LENGTH];
+	GetConVarString(hBotName, botName, sizeof(botName));
+	CloseHandle(hBotName);
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i) || !IsFakeClient(i))
+			continue;
+		
+		new String:clientName[MAX_NAME_LENGTH];
+		GetClientName(i, clientName, sizeof(clientName));
+		
+		#if DEBUG > 1
+			PrintToServer("Found valid fake client, index: %i, name: %s", i, clientName);
+		#endif
+		
+		if (StrEqual(clientName, botName) || StrEqual(clientName, "SourceTV")) // Also check for default name "SourceTV", because sometimes tv_name doesn't work when bot first spawns
+		{			
+			#if DEBUG > 1
+				PrintToServer("Fake client name %s matches tv_name cvar %s or \"SourceTV\"", clientName, botName);
+			#endif
+			
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 stock GetPlayersReady()
 {
 	new playersReady;
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !g_isReady[i])
+		if (!Client_IsValid(i) || !g_isReady[i]) // Fake clients are never ready, so we don't need to check for them
 			continue;
 		
 		playersReady++;
