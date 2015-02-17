@@ -376,38 +376,7 @@ public Action:ToggleSourceTV()
 		if (!GetConVarBool(g_hSourceTVEnabled) || !g_isLive)
 			return Plugin_Stop;
 		
-		// Get the SourceTV bot's name cvar, and figure out if bot is connected
-		new bool:isSourceTVBotConnected;
-		new Handle:hBotName = FindConVar("tv_name");
-		new String:botName[MAX_NAME_LENGTH];
-		GetConVarString(hBotName, botName, sizeof(botName));
-		CloseHandle(hBotName);
-		
-		for (new i = 1; i <= MaxClients; i++)
-		{
-			if (!Client_IsValid(i) || !IsFakeClient(i))
-				continue;
-			
-			new String:clientName[MAX_NAME_LENGTH];
-			GetClientName(i, clientName, sizeof(clientName));
-			
-			#if DEBUG > 1
-				PrintToServer("Found valid fake client, index: %i, name: %s", i, clientName);
-			#endif
-			
-			if (StrEqual(clientName, botName) || StrEqual(clientName, "SourceTV")) // Also check for default name "SourceTV", because sometimes tv_name doesn't work when bot first spawns
-			{
-				isSourceTVBotConnected = true;
-				
-				#if DEBUG > 1
-					PrintToServer("Fake client name %s matches tv_name cvar %s or \"SourceTV\"", clientName, botName);
-				#endif
-				
-				break;
-			}
-		}
-		
-		if (!isSourceTVBotConnected)
+		if (!IsSourceTVBotConnected())
 		{
 			#if DEBUG
 				PrintToServer("ToggleSourceTV: SourceTV bot not found.");
@@ -436,6 +405,39 @@ public Action:ToggleSourceTV()
 	}
 	
 	return Plugin_Handled;
+}
+
+bool:IsSourceTVBotConnected()
+{
+	// Get the SourceTV bot's name cvar, and figure out if bot is connected
+	new Handle:hBotName = FindConVar("tv_name");
+	new String:botName[MAX_NAME_LENGTH];
+	GetConVarString(hBotName, botName, sizeof(botName));
+	CloseHandle(hBotName);
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i) || !IsFakeClient(i))
+			continue;
+		
+		new String:clientName[MAX_NAME_LENGTH];
+		GetClientName(i, clientName, sizeof(clientName));
+		
+		#if DEBUG > 1
+			PrintToServer("Found valid fake client, index: %i, name: %s", i, clientName);
+		#endif
+		
+		if (StrEqual(clientName, botName) || StrEqual(clientName, "SourceTV")) // Also check for default name "SourceTV", because sometimes tv_name doesn't work when bot first spawns
+		{			
+			#if DEBUG > 1
+				PrintToServer("Fake client name %s matches tv_name cvar %s or \"SourceTV\"", clientName, botName);
+			#endif
+			
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 stock GetPlayersReady()

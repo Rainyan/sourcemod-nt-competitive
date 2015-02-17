@@ -93,7 +93,16 @@ public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 
 public Event_SourceTVEnabled(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	if (!StringToInt(newVal) && g_isSourceTVRecording) // SourceTV disabled while recording a demo
+	if (StringToInt(newVal) && !IsSourceTVBotConnected())
+	{
+		#if DEBUG
+			PrintToServer("Event_SourceTVEnabled: No SourceTV bot found.");
+		#endif
+		
+		PrintToChatAll("%s SourceTV bot doesn't appear to be connected. Global replay won't be recorded.");
+	}
+	
+	else if (!StringToInt(newVal) && g_isSourceTVRecording) // SourceTV disabled while recording a demo
 		ToggleSourceTV();
 }
 
