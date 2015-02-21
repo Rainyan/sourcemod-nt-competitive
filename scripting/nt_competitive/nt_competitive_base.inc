@@ -42,6 +42,7 @@ new bool:g_shouldPause;
 #endif
 
 new Handle:g_hAlltalk;
+new Handle:g_hCompetitionName;
 new Handle:g_hForceCamera;
 new Handle:g_hMatchSize;
 new Handle:g_hMaxPauseLength;
@@ -132,8 +133,40 @@ public Action:ToggleRecording()
 			if (!Client_IsValid(i) || IsFakeClient(i))
 				continue;
 			
+			new String:steamID[44];
+			GetClientAuthString(i, steamID, sizeof(steamID));
+			
+			new String:timestamp[15];
+			FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
+			
+			new String:competitionName[32];
+			GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
+			
+			new String:replayName[sizeof(steamID)+sizeof(timestamp)+sizeof(competitionName)+2];
+			
+			if (strlen(competitionName) > 0)
+				Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, steamID);
+			
+			else
+				Format(replayName, sizeof(replayName), "%s_%s", timestamp, steamID);
+			
+			// Clean up any non alphanumeric characters from the string
+			new String:replayBuffer[sizeof(replayName) + 1];
+			new bufferPos;
+			
+			for (new j = 0; j < sizeof(replayName); j++)
+			{
+				if (IsCharAlpha(replayName[j]) || IsCharNumeric(replayName[j]) || !IsCharSpace(replayName[j]))
+					replayBuffer[bufferPos++] = replayName[j];
+			}
+			replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
+			
+			ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
+			strcopy(replayName, sizeof(replayName), replayBuffer);
+			
 			ClientCommand(i, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
-			ClientCommand(i, "record foobar"); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
+			ClientCommand(i, "record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
+			ClientCommand(i, "say record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
 			
 			#if DEBUG > 1
 				ClientCommand(i, "say Test: Start demo.");

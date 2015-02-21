@@ -53,6 +53,7 @@ public OnPluginStart()
 	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv_competitive", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
 	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name", "", "Jinrai team's name. Will use \"Jinrai\" if left empty.");
 	g_hNSFName			= CreateConVar("sm_competitive_nsf_name", "", "NSF team's name. Will use \"NSF\" if left empty.");
+	g_hCompetitionName	= CreateConVar("sm_competitive_title", "", "Name of the tournament/competition. Used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
