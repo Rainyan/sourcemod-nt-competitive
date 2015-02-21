@@ -20,6 +20,7 @@ new g_nsfScore;
 new g_pausingTeam;
 new g_roundCount;
 new g_spamTimerCount;
+new g_usedTimeouts[4];
 
 new Float:g_fRoundTime;
 
@@ -210,6 +211,8 @@ public Action:ToggleLive()
 		ToggleRecording();
 		
 		g_roundCount = 0;
+		g_usedTimeouts[TEAM_JINRAI] = 0;
+		g_usedTimeouts[TEAM_NSF] = 0;
 		
 		SetConVarBool(g_hForceCamera, false);
 		
@@ -235,7 +238,9 @@ public Action:TogglePause()
 			LogError("Attempted to pause while match isn't live.");
 			return Plugin_Handled;
 		}
-	
+		
+		g_usedTimeouts[g_pausingTeam]++;
+		
 		g_isPaused = true;
 		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		PrintToChatAll("%s Use !pause when ready.", g_tag);

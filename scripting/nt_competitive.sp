@@ -45,12 +45,12 @@ public OnPluginStart()
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
-	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.");
+	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.", _, true, 1.0);
 	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players total are expected to ready up before starting a competitive match.");
-	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts", "1", "How many time-outs are allowed per match per team.");
-	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.");
+	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts", "1", "How many time-outs are allowed per match per team.", _, true, 0.0);
+	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.", _, true, 0.0);
 	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled", "1", "Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
-	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv_competitive", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder.");
+	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv_competitive", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
 	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name", "", "Jinrai team's name. Will use \"Jinrai\" if left empty.");
 	g_hNSFName			= CreateConVar("sm_competitive_nsf_name", "", "NSF team's name. Will use \"NSF\" if left empty.");
 	
@@ -134,11 +134,32 @@ public Action:Command_Pause(client, args)
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
 	
+	if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
+	{
+		if (GetConVarInt(g_hMaxTimeouts) == 0)
+			PrintToChatAll("%s Time-outs are not allowed!", g_tag);
+		
+		else if (GetConVarInt(g_hMaxTimeouts) == 1)
+			PrintToChatAll("%s %s has already used their timeout!", g_tag);
+		
+		else if (GetConVarInt(g_hMaxTimeouts) > 1)
+			PrintToChatAll("%s %s has already used all their %i timeouts!", g_tag, GetConVarInt(g_hMaxTimeouts));
+		
+		else
+		{
+			new String:cvarValue[128];
+			GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
+			LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
+		}
+		
+		return Plugin_Stop;
+	}
+	
 	if (!g_isPaused && g_shouldPause)
 	{
 		if (team != g_pausingTeam)
 		{
-			ReplyToCommand(client, "%s The other team has already requested a pause for the next freezetime.");
+			ReplyToCommand(client, "%s The other team has already requested a pause for the next freezetime.", g_tag);
 			return Plugin_Stop;
 		}
 		
@@ -169,7 +190,7 @@ public Action:Command_Pause(client, args)
 		
 		if (!g_isTeamReadyForUnPause[g_pausingTeam] && team != g_pausingTeam)
 		{
-			PrintToChat(client, "%s Cannot unpause − the pause was initiated by %s", g_teamName[otherTeam]);
+			PrintToChat(client, "%s Cannot unpause − the pause was initiated by %s", g_tag, g_teamName[otherTeam]);
 			return Plugin_Stop;
 		}
 		
