@@ -63,7 +63,7 @@ public Action:CheckIfEveryoneIsReady()
 {
 	new players;
 	
-	#if DEBUG // count bots for debug purposes
+	#if DEBUG // count bots for debug purposes. start override will not work if bots or sourcetv present!
 		players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
 	#else
 		players = Client_GetCount(true, false); // countInGameOnly, countFakeClients
@@ -427,7 +427,7 @@ public Action:Timer_SpamLive(Handle:timer)
 
 public Action:SpamTimer()
 {
-	g_hTimerSpamLive = CreateTimer(0.33, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
+	g_hTimerSpamLive = CreateTimer(0.75, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
 }
 
 public Action:Timer_Unpause(Handle:timer)
