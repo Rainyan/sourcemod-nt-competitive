@@ -135,28 +135,31 @@ public Action:Command_Pause(client, args)
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
 	
-	if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
+	if (!g_isPaused && !g_shouldPause)
 	{
-		if (GetConVarInt(g_hMaxTimeouts) == 0)
-			PrintToChatAll("%s Time-outs are not allowed!", g_tag);
-		
-		else if (GetConVarInt(g_hMaxTimeouts) == 1)
-			PrintToChatAll("%s %s has already used their timeout!", g_tag, g_teamName[team]);
-		
-		else if (GetConVarInt(g_hMaxTimeouts) > 1)
-			PrintToChatAll("%s %s has already used all their %i timeouts!", g_tag, g_teamName[team], GetConVarInt(g_hMaxTimeouts));
-		
-		else
+		if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
 		{
-			new String:cvarValue[128];
-			GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
-			LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
+			if (GetConVarInt(g_hMaxTimeouts) == 0)
+				PrintToChatAll("%s Time-outs are not allowed!", g_tag);
+			
+			else if (GetConVarInt(g_hMaxTimeouts) == 1)
+				PrintToChatAll("%s %s has already used their timeout!", g_tag, g_teamName[team]);
+			
+			else if (GetConVarInt(g_hMaxTimeouts) > 1)
+				PrintToChatAll("%s %s has already used all their %i timeouts!", g_tag, g_teamName[team], GetConVarInt(g_hMaxTimeouts));
+			
+			else
+			{
+				new String:cvarValue[128];
+				GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
+				LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
+			}
+			
+			return Plugin_Stop;
 		}
-		
-		return Plugin_Stop;
 	}
 	
-	if (!g_isPaused && g_shouldPause)
+	else if (!g_isPaused && g_shouldPause)
 	{
 		if (team != g_pausingTeam)
 		{
