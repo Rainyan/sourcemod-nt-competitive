@@ -4,18 +4,24 @@
 #define REASON_TIMEOUT 1
 
 new String:g_tag[] = "[COMP]";
-new String:g_teamName[][] = {
+new String:g_teamName[][64] = {
 	"Unassigned",
 	"Spectator",
 	"Jinrai",
 	"NSF"
 };
+new String:g_livePlayers[44][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
+new String:g_menuSoundOk[21] = "buttons/button14.wav";
+new String:g_menuSoundCancel[27] = "buttons/combine_button7.wav";
 
+new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
 new g_nsfScore;
+new g_pausingReason;
 new g_pausingTeam;
 new g_roundCount;
 new g_spamTimerCount;
+new g_usedTimeouts[4];
 
 new Float:g_fRoundTime;
 
@@ -31,15 +37,23 @@ new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 
+#if DEBUG
+	new bool:g_debug_ignoreLiveTeams;
+#endif
+
 new Handle:g_hAlltalk;
+new Handle:g_hCompetitionName;
 new Handle:g_hForceCamera;
 new Handle:g_hMatchSize;
-new Handle:g_hMaxTimeout;
+new Handle:g_hMaxPauseLength;
+new Handle:g_hMaxTimeouts;
 new Handle:g_hNeoRestartThis;
 new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
 new Handle:g_hSourceTVEnabled;
 new Handle:g_hSourceTVPath;
+new Handle:g_hJinraiName;
+new Handle:g_hNSFName;
 //new Handle:g_hServerPassword;
 
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
@@ -49,7 +63,7 @@ public Action:CheckIfEveryoneIsReady()
 {
 	new players;
 	
-	#if DEBUG // count bots for debug purposes
+	#if DEBUG // count bots for debug purposes. start override will not work if bots or sourcetv present!
 		players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
 	#else
 		players = Client_GetCount(true, false); // countInGameOnly, countFakeClients
@@ -91,6 +105,25 @@ public Action:CheckIfEveryoneIsReady()
 	return Plugin_Handled;
 }
 
+public Action:Command_IgnoreTeams(client, args)
+{
+	#if DEBUG
+		if (!g_debug_ignoreLiveTeams)
+		{
+			g_debug_ignoreLiveTeams = true;
+			ReplyToCommand(client, "Now ignoring team protection.");
+		}
+		
+		else
+		{
+			g_debug_ignoreLiveTeams = false;
+			ReplyToCommand(client, "Enforcing teams.");
+		}
+	#endif
+	
+	return Plugin_Handled;
+}
+
 public Action:ToggleRecording()
 {
 	if (g_isLive) // Start recording
@@ -100,8 +133,40 @@ public Action:ToggleRecording()
 			if (!Client_IsValid(i) || IsFakeClient(i))
 				continue;
 			
+			new String:steamID[44];
+			GetClientAuthString(i, steamID, sizeof(steamID));
+			
+			new String:timestamp[15];
+			FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
+			
+			new String:competitionName[32];
+			GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
+			
+			new String:replayName[sizeof(steamID)+sizeof(timestamp)+sizeof(competitionName)+2];
+			
+			if (strlen(competitionName) > 0)
+				Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, steamID);
+			
+			else
+				Format(replayName, sizeof(replayName), "%s_%s", timestamp, steamID);
+			
+			// Clean up any non alphanumeric characters from the string
+			new String:replayBuffer[sizeof(replayName) + 1];
+			new bufferPos;
+			
+			for (new j = 0; j < sizeof(replayName); j++)
+			{
+				if (IsCharAlpha(replayName[j]) || IsCharNumeric(replayName[j]) || !IsCharSpace(replayName[j]))
+					replayBuffer[bufferPos++] = replayName[j];
+			}
+			replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
+			
+			ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
+			strcopy(replayName, sizeof(replayName), replayBuffer);
+			
 			ClientCommand(i, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
-			ClientCommand(i, "record foobar"); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
+			ClientCommand(i, "record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
+			ClientCommand(i, "say record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
 			
 			#if DEBUG > 1
 				ClientCommand(i, "say Test: Start demo.");
@@ -127,8 +192,6 @@ public Action:ToggleRecording()
 
 public Action:ToggleLive()
 {
-	ToggleSourceTV();
-	
 	if (!g_isLive)
 	{
 		g_isLive = true;
@@ -137,6 +200,32 @@ public Action:ToggleLive()
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
 		SetConVarBool(g_hForceCamera, true);
+		
+		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
+		{
+			if (!Client_IsValid(i) || IsFakeClient(i))
+				continue;
+			
+			new String:steamID[44];
+			GetClientAuthString(i, steamID, sizeof(steamID));
+			
+			if (strlen(steamID) == 0)
+				LogError("Client %i returned empty SteamID, probably not authorized whilst attempting to save SteamID into g_livePlayers!", i);
+			
+			else
+			{
+				strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), steamID);
+				g_assignedTeamWhenLive[i] = GetClientTeam(i);
+			}
+			
+			#if DEBUG > 1
+				if (strlen(steamID) > 0)
+				{
+					PrintToServer("Found SteamID: %s", steamID);
+					PrintToServer("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
+				}
+			#endif
+		}
 		
 		ToggleRecording();
 		
@@ -154,14 +243,24 @@ public Action:ToggleLive()
 		ToggleRecording();
 		
 		g_roundCount = 0;
+		g_usedTimeouts[TEAM_JINRAI] = 0;
+		g_usedTimeouts[TEAM_NSF] = 0;
 		
 		SetConVarBool(g_hForceCamera, false);
 		
 		if (g_isAlltalkByDefault)
 			SetConVarBool(g_hAlltalk, true);
 		
+		for (new i = 1; i <= MaxClients; i++)
+		{
+			strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), ""); // Empty live players array
+			g_assignedTeamWhenLive[i] = TEAM_UNASSIGNED;
+		}
+		
 		PrintToChatAll("%s Game ended message.", g_tag);
 	}
+	
+	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
 }
 
 public Action:TogglePause()
@@ -173,18 +272,20 @@ public Action:TogglePause()
 			LogError("Attempted to pause while match isn't live.");
 			return Plugin_Handled;
 		}
-	
+		
+		if (g_pausingReason == REASON_TIMEOUT)
+			g_usedTimeouts[g_pausingTeam]++;
+		
 		g_isPaused = true;
-		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxTimeout));
+		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		PrintToChatAll("%s Use !pause when ready.", g_tag);
 		
 		#if DEBUG > 1
-			PrintToServer("%s Pause duration: for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
-			PrintToServer("Max timeout: %f", GetConVarFloat(g_hMaxTimeout));
+			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		#endif
 		
-		CreateTimer(GetConVarFloat(g_hMaxTimeout), Timer_Unpause);
-		CreateTimer((GetConVarFloat(g_hMaxTimeout) / 2), Timer_UnpauseNotice_Half);
+		CreateTimer(GetConVarFloat(g_hMaxPauseLength), Timer_Unpause);
+		CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
 	}
 	
 	else
@@ -326,7 +427,7 @@ public Action:Timer_SpamLive(Handle:timer)
 
 public Action:SpamTimer()
 {
-	g_hTimerSpamLive = CreateTimer(0.33, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
+	g_hTimerSpamLive = CreateTimer(0.75, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
 }
 
 public Action:Timer_Unpause(Handle:timer)
@@ -342,7 +443,7 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 {
 	// Show notification when half of the max pause time has elapsed
 	if (g_isPaused)
-		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxTimeout)) / 2));
+		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxPauseLength)) / 2));
 }
 
 public InitDirectory(const String:sDir[])
@@ -355,7 +456,7 @@ public InitDirectory(const String:sDir[])
 	{
 		Format(sPath, sizeof(sPath), "%s/%s", sPath, sPieces[i]);
 		if(!DirExists(sPath))
-			CreateDirectory(sPath, 509); // Note that folders must have the execute bit set on Linux.  On Windows, the mode is ignored.
+			CreateDirectory(sPath, 509); // Note that folders must have the execute bit set on Linux. On Windows, the mode is ignored.
 	}
 }
 
@@ -393,14 +494,40 @@ public Action:ToggleSourceTV()
 		new String:mapName[32];
 		
 		GetConVarString(g_hSourceTVPath, demoPath, sizeof(demoPath));
-		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", GetTime());
 		GetCurrentMap(mapName, sizeof(mapName));
 		
-		ServerCommand("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName); // SourceTV bot needs to be connected for this to do anything
+		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
+		
+		new String:competitionName[32];
+		GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
+		
+		new String:replayName[sizeof(mapName)+sizeof(timestamp)+sizeof(competitionName)+2];
+		
+		if (strlen(competitionName) > 0)
+			Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, mapName);
+		
+		else
+			Format(replayName, sizeof(replayName), "%s_%s", timestamp, mapName);
+		
+		// Clean up any non alphanumeric characters from the string
+		new String:replayBuffer[sizeof(replayName) + 1];
+		new bufferPos;
+		
+		for (new j = 0; j < sizeof(replayName); j++)
+		{
+			if (IsCharAlpha(replayName[j]) || IsCharNumeric(replayName[j]) || !IsCharSpace(replayName[j]))
+				replayBuffer[bufferPos++] = replayName[j];
+		}
+		replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
+		
+		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
+		strcopy(replayName, sizeof(replayName), replayBuffer);
+		
+		ServerCommand("tv_record \"%s/%s\"", demoPath, replayName); // SourceTV bot needs to be connected for this to do anything. This is checked above with IsSourceTVBotConnected()
 		g_isSourceTVRecording = true;
 		
 		#if DEBUG
-			PrintToServer("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName);
+			PrintToServer("tv_record \"%s/%s\"", demoPath, replayName);
 		#endif
 	}
 	
@@ -417,7 +544,7 @@ bool:IsSourceTVBotConnected()
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !IsFakeClient(i))
+		if (!Client_IsValid(i) || !IsFakeClient(i)) // We are looking for a valid fake client (bot)
 			continue;
 		
 		new String:clientName[MAX_NAME_LENGTH];
@@ -446,7 +573,7 @@ stock GetPlayersReady()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !g_isReady[i]) // Fake clients are never ready, so we don't need to check for them
+		if (!Client_IsValid(i) || !g_isReady[i]) // Fake clients are never ready, so we don't need to explicitly check for them
 			continue;
 		
 		playersReady++;

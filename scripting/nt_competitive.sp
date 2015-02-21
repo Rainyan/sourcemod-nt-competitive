@@ -39,16 +39,21 @@ public OnPluginStart()
 	
 	#if DEBUG
 		RegAdminCmd("sm_forcelive", Command_ForceLive, ADMFLAG_GENERIC, "Force the competitive match to start. Debug command.");
+		RegAdminCmd("sm_ignoreteams", Command_IgnoreTeams, ADMFLAG_GENERIC, "Ignore team limitations when a match is live. Debug command.");
 	#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
-	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.");
+	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.", _, true, 1.0);
 	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players total are expected to ready up before starting a competitive match.");
-	g_hMaxTimeout		= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.");
+	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts", "1", "How many time-outs are allowed per match per team.", _, true, 0.0);
+	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.", _, true, 0.0);
 	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled", "1", "Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
-	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder.");
+	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv_competitive", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
+	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name", "", "Jinrai team's name. Will use \"Jinrai\" if left empty.");
+	g_hNSFName			= CreateConVar("sm_competitive_nsf_name", "", "NSF team's name. Will use \"NSF\" if left empty.");
+	g_hCompetitionName	= CreateConVar("sm_competitive_title", "", "Name of the tournament/competition. Used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -58,6 +63,8 @@ public OnPluginStart()
 	HookConVarChange(g_hNeoRestartThis, Event_Restart);
 	HookConVarChange(g_hSourceTVEnabled, Event_SourceTVEnabled);
 	HookConVarChange(g_hSourceTVPath, Event_SourceTVPath);
+	HookConVarChange(g_hJinraiName, Event_TeamNameJinrai);
+	HookConVarChange(g_hNSFName, Event_TeamNameNSF);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true);
 	
@@ -77,6 +84,35 @@ public OnMapStart()
 public OnConfigsExecuted()
 {
 	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
+}
+
+public OnClientAuthorized(client, const String:authID[])
+{
+	if (g_isLive)
+	{
+		new bool:isPlayerCompeting;
+		new earlierUserid;
+		
+		for (new i = 1; i <= sizeof(g_livePlayers); i++)
+		{
+			if (StrEqual(authID, g_livePlayers[i]))
+			{
+				isPlayerCompeting = true;
+				earlierUserid = i;
+				break;
+			}
+		}
+		
+		if (!isPlayerCompeting)
+			g_assignedTeamWhenLive[client] = TEAM_SPECTATOR;
+		
+		else
+			g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
+		
+		#if DEBUG
+			PrintToServer("New client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
+		#endif
+	}
 }
 
 public Action:Command_ForceLive(client, args)
@@ -99,7 +135,55 @@ public Action:Command_Pause(client, args)
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
 	
-	if (g_isPaused)
+	if (!g_isPaused && !g_shouldPause)
+	{
+		if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
+		{
+			if (GetConVarInt(g_hMaxTimeouts) == 0)
+				PrintToChatAll("%s Time-outs are not allowed!", g_tag);
+			
+			else if (GetConVarInt(g_hMaxTimeouts) == 1)
+				PrintToChatAll("%s %s has already used their timeout!", g_tag, g_teamName[team]);
+			
+			else if (GetConVarInt(g_hMaxTimeouts) > 1)
+				PrintToChatAll("%s %s has already used all their %i timeouts!", g_tag, g_teamName[team], GetConVarInt(g_hMaxTimeouts));
+			
+			else
+			{
+				new String:cvarValue[128];
+				GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
+				LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
+			}
+			
+			return Plugin_Stop;
+		}
+	}
+	
+	else if (!g_isPaused && g_shouldPause)
+	{
+		if (team != g_pausingTeam)
+		{
+			ReplyToCommand(client, "%s The other team has already requested a pause for the next freezetime.", g_tag);
+			return Plugin_Stop;
+		}
+		
+		else
+		{
+			new Handle:panel = CreatePanel();
+			SetPanelTitle(panel, "Cancel pause request?");
+			
+			DrawPanelItem(panel, "Yes, cancel");
+			DrawPanelItem(panel, "Exit");
+			
+			SendPanelToClient(panel, client, PanelHandler_CancelPause, MENU_TIME);
+			
+			CloseHandle(panel);
+			
+			return Plugin_Handled;
+		}
+	}
+	
+	else if (g_isPaused)
 	{
 		new otherTeam;
 		
@@ -110,7 +194,7 @@ public Action:Command_Pause(client, args)
 		
 		if (!g_isTeamReadyForUnPause[g_pausingTeam] && team != g_pausingTeam)
 		{
-			PrintToChat(client, "%s Cannot unpause − the pause was initiated by %s", g_teamName[otherTeam]);
+			PrintToChat(client, "%s Cannot unpause − the pause was initiated by %s", g_tag, g_teamName[otherTeam]);
 			return Plugin_Stop;
 		}
 		
@@ -120,7 +204,7 @@ public Action:Command_Pause(client, args)
 			SetPanelTitle(panel, "Unpause?");
 			
 			DrawPanelItem(panel, "Team is ready, request unpause");
-			DrawPanelItem(panel, "Cancel");
+			DrawPanelItem(panel, "Exit");
 			
 			SendPanelToClient(panel, client, PanelHandler_UnPause, MENU_TIME);
 			
@@ -155,6 +239,7 @@ public Action:PauseRequest(client, reason)
 {
 	new team = GetClientTeam(client);
 	g_pausingTeam = team;
+	g_pausingReason = reason;
 	
 	switch (reason)
 	{
@@ -177,6 +262,14 @@ public Action:PauseRequest(client, reason)
 	}
 }
 
+public Action:CancelPauseRequest(client)
+{
+	g_shouldPause = false;
+	
+	new team = GetClientTeam(client);
+	PrintToChatAll("%s %s has cancelled their pause request for the next freezetime.", g_tag, g_teamName[team]);
+}
+
 public Action:UnPauseRequest(client)
 {
 	new team = GetClientTeam(client);
@@ -189,7 +282,7 @@ public Action:UnPauseRequest(client)
 		otherTeam = TEAM_JINRAI;
 	
 	g_isTeamReadyForUnPause[team] = true;
-	PrintToChatAll("%s Team %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
+	PrintToChatAll("%s %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
 	
 	if (g_isTeamReadyForUnPause[TEAM_JINRAI] && g_isTeamReadyForUnPause[TEAM_NSF])
 		TogglePause();
@@ -340,7 +433,7 @@ public Action:Command_UnReady(client, args)
 		if (g_isWantingOverride[team])
 		{
 			g_isWantingOverride[team] = false;
-			PrintToChatAll("Cancelled %s's team's force start vote.", clientName);
+			PrintToChatAll("Cancelled %s's force start vote.", g_teamName[team]);
 		}
 	}
 	

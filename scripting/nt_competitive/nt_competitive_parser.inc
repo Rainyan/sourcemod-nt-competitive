@@ -75,12 +75,40 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 public Action:Command_JoinTeam(client, args)
 {
-	// To-do: Allow team rejoining if player disconnects whilst live
-
+	#if DEBUG
+		if (g_debug_ignoreLiveTeams)
+			return Plugin_Continue;
+	#endif
+	
+	new String:team[10];
+	GetCmdArg(1, team, sizeof(team));
+	new iTeam = StringToInt(team);
+	
 	if (!g_isLive)
 		return Plugin_Continue;
 	
-	PrintToChat(client, "%s Game is live, you cannot change your team right now!", g_tag);
+	else if (g_assignedTeamWhenLive[client] == TEAM_UNASSIGNED) // Team not explicitly restricted for this player, let them join (substitutes after going live etc)
+		return Plugin_Continue;
+	
+	else if (iTeam == g_assignedTeamWhenLive[client]) // Player attempts to join their correct team, let them
+		return Plugin_Continue;
+	
+	new String:tempTeamName[13]; // We use this variable here for clarity, since teams can rename themselves
+	switch (g_assignedTeamWhenLive[client])
+	{
+		case TEAM_JINRAI:
+			strcopy(tempTeamName, sizeof(tempTeamName), "Jinrai");
+		
+		case TEAM_NSF:
+			strcopy(tempTeamName, sizeof(tempTeamName), "NSF");
+		
+		case TEAM_SPECTATOR:
+			strcopy(tempTeamName, sizeof(tempTeamName), "as spectator");
+	}
+	
+	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
+	
+	PrintToChat(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
 	
 	return Plugin_Stop;
 }
@@ -91,6 +119,90 @@ public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 		g_roundCount = 0;
 }
 
+public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	new String:nsfName[sizeof(g_teamName[])];
+	GetConVarString(g_hNSFName, nsfName, sizeof(nsfName));
+	
+	if (StrEqual(newVal, "NSF", false)) // Make sure we don't use the other team's default name
+	{
+		SetConVarString(g_hJinraiName, oldVal);
+		
+		#if DEBUG
+			PrintToServer("Jinrai tried using \"NSF\" as their name. This is blocked because it's reserved as NSF's fallback default name.");
+		#endif
+	}
+	
+	else if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "Jinrai"
+	{
+		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), "Jinrai");
+		
+		#if DEBUG
+			PrintToServer("Jinrai to default name.");
+		#endif
+	}
+	
+	else if (StrEqual(newVal, nsfName)) // Jinrai tried using NSF's current name
+	{
+		SetConVarString(g_hJinraiName, oldVal);
+		
+		#if DEBUG
+			PrintToServer("Jinrai tried using NSF's current name, blocked.");
+		#endif
+	}
+	
+	else // Name change ok
+	{
+		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), newVal);
+		
+		#if DEBUG
+			PrintToServer("Jinrai name: %s", newVal);
+		#endif
+	}
+}
+
+public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	new String:jinraiName[sizeof(g_teamName[])];
+	GetConVarString(g_hJinraiName, jinraiName, sizeof(jinraiName));
+	
+	if (StrEqual(newVal, "Jinrai", false)) // Make sure we don't use the other team's default name
+	{
+		SetConVarString(g_hJinraiName, oldVal);
+		
+		#if DEBUG
+			PrintToServer("NSF tried using \"Jinrai\" as their name. This is blocked because it's reserved as Jinrai's fallback default name.");
+		#endif
+	}
+	
+	else if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "NSF"
+	{
+		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), "NSF");
+		
+		#if DEBUG
+			PrintToServer("NSF to default name.");
+		#endif
+	}
+	
+	else if (StrEqual(newVal, jinraiName)) // NSF tried using Jinrai's current name
+	{
+		SetConVarString(g_hNSFName, oldVal);
+		
+		#if DEBUG
+			PrintToServer("NSF tried using Jinrai's current name, blocked.");
+		#endif
+	}
+	
+	else // Name change ok
+	{
+		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), newVal);
+		
+		#if DEBUG
+			PrintToServer("NSF name: %s", newVal);
+		#endif
+	}
+}
+
 public Event_SourceTVEnabled(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	if (StringToInt(newVal) && !IsSourceTVBotConnected())
@@ -99,7 +211,7 @@ public Event_SourceTVEnabled(Handle:cvar, const String:oldVal[], const String:ne
 			PrintToServer("Event_SourceTVEnabled: No SourceTV bot found.");
 		#endif
 		
-		PrintToChatAll("%s SourceTV bot doesn't appear to be connected. Global replay won't be recorded.");
+		PrintToChatAll("%s SourceTV bot doesn't appear to be connected. Global replay won't be recorded.", g_tag);
 	}
 	
 	else if (!StringToInt(newVal) && g_isSourceTVRecording) // SourceTV disabled while recording a demo
