@@ -101,11 +101,7 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), "Jinrai");
 		
 		#if DEBUG
-			if (StrEqual(newVal, oldVal))
-				PrintToServer("newVal == oldVal, prevented infinite loop by defaulting Jinrai name");
-			
-			else
-				PrintToServer("Jinrai to default name.");
+			PrintToServer("Jinrai to default name.");
 		#endif
 	}
 	
@@ -138,11 +134,7 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), "NSF");
 		
 		#if DEBUG
-			if (StrEqual(newVal, oldVal))
-				PrintToServer("newVal == oldVal, prevented infinite loop by defaulting NSF name");
-			
-			else
-				PrintToServer("NSF to default name.");
+			PrintToServer("NSF to default name.");
 		#endif
 	}
 	
