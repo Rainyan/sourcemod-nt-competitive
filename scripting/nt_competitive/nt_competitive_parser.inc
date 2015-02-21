@@ -211,7 +211,7 @@ public Event_SourceTVEnabled(Handle:cvar, const String:oldVal[], const String:ne
 			PrintToServer("Event_SourceTVEnabled: No SourceTV bot found.");
 		#endif
 		
-		PrintToChatAll("%s SourceTV bot doesn't appear to be connected. Global replay won't be recorded.");
+		PrintToChatAll("%s SourceTV bot doesn't appear to be connected. Global replay won't be recorded.", g_tag);
 	}
 	
 	else if (!StringToInt(newVal) && g_isSourceTVRecording) // SourceTV disabled while recording a demo
