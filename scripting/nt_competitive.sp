@@ -141,10 +141,10 @@ public Action:Command_Pause(client, args)
 			PrintToChatAll("%s Time-outs are not allowed!", g_tag);
 		
 		else if (GetConVarInt(g_hMaxTimeouts) == 1)
-			PrintToChatAll("%s %s has already used their timeout!", g_tag);
+			PrintToChatAll("%s %s has already used their timeout!", g_tag, g_teamName[team]);
 		
 		else if (GetConVarInt(g_hMaxTimeouts) > 1)
-			PrintToChatAll("%s %s has already used all their %i timeouts!", g_tag, GetConVarInt(g_hMaxTimeouts));
+			PrintToChatAll("%s %s has already used all their %i timeouts!", g_tag, g_teamName[team], GetConVarInt(g_hMaxTimeouts));
 		
 		else
 		{
