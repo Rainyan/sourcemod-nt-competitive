@@ -418,7 +418,7 @@ bool:IsSourceTVBotConnected()
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !IsFakeClient(i))
+		if (!Client_IsValid(i) || !IsFakeClient(i)) // We are looking for a valid fake client (bot)
 			continue;
 		
 		new String:clientName[MAX_NAME_LENGTH];
