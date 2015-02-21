@@ -344,7 +344,7 @@ public Action:Command_UnReady(client, args)
 		if (g_isWantingOverride[team])
 		{
 			g_isWantingOverride[team] = false;
-			PrintToChatAll("Cancelled %s's team's force start vote.", clientName);
+			PrintToChatAll("Cancelled %s's force start vote.", g_teamName[team]);
 		}
 	}
 	
