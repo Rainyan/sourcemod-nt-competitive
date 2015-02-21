@@ -356,7 +356,7 @@ public InitDirectory(const String:sDir[])
 	{
 		Format(sPath, sizeof(sPath), "%s/%s", sPath, sPieces[i]);
 		if(!DirExists(sPath))
-			CreateDirectory(sPath, 509); // Note that folders must have the execute bit set on Linux.  On Windows, the mode is ignored.
+			CreateDirectory(sPath, 509); // Note that folders must have the execute bit set on Linux. On Windows, the mode is ignored.
 	}
 }
 
