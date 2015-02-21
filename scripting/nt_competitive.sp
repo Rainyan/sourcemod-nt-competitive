@@ -133,7 +133,31 @@ public Action:Command_Pause(client, args)
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
 	
-	if (g_isPaused)
+	if (!g_isPaused && g_shouldPause)
+	{
+		if (team != g_pausingTeam)
+		{
+			ReplyToCommand(client, "%s The other team has already requested a pause for the next freezetime.");
+			return Plugin_Stop;
+		}
+		
+		else
+		{
+			new Handle:panel = CreatePanel();
+			SetPanelTitle(panel, "Cancel pause request?");
+			
+			DrawPanelItem(panel, "Yes, cancel");
+			DrawPanelItem(panel, "Exit");
+			
+			SendPanelToClient(panel, client, PanelHandler_CancelPause, MENU_TIME);
+			
+			CloseHandle(panel);
+			
+			return Plugin_Handled;
+		}
+	}
+	
+	else if (g_isPaused)
 	{
 		new otherTeam;
 		
@@ -154,7 +178,7 @@ public Action:Command_Pause(client, args)
 			SetPanelTitle(panel, "Unpause?");
 			
 			DrawPanelItem(panel, "Team is ready, request unpause");
-			DrawPanelItem(panel, "Cancel");
+			DrawPanelItem(panel, "Exit");
 			
 			SendPanelToClient(panel, client, PanelHandler_UnPause, MENU_TIME);
 			
@@ -211,6 +235,14 @@ public Action:PauseRequest(client, reason)
 	}
 }
 
+public Action:CancelPauseRequest(client)
+{
+	g_shouldPause = false;
+	
+	new team = GetClientTeam(client);
+	PrintToChatAll("%s %s has cancelled their pause request for the next freezetime.", g_tag, g_teamName[team]);
+}
+
 public Action:UnPauseRequest(client)
 {
 	new team = GetClientTeam(client);
@@ -223,7 +255,7 @@ public Action:UnPauseRequest(client)
 		otherTeam = TEAM_JINRAI;
 	
 	g_isTeamReadyForUnPause[team] = true;
-	PrintToChatAll("%s Team %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
+	PrintToChatAll("%s %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
 	
 	if (g_isTeamReadyForUnPause[TEAM_JINRAI] && g_isTeamReadyForUnPause[TEAM_NSF])
 		TogglePause();
