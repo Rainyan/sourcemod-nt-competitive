@@ -42,7 +42,8 @@ new bool:g_shouldPause;
 new Handle:g_hAlltalk;
 new Handle:g_hForceCamera;
 new Handle:g_hMatchSize;
-new Handle:g_hMaxTimeout;
+new Handle:g_hMaxPauseLength;
+new Handle:g_hMaxTimeouts;
 new Handle:g_hNeoRestartThis;
 new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
@@ -236,15 +237,15 @@ public Action:TogglePause()
 		}
 	
 		g_isPaused = true;
-		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxTimeout));
+		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		PrintToChatAll("%s Use !pause when ready.", g_tag);
 		
 		#if DEBUG > 1
-			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxTimeout));
+			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		#endif
 		
-		CreateTimer(GetConVarFloat(g_hMaxTimeout), Timer_Unpause);
-		CreateTimer((GetConVarFloat(g_hMaxTimeout) / 2), Timer_UnpauseNotice_Half);
+		CreateTimer(GetConVarFloat(g_hMaxPauseLength), Timer_Unpause);
+		CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
 	}
 	
 	else
@@ -402,7 +403,7 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 {
 	// Show notification when half of the max pause time has elapsed
 	if (g_isPaused)
-		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxTimeout)) / 2));
+		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxPauseLength)) / 2));
 }
 
 public InitDirectory(const String:sDir[])
