@@ -447,7 +447,7 @@ stock GetPlayersReady()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !g_isReady[i]) // Fake clients are never ready, so we don't need to check for them
+		if (!Client_IsValid(i) || !g_isReady[i]) // Fake clients are never ready, so we don't need to explicitly check for them
 			continue;
 		
 		playersReady++;
