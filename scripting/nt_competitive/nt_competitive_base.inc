@@ -192,8 +192,6 @@ public Action:ToggleRecording()
 
 public Action:ToggleLive()
 {
-	ToggleSourceTV();
-	
 	if (!g_isLive)
 	{
 		g_isLive = true;
@@ -261,6 +259,8 @@ public Action:ToggleLive()
 		
 		PrintToChatAll("%s Game ended message.", g_tag);
 	}
+	
+	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
 }
 
 public Action:TogglePause()
@@ -494,14 +494,40 @@ public Action:ToggleSourceTV()
 		new String:mapName[32];
 		
 		GetConVarString(g_hSourceTVPath, demoPath, sizeof(demoPath));
-		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", GetTime());
 		GetCurrentMap(mapName, sizeof(mapName));
 		
-		ServerCommand("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName); // SourceTV bot needs to be connected for this to do anything. This is checked above with IsSourceTVBotConnected()
+		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
+		
+		new String:competitionName[32];
+		GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
+		
+		new String:replayName[sizeof(mapName)+sizeof(timestamp)+sizeof(competitionName)+2];
+		
+		if (strlen(competitionName) > 0)
+			Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, mapName);
+		
+		else
+			Format(replayName, sizeof(replayName), "%s_%s", timestamp, mapName);
+		
+		// Clean up any non alphanumeric characters from the string
+		new String:replayBuffer[sizeof(replayName) + 1];
+		new bufferPos;
+		
+		for (new j = 0; j < sizeof(replayName); j++)
+		{
+			if (IsCharAlpha(replayName[j]) || IsCharNumeric(replayName[j]) || !IsCharSpace(replayName[j]))
+				replayBuffer[bufferPos++] = replayName[j];
+		}
+		replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
+		
+		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
+		strcopy(replayName, sizeof(replayName), replayBuffer);
+		
+		ServerCommand("tv_record \"%s/%s\"", demoPath, replayName); // SourceTV bot needs to be connected for this to do anything. This is checked above with IsSourceTVBotConnected()
 		g_isSourceTVRecording = true;
 		
 		#if DEBUG
-			PrintToServer("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName);
+			PrintToServer("tv_record \"%s/%s\"", demoPath, replayName);
 		#endif
 	}
 	
