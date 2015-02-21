@@ -397,7 +397,7 @@ public Action:ToggleSourceTV()
 		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", GetTime());
 		GetCurrentMap(mapName, sizeof(mapName));
 		
-		ServerCommand("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName); // SourceTV bot needs to be connected for this to do anything
+		ServerCommand("tv_record \"%s/sourcetv-%s-%s\"", demoPath, timestamp, mapName); // SourceTV bot needs to be connected for this to do anything. This is checked above with IsSourceTVBotConnected()
 		g_isSourceTVRecording = true;
 		
 		#if DEBUG
