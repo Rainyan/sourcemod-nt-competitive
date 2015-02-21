@@ -39,6 +39,7 @@ public OnPluginStart()
 	
 	#if DEBUG
 		RegAdminCmd("sm_forcelive", Command_ForceLive, ADMFLAG_GENERIC, "Force the competitive match to start. Debug command.");
+		RegAdminCmd("sm_ignoreteams", Command_IgnoreTeams, ADMFLAG_GENERIC, "Ignore team limitations when a match is live. Debug command.");
 	#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
@@ -81,6 +82,35 @@ public OnMapStart()
 public OnConfigsExecuted()
 {
 	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
+}
+
+public OnClientAuthorized(client, const String:authID[])
+{
+	if (g_isLive)
+	{
+		new bool:isPlayerCompeting;
+		new earlierUserid;
+		
+		for (new i = 1; i <= sizeof(g_livePlayers); i++)
+		{
+			if (StrEqual(authID, g_livePlayers[i]))
+			{
+				isPlayerCompeting = true;
+				earlierUserid = i;
+				break;
+			}
+		}
+		
+		if (!isPlayerCompeting)
+			g_assignedTeamWhenLive[client] = TEAM_SPECTATOR;
+		
+		else
+			g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
+		
+		#if DEBUG
+			PrintToServer("New client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
+		#endif
+	}
 }
 
 public Action:Command_ForceLive(client, args)

@@ -10,7 +10,9 @@ new String:g_teamName[][64] = {
 	"Jinrai",
 	"NSF"
 };
+new String:g_livePlayers[44][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
 
+new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
 new g_nsfScore;
 new g_pausingTeam;
@@ -30,6 +32,10 @@ new bool:g_isSpawned[MAXPLAYERS+1];
 new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
+
+#if DEBUG
+	new bool:g_debug_ignoreLiveTeams;
+#endif
 
 new Handle:g_hAlltalk;
 new Handle:g_hForceCamera;
@@ -93,6 +99,25 @@ public Action:CheckIfEveryoneIsReady()
 	return Plugin_Handled;
 }
 
+public Action:Command_IgnoreTeams(client, args)
+{
+	#if DEBUG
+		if (!g_debug_ignoreLiveTeams)
+		{
+			g_debug_ignoreLiveTeams = true;
+			ReplyToCommand(client, "Now ignoring team protection.");
+		}
+		
+		else
+		{
+			g_debug_ignoreLiveTeams = false;
+			ReplyToCommand(client, "Enforcing teams.");
+		}
+	#endif
+	
+	return Plugin_Handled;
+}
+
 public Action:ToggleRecording()
 {
 	if (g_isLive) // Start recording
@@ -140,6 +165,32 @@ public Action:ToggleLive()
 		SetConVarBool(g_hNeoRestartThis, true);
 		SetConVarBool(g_hForceCamera, true);
 		
+		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
+		{
+			if (!Client_IsValid(i) || IsFakeClient(i))
+				continue;
+			
+			new String:steamID[44];
+			GetClientAuthString(i, steamID, sizeof(steamID));
+			
+			if (strlen(steamID) == 0)
+				LogError("Client %i returned empty SteamID, probably not authorized whilst attempting to save SteamID into g_livePlayers!", i);
+			
+			else
+			{
+				strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), steamID);
+				g_assignedTeamWhenLive[i] = GetClientTeam(i);
+			}
+			
+			#if DEBUG > 1
+				if (strlen(steamID) > 0)
+				{
+					PrintToServer("Found SteamID: %s", steamID);
+					PrintToServer("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
+				}
+			#endif
+		}
+		
 		ToggleRecording();
 		
 		PrintToChatAll("%s Game started message.", g_tag);
@@ -161,6 +212,12 @@ public Action:ToggleLive()
 		
 		if (g_isAlltalkByDefault)
 			SetConVarBool(g_hAlltalk, true);
+		
+		for (new i = 1; i <= MaxClients; i++)
+		{
+			strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), ""); // Empty live players array
+			g_assignedTeamWhenLive[i] = TEAM_UNASSIGNED;
+		}
 		
 		PrintToChatAll("%s Game ended message.", g_tag);
 	}

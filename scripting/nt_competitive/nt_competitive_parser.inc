@@ -75,12 +75,42 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 public Action:Command_JoinTeam(client, args)
 {
-	// To-do: Allow team rejoining if player disconnects whilst live
-
+	#if DEBUG
+		if (g_debug_ignoreLiveTeams)
+			return Plugin_Continue;
+	#endif
+	
+	new String:team[10];
+	GetCmdArg(1, team, sizeof(team));
+	new iTeam = StringToInt(team);
+	
+	PrintToServer("Team: %s", team); // debug
+	
 	if (!g_isLive)
 		return Plugin_Continue;
 	
-	PrintToChat(client, "%s Game is live, you cannot change your team right now!", g_tag);
+	else if (g_assignedTeamWhenLive[client] == TEAM_UNASSIGNED) // Team not explicitly restricted for this player, let them join (substitutes after going live etc)
+		return Plugin_Continue;
+	
+	else if (iTeam == g_assignedTeamWhenLive[client]) // Player attempts to join their correct team, let them
+		return Plugin_Continue;
+	
+	new String:tempTeamName[13]; // We use this variable here for clarity, since teams can rename themselves
+	switch (g_assignedTeamWhenLive[client])
+	{
+		case TEAM_JINRAI:
+			strcopy(tempTeamName, sizeof(tempTeamName), "Jinrai");
+		
+		case TEAM_NSF:
+			strcopy(tempTeamName, sizeof(tempTeamName), "NSF");
+		
+		case TEAM_SPECTATOR:
+			strcopy(tempTeamName, sizeof(tempTeamName), "as spectator");
+	}
+	
+	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]);
+	
+	PrintToChat(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
 	
 	return Plugin_Stop;
 }
