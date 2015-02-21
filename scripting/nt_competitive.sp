@@ -235,6 +235,7 @@ public Action:PauseRequest(client, reason)
 {
 	new team = GetClientTeam(client);
 	g_pausingTeam = team;
+	g_pausingReason = reason;
 	
 	switch (reason)
 	{

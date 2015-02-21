@@ -17,6 +17,7 @@ new String:g_menuSoundCancel[27] = "buttons/combine_button7.wav";
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
 new g_nsfScore;
+new g_pausingReason;
 new g_pausingTeam;
 new g_roundCount;
 new g_spamTimerCount;
@@ -239,7 +240,8 @@ public Action:TogglePause()
 			return Plugin_Handled;
 		}
 		
-		g_usedTimeouts[g_pausingTeam]++;
+		if (g_pausingReason == REASON_TIMEOUT)
+			g_usedTimeouts[g_pausingTeam]++;
 		
 		g_isPaused = true;
 		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
