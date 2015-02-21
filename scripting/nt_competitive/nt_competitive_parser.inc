@@ -84,8 +84,6 @@ public Action:Command_JoinTeam(client, args)
 	GetCmdArg(1, team, sizeof(team));
 	new iTeam = StringToInt(team);
 	
-	PrintToServer("Team: %s", team); // debug
-	
 	if (!g_isLive)
 		return Plugin_Continue;
 	
