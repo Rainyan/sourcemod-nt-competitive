@@ -181,8 +181,7 @@ public Action:TogglePause()
 		PrintToChatAll("%s Use !pause when ready.", g_tag);
 		
 		#if DEBUG > 1
-			PrintToServer("%s Pause duration: for %.1f minutes.", g_tag, (GetConVarFloat(g_hMaxTimeout) / 60));
-			PrintToServer("Max timeout: %f", GetConVarFloat(g_hMaxTimeout));
+			PrintToServer(("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxTimeout));
 		#endif
 		
 		CreateTimer(GetConVarFloat(g_hMaxTimeout), Timer_Unpause);
