@@ -96,7 +96,16 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 	new String:nsfName[sizeof(g_teamName[])];
 	GetConVarString(g_hNSFName, nsfName, sizeof(nsfName));
 	
-	if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "Jinrai"
+	if (StrEqual(newVal, "NSF", false)) // Make sure we don't use the other team's default name
+	{
+		SetConVarString(g_hJinraiName, oldVal);
+		
+		#if DEBUG
+			PrintToServer("Jinrai tried using \"NSF\" as their name. This is blocked because it's reserved as NSF's fallback default name.");
+		#endif
+	}
+	
+	else if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "Jinrai"
 	{
 		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), "Jinrai");
 		
@@ -110,7 +119,7 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 		SetConVarString(g_hJinraiName, oldVal);
 		
 		#if DEBUG
-			PrintToServer("Jinrai name == NSF name");
+			PrintToServer("Jinrai tried using NSF's current name, blocked.");
 		#endif
 	}
 	
@@ -129,7 +138,16 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 	new String:jinraiName[sizeof(g_teamName[])];
 	GetConVarString(g_hJinraiName, jinraiName, sizeof(jinraiName));
 	
-	if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "NSF"
+	if (StrEqual(newVal, "Jinrai", false)) // Make sure we don't use the other team's default name
+	{
+		SetConVarString(g_hJinraiName, oldVal);
+		
+		#if DEBUG
+			PrintToServer("NSF tried using \"Jinrai\" as their name. This is blocked because it's reserved as Jinrai's fallback default name.");
+		#endif
+	}
+	
+	else if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "NSF"
 	{
 		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), "NSF");
 		
@@ -143,7 +161,7 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 		SetConVarString(g_hNSFName, oldVal);
 		
 		#if DEBUG
-			PrintToServer("NSF name == Jinrai name");
+			PrintToServer("NSF tried using Jinrai's current name, blocked.");
 		#endif
 	}
 	
