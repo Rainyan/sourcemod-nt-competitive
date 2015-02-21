@@ -8,12 +8,12 @@ Features:
   - Automatic SourceTV recording
   - Count rounds, announce winner.
   - Fade to black
+  - Handle dis/reconnecting players and teams
   - Pausing system.
   - Ready up system.
 
 To-do:
   - Admin controls
-  - Handle dis/reconnecting players and teams
   - Log competitive matches (wins, kills, weapons used, etc)
   - Panel menus for players/admins
 
