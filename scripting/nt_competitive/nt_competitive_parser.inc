@@ -108,7 +108,7 @@ public Action:Command_JoinTeam(client, args)
 	
 	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
 	
-	PrintToChat(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
+	ReplyToCommand(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
 	
 	return Plugin_Stop;
 }

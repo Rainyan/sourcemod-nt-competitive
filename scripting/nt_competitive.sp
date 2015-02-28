@@ -194,7 +194,7 @@ public Action:Command_Pause(client, args)
 		
 		if (!g_isTeamReadyForUnPause[g_pausingTeam] && team != g_pausingTeam)
 		{
-			PrintToChat(client, "%s Cannot unpause − the pause was initiated by %s", g_tag, g_teamName[otherTeam]);
+			ReplyToCommand(client, "%s Cannot unpause − the pause was initiated by %s", g_tag, g_teamName[otherTeam]);
 			return Plugin_Stop;
 		}
 		
