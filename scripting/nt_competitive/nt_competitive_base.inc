@@ -10,7 +10,7 @@ new String:g_teamName[][64] = {
 	"Jinrai",
 	"NSF"
 };
-new String:g_livePlayers[][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
+new String:g_livePlayers[44][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new String:g_soundLive[] = "buttons/button17.wav";
