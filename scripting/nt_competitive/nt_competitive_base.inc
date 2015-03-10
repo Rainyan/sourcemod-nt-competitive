@@ -159,7 +159,7 @@ public Action:ToggleRecording()
 			}
 			replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
 			
-			ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
+			ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitization
 			strcopy(replayName, sizeof(replayName), replayBuffer);
 			
 			ClientCommand(i, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
