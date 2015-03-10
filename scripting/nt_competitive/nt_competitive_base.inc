@@ -236,7 +236,19 @@ public Action:ToggleLive()
 		
 		ToggleRecording();
 		
-		PrintToChatAll("%s Game started message.", g_tag);
+		// Announce game start, possible tournament name, and teams
+		new String:competitionName[32];
+		GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
+		
+		if (strlen(competitionName) < 1)
+			strcopy(competitionName, sizeof(competitionName), "Competitive Neotokyo");
+		
+		new String:liveTitle[sizeof(g_tag) + sizeof(competitionName) + sizeof(g_teamName[]) * 2 + 6];
+		
+		Format(liveTitle, sizeof(liveTitle), "%s %s: %s - %s", g_tag, competitionName, g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
+		
+		PrintToChatAll(liveTitle);
+		
 		SpamTimer();
 	}
 	
