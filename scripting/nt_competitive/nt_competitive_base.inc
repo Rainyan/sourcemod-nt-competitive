@@ -21,6 +21,7 @@ new g_pausingReason;
 new g_pausingTeam;
 new g_roundCount;
 new g_spamTimerCount;
+new g_unpauseTimer = 10;
 new g_usedTimeouts[4];
 
 new Float:g_fRoundTime;
@@ -57,6 +58,7 @@ new Handle:g_hNSFName;
 //new Handle:g_hServerPassword;
 
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
+new Handle:g_hTimerTenSeconds = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 
 public Action:CheckIfEveryoneIsReady()
@@ -304,7 +306,11 @@ public Action:TogglePause()
 		#endif
 		
 		CreateTimer(GetConVarFloat(g_hMaxPauseLength), Timer_Unpause);
-		CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
+		
+		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
+			CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
+		
+		CreateTimer((GetConVarFloat(g_hMaxPauseLength) - 10.0), Timer_StartTenSecondsLeft);
 	}
 	
 	else
@@ -313,7 +319,7 @@ public Action:TogglePause()
 		
 		if (g_isLive) // Only announce the unpause if a match is still going
 		{
-			PrintToChatAll("%s Match unpaused.", g_tag);
+			PrintToChatAll("%s UNPAUSED", g_tag);
 			SpamTimer();
 		}
 	}
@@ -463,6 +469,31 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 	// Show notification when half of the max pause time has elapsed
 	if (g_isPaused)
 		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxPauseLength)) / 2));
+}
+
+public Action:Timer_StartTenSecondsLeft(Handle:timer)
+{
+	g_hTimerTenSeconds = CreateTimer(1.0, Timer_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+}
+
+public Action:Timer_TenSecondsCountdown(Handle:timer)
+{
+	if (g_isPaused && g_unpauseTimer => 0)
+	{
+		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
+		g_unpauseTimer--;
+	}
+	
+	else
+	{
+		if (g_hTimerTenSeconds != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerTenSeconds);
+			g_hTimerTenSeconds = INVALID_HANDLE;
+		}
+		
+		g_unpauseTimer = 10;
+	}
 }
 
 public InitDirectory(const String:sDir[])
