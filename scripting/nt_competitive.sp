@@ -110,7 +110,7 @@ public OnClientAuthorized(client, const String:authID[])
 			g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
 		
 		#if DEBUG
-			PrintToServer("New client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
+			PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
 		#endif
 	}
 }
