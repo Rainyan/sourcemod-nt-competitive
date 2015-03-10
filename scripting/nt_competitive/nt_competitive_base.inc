@@ -13,6 +13,7 @@ new String:g_teamName[][64] = {
 new String:g_livePlayers[][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
+new String:g_soundLive[] = "buttons/button17.wav";
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
@@ -219,6 +220,7 @@ public Action:ToggleLive()
 			else
 			{
 				strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), steamID);
+				PrintToServer("sizeof g_livePlayers: %i", sizeof(g_livePlayers[]));
 				g_assignedTeamWhenLive[i] = GetClientTeam(i);
 			}
 			
@@ -480,6 +482,7 @@ public Action:Timer_TenSecondsCountdown(Handle:timer)
 {
 	if (g_isPaused && g_unpauseTimer > 0)
 	{
+		PlayLiveBeep();
 		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
 		g_unpauseTimer--;
 	}
@@ -582,6 +585,12 @@ public Action:ToggleSourceTV()
 	}
 	
 	return Plugin_Handled;
+}
+
+public Action:PlayLiveBeep()
+{
+	PrecacheSound(g_soundLive);
+	EmitSoundToAll(g_soundLive, _, 95);
 }
 
 bool:IsSourceTVBotConnected()
