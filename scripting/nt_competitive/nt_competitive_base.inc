@@ -226,6 +226,7 @@ public Action:ToggleLive()
 			
 			new String:steamID[44];
 			GetClientAuthString(i, steamID, sizeof(steamID));
+			new team = GetClientTeam(i);
 			
 			if (strlen(steamID) == 0)
 				LogError("Client %i returned empty SteamID, probably not authorized whilst attempting to save SteamID into g_livePlayers!", i);
@@ -234,7 +235,7 @@ public Action:ToggleLive()
 			{
 				strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), steamID);
 				PrintToServer("sizeof g_livePlayers: %i", sizeof(g_livePlayers[]));
-				g_assignedTeamWhenLive[i] = GetClientTeam(i);
+				g_assignedTeamWhenLive[i] = team;
 			}
 			
 			#if DEBUG > 1
