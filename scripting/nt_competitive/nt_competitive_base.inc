@@ -482,7 +482,7 @@ public Action:Timer_TenSecondsCountdown(Handle:timer)
 {
 	if (g_isPaused && g_unpauseTimer > 0)
 	{
-		PlayLiveBeep();
+		//PlayLiveBeep(); // Can't EmitSound when paused?
 		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
 		g_unpauseTimer--;
 	}
@@ -589,8 +589,14 @@ public Action:ToggleSourceTV()
 
 public Action:PlayLiveBeep()
 {
-	PrecacheSound(g_soundLive);
-	EmitSoundToAll(g_soundLive, _, 95);
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i) || IsFakeClient(i))
+			continue;
+		
+		PrecacheSound(g_soundLive);
+		EmitSoundToClient(i, g_soundLive);
+	}
 }
 
 bool:IsSourceTVBotConnected()
