@@ -21,7 +21,7 @@
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
-	description	=	"NT competitive setup",
+	description	=	"Count score, announce winner, perform other competitive tasks",
 	author		=	"Rain",
 	version		=	PLUGIN_VERSION,
 	url			=	"https://github.com/Rainyan/sourcemod-nt-competitive"
