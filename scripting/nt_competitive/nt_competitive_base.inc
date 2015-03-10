@@ -164,7 +164,6 @@ public Action:ToggleRecording()
 			
 			ClientCommand(i, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
 			ClientCommand(i, "record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
-			ClientCommand(i, "say record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
 			
 			#if DEBUG > 1
 				ClientCommand(i, "say Debug message: This client is now recording to %s", replayName);
