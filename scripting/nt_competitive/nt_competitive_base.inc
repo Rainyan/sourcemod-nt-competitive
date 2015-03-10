@@ -221,7 +221,7 @@ public Action:ToggleLive()
 		
 		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		{
-			if (!Client_IsValid(i) || IsFakeClient(i))
+			if (!Client_IsValid(i) || IsFakeClient(i) ||IsClientInGame(i))
 				continue;
 			
 			new String:steamID[44];
