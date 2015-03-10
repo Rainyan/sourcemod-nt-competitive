@@ -480,7 +480,7 @@ public Action:Timer_StartTenSecondsLeft(Handle:timer)
 
 public Action:Timer_TenSecondsCountdown(Handle:timer)
 {
-	if (g_isPaused && g_unpauseTimer > 0)
+	if (g_unpauseTimer > 0)
 	{
 		//PlayLiveBeep(); // Can't EmitSound when paused?
 		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
