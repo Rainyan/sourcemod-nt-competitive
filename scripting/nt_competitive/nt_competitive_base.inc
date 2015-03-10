@@ -276,7 +276,7 @@ public Action:ToggleLive()
 			g_assignedTeamWhenLive[i] = TEAM_UNASSIGNED;
 		}
 		
-		PrintToChatAll("%s Game ended message.", g_tag);
+		PrintToChatAll("%s Match has ended.", g_tag);
 	}
 	
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
