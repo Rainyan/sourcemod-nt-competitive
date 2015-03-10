@@ -38,33 +38,33 @@ public OnPluginStart()
 	RegConsoleCmd("jointeam",	Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 	
 	#if DEBUG
-		RegAdminCmd("sm_forcelive", Command_ForceLive, ADMFLAG_GENERIC, "Force the competitive match to start. Debug command.");
-		RegAdminCmd("sm_ignoreteams", Command_IgnoreTeams, ADMFLAG_GENERIC, "Ignore team limitations when a match is live. Debug command.");
+		RegAdminCmd("sm_forcelive",		Command_ForceLive,		ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
+		RegAdminCmd("sm_ignoreteams",	Command_IgnoreTeams,	ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
 	#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
-	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.", _, true, 1.0);
-	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players total are expected to ready up before starting a competitive match.");
-	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts", "1", "How many time-outs are allowed per match per team.", _, true, 0.0);
-	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.", _, true, 0.0);
-	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled", "1", "Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
-	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv_competitive", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
-	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name", "Jinrai", "Jinrai team's name. Will use \"Jinrai\" if left empty.");
-	g_hNSFName			= CreateConVar("sm_competitive_nsf_name", "NSF", "NSF team's name. Will use \"NSF\" if left empty.");
-	g_hCompetitionName	= CreateConVar("sm_competitive_title", "", "Name of the tournament/competition. Used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
+	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit",		"13",						"How many rounds are played in a competitive match.", _, true, 1.0);
+	g_hMatchSize		= CreateConVar("sm_competitive_players_total",		"10",						"How many players total are expected to ready up before starting a competitive match.");
+	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts",		"1",						"How many time-outs are allowed per match per team.", _, true, 0.0);
+	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length",	"180",						"How long can a competitive time-out last, in seconds.", _, true, 0.0);
+	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled",	"1",						"Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
+	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path",		"sourcetv_competitive",		"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
+	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name",		"Jinrai",					"Jinrai team's name. Will use \"Jinrai\" if left empty.");
+	g_hNSFName			= CreateConVar("sm_competitive_nsf_name",			"NSF",						"NSF team's name. Will use \"NSF\" if left empty.");
+	g_hCompetitionName	= CreateConVar("sm_competitive_title",				"",							"Name of the tournament/competition. Used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
 	g_hPausable			= FindConVar("sv_pausable");
 	
-	HookConVarChange(g_hNeoRestartThis, Event_Restart);
-	HookConVarChange(g_hSourceTVEnabled, Event_SourceTVEnabled);
-	HookConVarChange(g_hSourceTVPath, Event_SourceTVPath);
-	HookConVarChange(g_hJinraiName, Event_TeamNameJinrai);
-	HookConVarChange(g_hNSFName, Event_TeamNameNSF);
+	HookConVarChange(g_hNeoRestartThis,		Event_Restart);
+	HookConVarChange(g_hSourceTVEnabled,	Event_SourceTVEnabled);
+	HookConVarChange(g_hSourceTVPath,		Event_SourceTVPath);
+	HookConVarChange(g_hJinraiName,			Event_TeamNameJinrai);
+	HookConVarChange(g_hNSFName,			Event_TeamNameNSF);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true);
 	
