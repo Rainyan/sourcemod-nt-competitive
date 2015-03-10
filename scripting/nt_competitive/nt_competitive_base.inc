@@ -110,7 +110,7 @@ public Action:Command_IgnoreTeams(client, args)
 	if (!g_debug_ignoreLiveTeams)
 	{
 		g_debug_ignoreLiveTeams = true;
-		ReplyToCommand(client, "Now ignoring team protection.");
+		ReplyToCommand(client, "Now ignoring team change protection.");
 	}
 	
 	else
