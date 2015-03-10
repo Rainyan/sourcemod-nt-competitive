@@ -34,22 +34,22 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	if (g_jinraiScore > g_nsfScore + roundLimit - (g_roundCount - 1)) // (g_roundCount - 1) because we're counting rounds by incrementing inside the event. So first round is 1, not 0.
 	{
 		#if DEBUG > 1
-			PrintToServer("%s JINRAI WINS %i - %i", g_tag, g_jinraiScore, g_nsfScore);
+			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
 			PrintToServer("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore, g_nsfScore, roundLimit, g_roundCount);
 		#endif
 			
-		PrintToChatAll("%s JINRAI WINS %i - %i", g_tag, g_jinraiScore, g_nsfScore);
+		PrintToChatAll("%s %s WINS %i - %i", g_teamName[TEAM_JINRAI], g_tag, g_jinraiScore, g_nsfScore);
 	}
 	
 	// NSF wins, Jinrai can't catch up anymore
 	else if (g_nsfScore > g_jinraiScore + roundLimit - (g_roundCount - 1))
 	{
 		#if DEBUG > 1
-			PrintToServer("%s NSF WINS %i - %i", g_tag, g_nsfScore, g_jinraiScore);
+			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore, g_jinraiScore);
 			PrintToServer("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore, g_jinraiScore, roundLimit, g_roundCount);
 		#endif
 		
-		PrintToChatAll("%s NSF WINS %i - %i", g_tag, g_nsfScore, g_jinraiScore);
+		PrintToChatAll("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore, g_jinraiScore);
 	}
 	
 	// Tie, we ran out of rounds to play
