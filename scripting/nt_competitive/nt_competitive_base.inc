@@ -107,19 +107,17 @@ public Action:CheckIfEveryoneIsReady()
 
 public Action:Command_IgnoreTeams(client, args)
 {
-	#if DEBUG
-		if (!g_debug_ignoreLiveTeams)
-		{
-			g_debug_ignoreLiveTeams = true;
-			ReplyToCommand(client, "Now ignoring team protection.");
-		}
-		
-		else
-		{
-			g_debug_ignoreLiveTeams = false;
-			ReplyToCommand(client, "Enforcing teams.");
-		}
-	#endif
+	if (!g_debug_ignoreLiveTeams)
+	{
+		g_debug_ignoreLiveTeams = true;
+		ReplyToCommand(client, "Now ignoring team protection.");
+	}
+	
+	else
+	{
+		g_debug_ignoreLiveTeams = false;
+		ReplyToCommand(client, "Enforcing teams.");
+	}
 	
 	return Plugin_Handled;
 }
