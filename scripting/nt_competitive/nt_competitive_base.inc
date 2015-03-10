@@ -11,16 +11,19 @@ new String:g_teamName[][64] = {
 	"NSF"
 };
 new String:g_livePlayers[44][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
-new String:g_menuSoundOk[21] = "buttons/button14.wav";
-new String:g_menuSoundCancel[27] = "buttons/combine_button7.wav";
+new String:g_menuSoundOk[] = "buttons/button14.wav";
+new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
+new String:g_soundLive[] = "buttons/button17.wav";
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
+new g_liveTimer = 5;
 new g_nsfScore;
 new g_pausingReason;
 new g_pausingTeam;
 new g_roundCount;
 new g_spamTimerCount;
+new g_unpauseTimer = 10;
 new g_usedTimeouts[4];
 
 new Float:g_fRoundTime;
@@ -56,7 +59,9 @@ new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
 //new Handle:g_hServerPassword;
 
+new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
+new Handle:g_hTimerPauseCountdown = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 
 public Action:CheckIfEveryoneIsReady()
@@ -100,26 +105,24 @@ public Action:CheckIfEveryoneIsReady()
 		return Plugin_Stop;
 	}
 	
-	ToggleLive(); // Passed all checks, ready to go live
+	LiveCountDown(); // Passed all checks, ready to go live
 	
 	return Plugin_Handled;
 }
 
 public Action:Command_IgnoreTeams(client, args)
 {
-	#if DEBUG
-		if (!g_debug_ignoreLiveTeams)
-		{
-			g_debug_ignoreLiveTeams = true;
-			ReplyToCommand(client, "Now ignoring team protection.");
-		}
-		
-		else
-		{
-			g_debug_ignoreLiveTeams = false;
-			ReplyToCommand(client, "Enforcing teams.");
-		}
-	#endif
+	if (!g_debug_ignoreLiveTeams)
+	{
+		g_debug_ignoreLiveTeams = true;
+		ReplyToCommand(client, "Now ignoring team change protection.");
+	}
+	
+	else
+	{
+		g_debug_ignoreLiveTeams = false;
+		ReplyToCommand(client, "Enforcing teams.");
+	}
 	
 	return Plugin_Handled;
 }
@@ -161,15 +164,14 @@ public Action:ToggleRecording()
 			}
 			replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
 			
-			ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
+			ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitization
 			strcopy(replayName, sizeof(replayName), replayBuffer);
 			
 			ClientCommand(i, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
 			ClientCommand(i, "record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
-			ClientCommand(i, "say record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
 			
 			#if DEBUG > 1
-				ClientCommand(i, "say Test: Start demo.");
+				ClientCommand(i, "say Debug message: This client is now recording to %s", replayName);
 			#endif
 		}
 	}
@@ -184,10 +186,21 @@ public Action:ToggleRecording()
 			ClientCommand(i, "stop");
 			
 			#if DEBUG > 1
-				ClientCommand(i, "say Test: Stop demo.");
+				ClientCommand(i, "say Debug message: This client has stopped recording");
 			#endif
 		}
 	}
+}
+
+public Action:LiveCountDown()
+{
+	g_hTimerLiveCountdown = CreateTimer(1.0, Timer_Live_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	CreateTimer(float(g_liveTimer), Timer_GoLive);
+}
+
+public Action:Timer_GoLive(Handle:timer)
+{
+	ToggleLive();
 }
 
 public Action:ToggleLive()
@@ -200,6 +213,11 @@ public Action:ToggleLive()
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
 		SetConVarBool(g_hForceCamera, true);
+		
+		#if DEBUG
+			PrintToServer("Creating SteamID array of players...");
+			new foundPlayers;
+		#endif
 		
 		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		{
@@ -215,6 +233,7 @@ public Action:ToggleLive()
 			else
 			{
 				strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), steamID);
+				PrintToServer("sizeof g_livePlayers: %i", sizeof(g_livePlayers[]));
 				g_assignedTeamWhenLive[i] = GetClientTeam(i);
 			}
 			
@@ -223,13 +242,30 @@ public Action:ToggleLive()
 				{
 					PrintToServer("Found SteamID: %s", steamID);
 					PrintToServer("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
+					foundPlayers++;
 				}
 			#endif
 		}
 		
+		#if DEBUG
+			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
+		#endif
+		
 		ToggleRecording();
 		
-		PrintToChatAll("%s Game started message.", g_tag);
+		// Announce game start, possible tournament name, and teams
+		new String:competitionName[32];
+		GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
+		
+		if (strlen(competitionName) < 1)
+			strcopy(competitionName, sizeof(competitionName), "Competitive Neotokyo");
+		
+		new String:liveTitle[sizeof(g_tag) + sizeof(competitionName) + sizeof(g_teamName[]) * 2 + 6];
+		
+		Format(liveTitle, sizeof(liveTitle), "%s %s: %s - %s", g_tag, competitionName, g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
+		
+		PrintToChatAll(liveTitle);
+		
 		SpamTimer();
 	}
 	
@@ -257,7 +293,7 @@ public Action:ToggleLive()
 			g_assignedTeamWhenLive[i] = TEAM_UNASSIGNED;
 		}
 		
-		PrintToChatAll("%s Game ended message.", g_tag);
+		PrintToChatAll("%s Match has ended.", g_tag);
 	}
 	
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
@@ -284,8 +320,12 @@ public Action:TogglePause()
 			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		#endif
 		
-		CreateTimer(GetConVarFloat(g_hMaxPauseLength), Timer_Unpause);
-		CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
+		CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
+		
+		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
+			CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
+		
+		CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
 	}
 	
 	else
@@ -294,7 +334,6 @@ public Action:TogglePause()
 		
 		if (g_isLive) // Only announce the unpause if a match is still going
 		{
-			PrintToChatAll("%s Match unpaused.", g_tag);
 			SpamTimer();
 		}
 	}
@@ -446,6 +485,54 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxPauseLength)) / 2));
 }
 
+public Action:Timer_StartTenSecondsLeft(Handle:timer)
+{
+	if (g_hTimerPauseCountdown == INVALID_HANDLE)
+		g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+}
+
+public Action:Timer_Live_TenSecondsCountdown(Handle:timer)
+{
+	if (g_liveTimer > 0)
+	{
+		//PlayLiveBeep(); // Can't EmitSound when paused?
+		PrintToChatAll("%s Match starting in: %i", g_tag, g_liveTimer);
+		g_liveTimer--;
+	}
+	
+	else
+	{
+		if (g_hTimerLiveCountdown != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerLiveCountdown);
+			g_hTimerLiveCountdown = INVALID_HANDLE;
+		}
+		
+		g_liveTimer = 10;
+	}
+}
+
+public Action:Timer_Unpause_TenSecondsCountdown(Handle:timer)
+{
+	if (g_unpauseTimer > 0)
+	{
+		//PlayLiveBeep(); // Can't EmitSound when paused?
+		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
+		g_unpauseTimer--;
+	}
+	
+	else
+	{
+		if (g_hTimerPauseCountdown != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerPauseCountdown);
+			g_hTimerPauseCountdown = INVALID_HANDLE;
+		}
+		
+		g_unpauseTimer = 10;
+	}
+}
+
 public InitDirectory(const String:sDir[])
 {
 	decl String:sPieces[32][PLATFORM_MAX_PATH];
@@ -532,6 +619,18 @@ public Action:ToggleSourceTV()
 	}
 	
 	return Plugin_Handled;
+}
+
+public Action:PlayLiveBeep()
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i) || IsFakeClient(i))
+			continue;
+		
+		PrecacheSound(g_soundLive);
+		EmitSoundToClient(i, g_soundLive);
+	}
 }
 
 bool:IsSourceTVBotConnected()

@@ -17,11 +17,11 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.2"
+#define PLUGIN_VERSION "0.3"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
-	description	=	"NT competitive setup",
+	description	=	"Count score, announce winner, perform other competitive tasks",
 	author		=	"Rain",
 	version		=	PLUGIN_VERSION,
 	url			=	"https://github.com/Rainyan/sourcemod-nt-competitive"
@@ -38,33 +38,33 @@ public OnPluginStart()
 	RegConsoleCmd("jointeam",	Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 	
 	#if DEBUG
-		RegAdminCmd("sm_forcelive", Command_ForceLive, ADMFLAG_GENERIC, "Force the competitive match to start. Debug command.");
-		RegAdminCmd("sm_ignoreteams", Command_IgnoreTeams, ADMFLAG_GENERIC, "Ignore team limitations when a match is live. Debug command.");
+		RegAdminCmd("sm_forcelive",		Command_ForceLive,		ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
+		RegAdminCmd("sm_ignoreteams",	Command_IgnoreTeams,	ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
 	#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
-	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit", "13", "How many rounds are played in a competitive match.", _, true, 1.0);
-	g_hMatchSize		= CreateConVar("sm_competitive_players_total", "10", "How many players total are expected to ready up before starting a competitive match.");
-	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts", "1", "How many time-outs are allowed per match per team.", _, true, 0.0);
-	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length", "180", "How long can a competitive time-out last, in seconds.", _, true, 0.0);
-	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled", "1", "Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
-	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path", "sourcetv_competitive", "Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
-	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name", "", "Jinrai team's name. Will use \"Jinrai\" if left empty.");
-	g_hNSFName			= CreateConVar("sm_competitive_nsf_name", "", "NSF team's name. Will use \"NSF\" if left empty.");
-	g_hCompetitionName	= CreateConVar("sm_competitive_title", "", "Name of the tournament/competition. Used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
+	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit",		"13",						"How many rounds are played in a competitive match.", _, true, 1.0);
+	g_hMatchSize		= CreateConVar("sm_competitive_players_total",		"10",						"How many players total are expected to ready up before starting a competitive match.");
+	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts",		"1",						"How many time-outs are allowed per match per team.", _, true, 0.0);
+	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length",	"180",						"How long can a competitive time-out last, in seconds.", _, true, 0.0);
+	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled",	"1",						"Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
+	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path",		"replays_competitive",		"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
+	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name",		"Jinrai",					"Jinrai team's name. Will use \"Jinrai\" if left empty.");
+	g_hNSFName			= CreateConVar("sm_competitive_nsf_name",			"NSF",						"NSF team's name. Will use \"NSF\" if left empty.");
+	g_hCompetitionName	= CreateConVar("sm_competitive_title",				"",							"Name of the tournament/competition. Used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
 	g_hPausable			= FindConVar("sv_pausable");
 	
-	HookConVarChange(g_hNeoRestartThis, Event_Restart);
-	HookConVarChange(g_hSourceTVEnabled, Event_SourceTVEnabled);
-	HookConVarChange(g_hSourceTVPath, Event_SourceTVPath);
-	HookConVarChange(g_hJinraiName, Event_TeamNameJinrai);
-	HookConVarChange(g_hNSFName, Event_TeamNameNSF);
+	HookConVarChange(g_hNeoRestartThis,		Event_Restart);
+	HookConVarChange(g_hSourceTVEnabled,	Event_SourceTVEnabled);
+	HookConVarChange(g_hSourceTVPath,		Event_SourceTVPath);
+	HookConVarChange(g_hJinraiName,			Event_TeamNameJinrai);
+	HookConVarChange(g_hNSFName,			Event_TeamNameNSF);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true);
 	
@@ -93,8 +93,12 @@ public OnClientAuthorized(client, const String:authID[])
 		new bool:isPlayerCompeting;
 		new earlierUserid;
 		
-		for (new i = 1; i <= sizeof(g_livePlayers); i++)
+		for (new i = 1; i <= sizeof(g_livePlayers[]); i++)
 		{
+			#if DEBUG > 1
+				PrintToServer("Checking array index %i, array size %i", i, sizeof(g_livePlayers[]));
+			#endif
+			
 			if (StrEqual(authID, g_livePlayers[i]))
 			{
 				isPlayerCompeting = true;
@@ -110,14 +114,14 @@ public OnClientAuthorized(client, const String:authID[])
 			g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
 		
 		#if DEBUG
-			PrintToServer("New client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
+			PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
 		#endif
 	}
 }
 
 public Action:Command_ForceLive(client, args)
 {
-	ToggleLive();
+	LiveCountDown();
 	
 	return Plugin_Handled;
 }
@@ -134,30 +138,6 @@ public Action:Command_Pause(client, args)
 	
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
-	
-	if (!g_isPaused && !g_shouldPause)
-	{
-		if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
-		{
-			if (GetConVarInt(g_hMaxTimeouts) == 0)
-				PrintToChatAll("%s Time-outs are not allowed!", g_tag);
-			
-			else if (GetConVarInt(g_hMaxTimeouts) == 1)
-				PrintToChatAll("%s %s has already used their timeout!", g_tag, g_teamName[team]);
-			
-			else if (GetConVarInt(g_hMaxTimeouts) > 1)
-				PrintToChatAll("%s %s has already used all their %i timeouts!", g_tag, g_teamName[team], GetConVarInt(g_hMaxTimeouts));
-			
-			else
-			{
-				new String:cvarValue[128];
-				GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
-				LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
-			}
-			
-			return Plugin_Stop;
-		}
-	}
 	
 	else if (!g_isPaused && g_shouldPause)
 	{
@@ -194,7 +174,7 @@ public Action:Command_Pause(client, args)
 		
 		if (!g_isTeamReadyForUnPause[g_pausingTeam] && team != g_pausingTeam)
 		{
-			PrintToChat(client, "%s Cannot unpause − the pause was initiated by %s", g_tag, g_teamName[otherTeam]);
+			ReplyToCommand(client, "%s Cannot unpause − the pause was initiated by %s", g_tag, g_teamName[otherTeam]);
 			return Plugin_Stop;
 		}
 		
@@ -224,8 +204,35 @@ public Action:Command_Pause(client, args)
 	
 	DrawPanelText(panel, "Please select pause reason");
 	
-	DrawPanelItem(panel, "Technical difficulties");
-	DrawPanelItem(panel, "Time-out");
+	if (!g_isPaused && !g_shouldPause)
+	{
+		// Check if this team has tactical time-outs available
+		if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
+		{
+			if (GetConVarInt(g_hMaxTimeouts) == 0)
+				DrawPanelItem(panel, "Time-outs are not allowed.");
+			
+			else if (GetConVarInt(g_hMaxTimeouts) == 1)
+				DrawPanelItem(panel, "Team has already used their timeout.");
+			
+			else if (GetConVarInt(g_hMaxTimeouts) > 1)
+				DrawPanelItem(panel, "Team has already used all their %i timeouts.", GetConVarInt(g_hMaxTimeouts));
+			
+			else
+			{
+				new String:cvarValue[128];
+				GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
+				LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
+			}
+		}
+		
+		else // Team is allowed to call a time-out
+		{
+			DrawPanelItem(panel, "Time-out");
+		}
+	}
+	
+	DrawPanelItem(panel, "Technical difficulties"); // Team is always allowed to call a pause for technical issues
 	DrawPanelItem(panel, "Exit");
 	
 	SendPanelToClient(panel, client, PanelHandler_Pause, MENU_TIME);
@@ -350,7 +357,7 @@ public Action:Command_OverrideStart(client, args)
 		for (new i = TEAM_SPECTATOR + 1; i == 2; i++) // Cancel both teams' override preference
 			g_isWantingOverride[i] = false;
 		
-		ToggleLive();
+		LiveCountDown();
 	}
 	
 	return Plugin_Handled;
