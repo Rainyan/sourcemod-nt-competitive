@@ -50,7 +50,7 @@ public OnPluginStart()
 	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts",		"1",						"How many time-outs are allowed per match per team.", _, true, 0.0);
 	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length",	"180",						"How long can a competitive time-out last, in seconds.", _, true, 0.0);
 	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled",	"1",						"Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
-	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path",		"sourcetv_competitive",		"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
+	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path",		"replays_competitive",		"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
 	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name",		"Jinrai",					"Jinrai team's name. Will use \"Jinrai\" if left empty.");
 	g_hNSFName			= CreateConVar("sm_competitive_nsf_name",			"NSF",						"NSF team's name. Will use \"NSF\" if left empty.");
 	g_hCompetitionName	= CreateConVar("sm_competitive_title",				"",							"Name of the tournament/competition. Used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
