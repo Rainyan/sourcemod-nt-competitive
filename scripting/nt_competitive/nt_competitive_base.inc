@@ -17,6 +17,7 @@ new String:g_soundLive[] = "buttons/button17.wav";
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
+new g_liveTimer = 5;
 new g_nsfScore;
 new g_pausingReason;
 new g_pausingTeam;
@@ -58,8 +59,9 @@ new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
 //new Handle:g_hServerPassword;
 
+new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
-new Handle:g_hTimerTenSeconds = INVALID_HANDLE;
+new Handle:g_hTimerPauseCountdown = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 
 public Action:CheckIfEveryoneIsReady()
@@ -103,7 +105,7 @@ public Action:CheckIfEveryoneIsReady()
 		return Plugin_Stop;
 	}
 	
-	ToggleLive(); // Passed all checks, ready to go live
+	LiveCountDown(); // Passed all checks, ready to go live
 	
 	return Plugin_Handled;
 }
@@ -188,6 +190,17 @@ public Action:ToggleRecording()
 			#endif
 		}
 	}
+}
+
+public Action:LiveCountDown()
+{
+	g_hTimerLiveCountdown = CreateTimer(1.0, Timer_Live_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	CreateTimer(float(g_liveTimer), Timer_GoLive);
+}
+
+public Action:Timer_GoLive(Handle:timer)
+{
+	ToggleLive();
 }
 
 public Action:ToggleLive()
@@ -307,12 +320,12 @@ public Action:TogglePause()
 			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		#endif
 		
-		CreateTimer(GetConVarFloat(g_hMaxPauseLength), Timer_Unpause);
+		CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
 		
 		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
 			CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
 		
-		CreateTimer((GetConVarFloat(g_hMaxPauseLength) - 10.0), Timer_StartTenSecondsLeft);
+		CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
 	}
 	
 	else
@@ -321,7 +334,6 @@ public Action:TogglePause()
 		
 		if (g_isLive) // Only announce the unpause if a match is still going
 		{
-			PrintToChatAll("%s UNPAUSED", g_tag);
 			SpamTimer();
 		}
 	}
@@ -475,10 +487,32 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 
 public Action:Timer_StartTenSecondsLeft(Handle:timer)
 {
-	g_hTimerTenSeconds = CreateTimer(1.0, Timer_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	if (g_hTimerPauseCountdown == INVALID_HANDLE)
+		g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 }
 
-public Action:Timer_TenSecondsCountdown(Handle:timer)
+public Action:Timer_Live_TenSecondsCountdown(Handle:timer)
+{
+	if (g_liveTimer > 0)
+	{
+		//PlayLiveBeep(); // Can't EmitSound when paused?
+		PrintToChatAll("%s Match starting in: %i", g_tag, g_liveTimer);
+		g_liveTimer--;
+	}
+	
+	else
+	{
+		if (g_hTimerLiveCountdown != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerLiveCountdown);
+			g_hTimerLiveCountdown = INVALID_HANDLE;
+		}
+		
+		g_liveTimer = 10;
+	}
+}
+
+public Action:Timer_Unpause_TenSecondsCountdown(Handle:timer)
 {
 	if (g_unpauseTimer > 0)
 	{
@@ -489,10 +523,10 @@ public Action:Timer_TenSecondsCountdown(Handle:timer)
 	
 	else
 	{
-		if (g_hTimerTenSeconds != INVALID_HANDLE)
+		if (g_hTimerPauseCountdown != INVALID_HANDLE)
 		{
-			KillTimer(g_hTimerTenSeconds);
-			g_hTimerTenSeconds = INVALID_HANDLE;
+			KillTimer(g_hTimerPauseCountdown);
+			g_hTimerPauseCountdown = INVALID_HANDLE;
 		}
 		
 		g_unpauseTimer = 10;

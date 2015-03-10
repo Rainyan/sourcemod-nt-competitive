@@ -121,7 +121,7 @@ public OnClientAuthorized(client, const String:authID[])
 
 public Action:Command_ForceLive(client, args)
 {
-	ToggleLive();
+	LiveCountDown();
 	
 	return Plugin_Handled;
 }
@@ -357,7 +357,7 @@ public Action:Command_OverrideStart(client, args)
 		for (new i = TEAM_SPECTATOR + 1; i == 2; i++) // Cancel both teams' override preference
 			g_isWantingOverride[i] = false;
 		
-		ToggleLive();
+		LiveCountDown();
 	}
 	
 	return Plugin_Handled;
