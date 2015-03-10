@@ -200,6 +200,7 @@ public Action:ToggleLive()
 		
 		#if DEBUG
 			PrintToServer("Creating SteamID array of players...");
+			new foundPlayers;
 		#endif
 		
 		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
@@ -224,12 +225,13 @@ public Action:ToggleLive()
 				{
 					PrintToServer("Found SteamID: %s", steamID);
 					PrintToServer("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
+					foundPlayers++;
 				}
 			#endif
 		}
 		
 		#if DEBUG
-			PrintToServer("Completed SteamID array with %i results.", sizeof(g_livePlayers));
+			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
 		#endif
 		
 		ToggleRecording();
