@@ -182,7 +182,7 @@ public Action:ToggleRecording()
 			ClientCommand(i, "stop");
 			
 			#if DEBUG > 1
-				ClientCommand(i, "say Test: Stop demo.");
+				ClientCommand(i, "say Debug message: This client has stopped recording");
 			#endif
 		}
 	}
