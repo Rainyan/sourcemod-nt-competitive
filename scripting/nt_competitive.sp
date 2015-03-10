@@ -139,30 +139,6 @@ public Action:Command_Pause(client, args)
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
 	
-	if (!g_isPaused && !g_shouldPause)
-	{
-		if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
-		{
-			if (GetConVarInt(g_hMaxTimeouts) == 0)
-				PrintToChatAll("%s Time-outs are not allowed!", g_tag);
-			
-			else if (GetConVarInt(g_hMaxTimeouts) == 1)
-				PrintToChatAll("%s %s has already used their timeout!", g_tag, g_teamName[team]);
-			
-			else if (GetConVarInt(g_hMaxTimeouts) > 1)
-				PrintToChatAll("%s %s has already used all their %i timeouts!", g_tag, g_teamName[team], GetConVarInt(g_hMaxTimeouts));
-			
-			else
-			{
-				new String:cvarValue[128];
-				GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
-				LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
-			}
-			
-			return Plugin_Stop;
-		}
-	}
-	
 	else if (!g_isPaused && g_shouldPause)
 	{
 		if (team != g_pausingTeam)
@@ -228,8 +204,35 @@ public Action:Command_Pause(client, args)
 	
 	DrawPanelText(panel, "Please select pause reason");
 	
-	DrawPanelItem(panel, "Technical difficulties");
-	DrawPanelItem(panel, "Time-out");
+	if (!g_isPaused && !g_shouldPause)
+	{
+		// Check if this team has tactical time-outs available
+		if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
+		{
+			if (GetConVarInt(g_hMaxTimeouts) == 0)
+				DrawPanelItem(panel, "Time-outs are not allowed.");
+			
+			else if (GetConVarInt(g_hMaxTimeouts) == 1)
+				DrawPanelItem(panel, "Team has already used their timeout.");
+			
+			else if (GetConVarInt(g_hMaxTimeouts) > 1)
+				DrawPanelItem(panel, "Team has already used all their %i timeouts.", GetConVarInt(g_hMaxTimeouts));
+			
+			else
+			{
+				new String:cvarValue[128];
+				GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
+				LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
+			}
+		}
+		
+		else // Team is allowed to call a time-out
+		{
+			DrawPanelItem(panel, "Time-out");
+		}
+	}
+	
+	DrawPanelItem(panel, "Technical difficulties"); // Team is always allowed to call a pause for technical issues
 	DrawPanelItem(panel, "Exit");
 	
 	SendPanelToClient(panel, client, PanelHandler_Pause, MENU_TIME);

@@ -3,25 +3,45 @@ public PanelHandler_Pause(Handle:menu, MenuAction:action, client, choice)
 	if (action != MenuAction_Select)
 		return;
 	
+	new team = GetClientTeam(client);
+	
 	switch (choice)
 	{
-		case 1: // Pause requested for technical difficulties
+		// Native button sounds are generally already precached by engine, but we're using PrecacheSound here jic
+		
+		case 1: // Pause requested for timeout
 		{
-			PrecacheSound(g_menuSoundOk); // Button sounds are generally already precached, but jic
+			// No more timeouts allowed for this team
+			if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
+			{
+				PrecacheSound(g_menuSoundCancel);
+				EmitSoundToClient(client, g_menuSoundCancel);
+				
+				if (GetConVarInt(g_hMaxTimeouts) > 0)
+					ReplyToCommand(client, "%s Your team has used all available time-outs for this match.", g_tag);
+				
+				else
+					ReplyToCommand(client, "%s Tactical time-outs are not allowed for this match.", g_tag);
+			}
+			
+			else
+			{
+				PrecacheSound(g_menuSoundOk);
+				EmitSoundToClient(client, g_menuSoundOk);
+				PauseRequest(client, REASON_TIMEOUT);
+			}
+		}
+		
+		case 2: // Pause requested for technical difficulties
+		{
+			PrecacheSound(g_menuSoundOk);
 			EmitSoundToClient(client, g_menuSoundOk);
 			PauseRequest(client, REASON_TECHNICAL);
 		}
 		
-		case 2: // Pause requested for timeout
-		{
-			PrecacheSound(g_menuSoundOk);
-			EmitSoundToClient(client, g_menuSoundOk);
-			PauseRequest(client, REASON_TIMEOUT);
-		}
-		
 		case 3: // Exit menu
 		{
-			PrecacheSound(g_menuSoundOk);
+			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
