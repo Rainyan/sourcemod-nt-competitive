@@ -38,7 +38,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			PrintToServer("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore, g_nsfScore, roundLimit, g_roundCount);
 		#endif
 			
-		PrintToChatAll("%s %s WINS %i - %i", g_teamName[TEAM_JINRAI], g_tag, g_jinraiScore, g_nsfScore);
+		PrintToChatAll("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
 	}
 	
 	// NSF wins, Jinrai can't catch up anymore
