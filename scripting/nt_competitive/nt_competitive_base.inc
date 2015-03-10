@@ -198,6 +198,10 @@ public Action:ToggleLive()
 		SetConVarBool(g_hNeoRestartThis, true);
 		SetConVarBool(g_hForceCamera, true);
 		
+		#if DEBUG
+			PrintToServer("Creating SteamID array of players...");
+		#endif
+		
 		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		{
 			if (!Client_IsValid(i) || IsFakeClient(i))
@@ -223,6 +227,10 @@ public Action:ToggleLive()
 				}
 			#endif
 		}
+		
+		#if DEBUG
+			PrintToServer("Completed SteamID array with %i results.", sizeof(g_livePlayers));
+		#endif
 		
 		ToggleRecording();
 		
