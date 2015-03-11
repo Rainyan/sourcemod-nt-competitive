@@ -213,11 +213,6 @@ public Action:ToggleLive()
 	{
 		g_isLive = true;
 		
-		SetConVarBool(g_hAlltalk, false);
-		SetConVarBool(g_hPausable, false);
-		SetConVarBool(g_hNeoRestartThis, true);
-		SetConVarBool(g_hForceCamera, true);
-		
 		#if DEBUG
 			PrintToServer("Creating SteamID array of players...");
 			new foundPlayers;
@@ -227,6 +222,17 @@ public Action:ToggleLive()
 		{
 			if (!Client_IsValid(i) || IsFakeClient(i) ||IsClientInGame(i))
 				continue;
+			
+			if (!IsClientAuthorized(i))
+			{
+				new String:clientName[MAX_NAME_LENGTH];
+				GetClientName(i, clientName, sizeof(clientName));
+				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
+				
+				g_isLive = false;
+				
+				return Plugin_Stop;
+			}
 			
 			new String:steamID[MAX_STEAMID_LENGTH];
 			GetClientAuthString(i, steamID, sizeof(steamID));
@@ -255,6 +261,11 @@ public Action:ToggleLive()
 		#if DEBUG
 			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
 		#endif
+		
+		SetConVarBool(g_hAlltalk, false);
+		SetConVarBool(g_hPausable, false);
+		SetConVarBool(g_hNeoRestartThis, true);
+		SetConVarBool(g_hForceCamera, true);
 		
 		ToggleRecording();
 		
@@ -299,6 +310,8 @@ public Action:ToggleLive()
 	}
 	
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
+	
+	return Plugin_Handled;
 }
 
 public Action:TogglePause()
