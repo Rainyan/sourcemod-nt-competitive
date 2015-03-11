@@ -31,7 +31,6 @@ new g_usedTimeouts[4];
 new Float:g_fRoundTime;
 
 new bool:g_isAlltalkByDefault;
-//new bool:g_isCompetitor[MAXPLAYERS+1];
 new bool:g_isExpectingOverride;
 new bool:g_isLive;
 new bool:g_isPaused;
@@ -59,7 +58,6 @@ new Handle:g_hSourceTVEnabled;
 new Handle:g_hSourceTVPath;
 new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
-//new Handle:g_hServerPassword;
 
 new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
