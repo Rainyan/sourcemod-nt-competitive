@@ -262,7 +262,7 @@ public Action:ToggleLive()
 			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
 		#endif
 		
-		SetConVarBool(g_hAlltalk, false);
+		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
 		SetConVarBool(g_hForceCamera, true);
@@ -692,4 +692,15 @@ stock GetPlayersReady()
 	}
 	
 	return playersReady;
+}
+
+stock GetDesiredCommsBehaviour()
+{
+	new behaviour = GetConVarInt(g_hCommsBehaviour); // 0: disable alltalk, 1: enable alltalk, 2: use whichever initial alltalk value (tracked with g_isAlltalkByDefault)
+	
+	if (behaviour <= 1)
+		return behaviour;
+	
+	else
+		return g_isAlltalkByDefault;
 }
