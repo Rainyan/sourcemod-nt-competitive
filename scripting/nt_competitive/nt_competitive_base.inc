@@ -3,6 +3,8 @@
 #define REASON_TECHNICAL 0
 #define REASON_TIMEOUT 1
 
+#define MAX_STEAMID_LENGTH 44
+
 new String:g_tag[] = "[COMP]";
 new String:g_teamName[][64] = {
 	"Unassigned",
@@ -139,7 +141,7 @@ public Action:ToggleRecording()
 			if (!Client_IsValid(i) || IsFakeClient(i))
 				continue;
 			
-			new String:steamID[44];
+			new String:steamID[MAX_STEAMID_LENGTH];
 			GetClientAuthString(i, steamID, sizeof(steamID));
 			
 			new String:timestamp[15];
@@ -227,7 +229,7 @@ public Action:ToggleLive()
 			if (!Client_IsValid(i) || IsFakeClient(i) ||IsClientInGame(i))
 				continue;
 			
-			new String:steamID[44];
+			new String:steamID[MAX_STEAMID_LENGTH];
 			GetClientAuthString(i, steamID, sizeof(steamID));
 			new team = GetClientTeam(i);
 			
