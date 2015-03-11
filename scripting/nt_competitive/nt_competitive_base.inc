@@ -68,11 +68,14 @@ public Action:CheckIfEveryoneIsReady()
 {
 	new players;
 	
+	/*
 	#if DEBUG // count bots for debug purposes. start override will not work if bots or sourcetv present!
 		players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
 	#else
 		players = Client_GetCount(true, false); // countInGameOnly, countFakeClients
 	#endif
+	*/
+	players = Client_GetCount(true, false); // countInGameOnly, countFakeClients
 	
 	new playersReady = GetPlayersReady();
 	
