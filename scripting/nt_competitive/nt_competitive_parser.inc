@@ -113,6 +113,21 @@ public Action:Command_JoinTeam(client, args)
 	return Plugin_Stop;
 }
 
+public Event_CommsBehaviour(Handle:cvar, const String:oldVal[], const String:newVal[])
+{	
+	switch (StringToInt(newVal))
+	{
+		case 0:
+			SetConVarInt(g_hAlltalk, 0); // Disable alltalk
+		
+		case 1:
+			SetConVarInt(g_hAlltalk, 1); // Enable alltalk
+		
+		case 2:
+			SetConVarInt(g_hAlltalk, g_isAlltalkByDefault); // Set int to bool value (1/0) depending on initial state
+	}
+}
+
 public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	if (StringToInt(newVal)) // If nonzero, we have a restart. So we reset the variable.

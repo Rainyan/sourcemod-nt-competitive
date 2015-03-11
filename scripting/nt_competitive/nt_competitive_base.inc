@@ -46,6 +46,7 @@ new bool:g_shouldPause;
 #endif
 
 new Handle:g_hAlltalk;
+new Handle:g_hCommsBehaviour;
 new Handle:g_hCompetitionName;
 new Handle:g_hForceCamera;
 new Handle:g_hMatchSize;
@@ -287,9 +288,6 @@ public Action:ToggleLive()
 		g_usedTimeouts[TEAM_NSF] = 0;
 		
 		SetConVarBool(g_hForceCamera, false);
-		
-		if (g_isAlltalkByDefault)
-			SetConVarBool(g_hAlltalk, true);
 		
 		for (new i = 1; i <= MaxClients; i++)
 		{
