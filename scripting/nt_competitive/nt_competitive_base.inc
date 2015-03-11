@@ -577,9 +577,6 @@ public Action:ToggleSourceTV()
 			return Plugin_Stop;
 		}
 		
-		if (g_isSourceTVRecording)
-			ServerCommand("tv_stoprecord");
-		
 		new String:demoPath[PLATFORM_MAX_PATH];
 		new String:timestamp[16];
 		new String:mapName[32];
@@ -614,6 +611,7 @@ public Action:ToggleSourceTV()
 		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
 		strcopy(replayName, sizeof(replayName), replayBuffer);
 		
+		ServerCommand("tv_stoprecord"); // Stop any previous server record
 		ServerCommand("tv_record \"%s/%s\"", demoPath, replayName); // SourceTV bot needs to be connected for this to do anything. This is checked above with IsSourceTVBotConnected()
 		g_isSourceTVRecording = true;
 		
