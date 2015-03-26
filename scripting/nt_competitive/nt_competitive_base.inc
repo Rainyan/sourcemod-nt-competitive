@@ -708,3 +708,18 @@ stock GetDesiredCommsBehaviour()
 	else
 		return g_isAlltalkByDefault;
 }
+
+public Action:LogCompetitive(const String:message[])
+{
+	new String:loggingPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
+	
+	new String:debugFile[] = "logfile.log"; // Static debug file for logging. We later want to use keyvalues using match IDs etc
+	Format(loggingPath, sizeof(loggingPath), "%s/%s", loggingPath, debugFile);
+		
+	new Handle:hFile = OpenFile(loggingPath, "a"); // C++ fopen modes
+	
+	WriteFileLine(hFile, message);
+	
+	CloseHandle(hFile);
+}
