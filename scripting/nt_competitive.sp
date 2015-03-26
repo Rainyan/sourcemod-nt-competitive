@@ -71,7 +71,7 @@ public OnPluginStart()
 	HookConVarChange(g_hNSFName,			Event_TeamNameNSF);
 	HookConVarChange(g_hCommsBehaviour,		Event_CommsBehaviour);
 	
-	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true);
+	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
 	new String:sourceTVPath[PLATFORM_MAX_PATH];
 	GetConVarString(g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath));
