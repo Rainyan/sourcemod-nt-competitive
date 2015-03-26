@@ -45,6 +45,8 @@ public OnPluginStart()
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
+	CreateConVar("sm_competitive_version", PLUGIN_VERSION, "Competitive plugin version.", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
+	
 	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit",		"13",						"How many rounds are played in a competitive match.", _, true, 1.0);
 	g_hMatchSize		= CreateConVar("sm_competitive_players_total",		"10",						"How many players total are expected to ready up before starting a competitive match.");
 	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts",		"1",						"How many time-outs are allowed per match per team.", _, true, 0.0);
