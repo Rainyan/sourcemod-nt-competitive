@@ -81,7 +81,7 @@ public OnPluginStart()
 		InitDirectory(sourceTVPath);
 	
 	new String:loggingPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive/");
+	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
 	
