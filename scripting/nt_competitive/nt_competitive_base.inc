@@ -289,24 +289,27 @@ public Action:ToggleLive()
 		
 		PrintToChatAll(liveTitle);
 		
-		// Create match keyvalues (to-do: load previous game after cancel/servercrash/etc)
-		// We could later use md5 hash for id inside kv meta
-		new Handle:kv = CreateKeyValues("competitive_match", "match_id", "debugID1"); // name, firstKey, firstValue
-		
-		KvGotoFirstSubKey(kv);
-		KvSetNum(kv, "round", 1);
-		
-		KvSetSectionName(kv, "testing");
-		KvSetNum(kv, "anotherVal", 5);
-		
-		new String:timestamp[15];
-		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
-		
-		new String:kvFilePath[PLATFORM_MAX_PATH] = "matchDebug.kv";
-		Format(kvFilePath, sizeof(kvFilePath), "%s/%s_%s", g_kvPath, timestamp, kvFilePath);
-		
-		KeyValuesToFile(kv, kvFilePath);
-		CloseHandle(kv);
+		#if DEBUG
+			// Create match keyvalues (to-do: load previous game after cancel/servercrash/etc)
+			// We could later use md5 (smlib) hash for id inside kv meta
+			new Handle:kv = CreateKeyValues("competitive_match", "match_id", "debugID1"); // name, firstKey, firstValue
+			
+			KvGotoFirstSubKey(kv);
+			KvSetNum(kv, "round", 1);
+			
+			KvSetSectionName(kv, "testing");
+			KvSetNum(kv, "anotherVal", 5);
+			
+			new String:timestamp[15];
+			FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
+			
+			new String:kvFilePath[PLATFORM_MAX_PATH] = "matchDebug.kv";
+			Format(kvFilePath, sizeof(kvFilePath), "%s/%s_%s", g_kvPath, timestamp, kvFilePath);
+			
+			KeyValuesToFile(kv, kvFilePath);
+			CloseHandle(kv);
+		#endif
+		// End kv debug
 		
 		SpamTimer();
 	}
