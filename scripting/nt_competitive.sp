@@ -38,8 +38,9 @@ public OnPluginStart()
 	RegConsoleCmd("jointeam",	Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 	
 	#if DEBUG
-		RegAdminCmd("sm_forcelive",		Command_ForceLive,		ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
-		RegAdminCmd("sm_ignoreteams",	Command_IgnoreTeams,	ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
+		RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
+		RegAdminCmd("sm_ignoreteams",		Command_IgnoreTeams,		ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
+		RegAdminCmd("sm_pause_resetbool",	Command_ResetPauseBool,		ADMFLAG_GENERIC,	"Reset g_isPaused to FALSE. Debug command.");
 	#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
@@ -121,6 +122,14 @@ public OnClientAuthorized(client, const String:authID[])
 			PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
 		#endif
 	}
+}
+
+public Action:Command_ResetPauseBool(client, args)
+{
+	g_isPaused = false;
+	ReplyToCommand(client, "g_isPaused reset to FALSE");
+	
+	return Plugin_Handled;
 }
 
 public Action:Command_ForceLive(client, args)
