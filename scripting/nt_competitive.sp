@@ -38,14 +38,18 @@ public OnPluginStart()
 	RegConsoleCmd("jointeam",	Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 	
 	#if DEBUG
-		RegAdminCmd("sm_forcelive",		Command_ForceLive,		ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
-		RegAdminCmd("sm_ignoreteams",	Command_IgnoreTeams,	ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
+		RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
+		RegAdminCmd("sm_ignoreteams",		Command_IgnoreTeams,		ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
+		RegAdminCmd("sm_pause_resetbool",	Command_ResetPauseBool,		ADMFLAG_GENERIC,	"Reset g_isPaused to FALSE. Debug command.");
+		RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Debug command.");
 	#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
-	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit",		"13",						"How many rounds are played in a competitive match.", _, true, 1.0);
+	CreateConVar("sm_competitive_version", PLUGIN_VERSION, "Competitive plugin version.", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
+	
+	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit",		"15",						"How many rounds are played in a competitive match.", _, true, 1.0);
 	g_hMatchSize		= CreateConVar("sm_competitive_players_total",		"10",						"How many players total are expected to ready up before starting a competitive match.");
 	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts",		"1",						"How many time-outs are allowed per match per team.", _, true, 0.0);
 	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length",	"180",						"How long can a competitive time-out last, in seconds.", _, true, 0.0);
@@ -53,7 +57,9 @@ public OnPluginStart()
 	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path",		"replays_competitive",		"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
 	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name",		"Jinrai",					"Jinrai team's name. Will use \"Jinrai\" if left empty.");
 	g_hNSFName			= CreateConVar("sm_competitive_nsf_name",			"NSF",						"NSF team's name. Will use \"NSF\" if left empty.");
-	g_hCompetitionName	= CreateConVar("sm_competitive_title",				"",							"Name of the tournament/competition. Used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
+	g_hCompetitionName	= CreateConVar("sm_competitive_title",				"",							"Name of the tournament/competition. Also used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
+	g_hCommsBehaviour	= CreateConVar("sm_competitive_comms_behaviour",	"0",						"Voice comms behaviour when live. 0 = no alltalk, 1 = enable alltalk, 2 = check sv_alltalk value before live state.", _, true, 0.0, true, 2.0);
+	g_hLogMode			= CreateConVar("sm_competitive_log_mode",			"1",						"Competitive logging mode. 1 = enabled, 0 = disabled.", _, true, 0.0, true, 1.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -65,13 +71,20 @@ public OnPluginStart()
 	HookConVarChange(g_hSourceTVPath,		Event_SourceTVPath);
 	HookConVarChange(g_hJinraiName,			Event_TeamNameJinrai);
 	HookConVarChange(g_hNSFName,			Event_TeamNameNSF);
+	HookConVarChange(g_hCommsBehaviour,		Event_CommsBehaviour);
+	HookConVarChange(g_hLogMode,			Event_LogMode);
 	
-	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true);
+	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
 	new String:sourceTVPath[PLATFORM_MAX_PATH];
 	GetConVarString(g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath));
 	if (!DirExists(sourceTVPath))
 		InitDirectory(sourceTVPath);
+	
+	new String:loggingPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
+	if (!DirExists(loggingPath))
+		InitDirectory(loggingPath);
 	
 	AutoExecConfig();
 }
@@ -117,6 +130,14 @@ public OnClientAuthorized(client, const String:authID[])
 			PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
 		#endif
 	}
+}
+
+public Action:Command_ResetPauseBool(client, args)
+{
+	g_isPaused = false;
+	ReplyToCommand(client, "g_isPaused reset to FALSE");
+	
+	return Plugin_Handled;
 }
 
 public Action:Command_ForceLive(client, args)
@@ -354,8 +375,9 @@ public Action:Command_OverrideStart(client, args)
 	{
 		g_isExpectingOverride = false;
 		
-		for (new i = TEAM_SPECTATOR + 1; i == 2; i++) // Cancel both teams' override preference
-			g_isWantingOverride[i] = false;
+		// Cancel both teams' override preference
+		g_isWantingOverride[TEAM_JINRAI] = false;
+		g_isWantingOverride[TEAM_NSF] = false;
 		
 		LiveCountDown();
 	}
@@ -443,6 +465,24 @@ public Action:Command_UnReady(client, args)
 			PrintToChatAll("Cancelled %s's force start vote.", g_teamName[team]);
 		}
 	}
+	
+	return Plugin_Handled;
+}
+
+public Action:Command_LoggingTest(client, args)
+{
+	if (args != 1)
+	{
+		ReplyToCommand(client, "Expected 1 argument.");
+		
+		return Plugin_Stop;
+	}
+	
+	new String:message[128];
+	GetCmdArg(1, message, sizeof(message));
+	LogCompetitive(message);
+	
+	ReplyToCommand(client, "Message sent.");
 	
 	return Plugin_Handled;
 }

@@ -3,6 +3,8 @@
 #define REASON_TECHNICAL 0
 #define REASON_TIMEOUT 1
 
+#define MAX_STEAMID_LENGTH 44
+
 new String:g_tag[] = "[COMP]";
 new String:g_teamName[][64] = {
 	"Unassigned",
@@ -18,6 +20,7 @@ new String:g_soundLive[] = "buttons/button17.wav";
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
 new g_liveTimer = 5;
+new g_loggingEnabled;
 new g_nsfScore;
 new g_pausingReason;
 new g_pausingTeam;
@@ -29,7 +32,6 @@ new g_usedTimeouts[4];
 new Float:g_fRoundTime;
 
 new bool:g_isAlltalkByDefault;
-//new bool:g_isCompetitor[MAXPLAYERS+1];
 new bool:g_isExpectingOverride;
 new bool:g_isLive;
 new bool:g_isPaused;
@@ -45,8 +47,10 @@ new bool:g_shouldPause;
 #endif
 
 new Handle:g_hAlltalk;
+new Handle:g_hCommsBehaviour;
 new Handle:g_hCompetitionName;
 new Handle:g_hForceCamera;
+new Handle:g_hLogMode;
 new Handle:g_hMatchSize;
 new Handle:g_hMaxPauseLength;
 new Handle:g_hMaxTimeouts;
@@ -57,7 +61,6 @@ new Handle:g_hSourceTVEnabled;
 new Handle:g_hSourceTVPath;
 new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
-//new Handle:g_hServerPassword;
 
 new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
@@ -68,8 +71,11 @@ public Action:CheckIfEveryoneIsReady()
 {
 	new players;
 	
-	#if DEBUG // count bots for debug purposes. start override will not work if bots or sourcetv present!
+	#if DEBUG // Count bots for debug purposes
 		players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
+		
+		if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as bot (player) in this debug case
+			players--;
 	#else
 		players = Client_GetCount(true, false); // countInGameOnly, countFakeClients
 	#endif
@@ -136,7 +142,7 @@ public Action:ToggleRecording()
 			if (!Client_IsValid(i) || IsFakeClient(i))
 				continue;
 			
-			new String:steamID[44];
+			new String:steamID[MAX_STEAMID_LENGTH];
 			GetClientAuthString(i, steamID, sizeof(steamID));
 			
 			new String:timestamp[15];
@@ -209,11 +215,6 @@ public Action:ToggleLive()
 	{
 		g_isLive = true;
 		
-		SetConVarBool(g_hAlltalk, false);
-		SetConVarBool(g_hPausable, false);
-		SetConVarBool(g_hNeoRestartThis, true);
-		SetConVarBool(g_hForceCamera, true);
-		
 		#if DEBUG
 			PrintToServer("Creating SteamID array of players...");
 			new foundPlayers;
@@ -221,11 +222,23 @@ public Action:ToggleLive()
 		
 		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		{
-			if (!Client_IsValid(i) || IsFakeClient(i))
+			if (!Client_IsValid(i) || IsFakeClient(i) ||IsClientInGame(i))
 				continue;
 			
-			new String:steamID[44];
+			if (!IsClientAuthorized(i))
+			{
+				new String:clientName[MAX_NAME_LENGTH];
+				GetClientName(i, clientName, sizeof(clientName));
+				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
+				
+				g_isLive = false;
+				
+				return Plugin_Stop;
+			}
+			
+			new String:steamID[MAX_STEAMID_LENGTH];
 			GetClientAuthString(i, steamID, sizeof(steamID));
+			new team = GetClientTeam(i);
 			
 			if (strlen(steamID) == 0)
 				LogError("Client %i returned empty SteamID, probably not authorized whilst attempting to save SteamID into g_livePlayers!", i);
@@ -234,7 +247,7 @@ public Action:ToggleLive()
 			{
 				strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), steamID);
 				PrintToServer("sizeof g_livePlayers: %i", sizeof(g_livePlayers[]));
-				g_assignedTeamWhenLive[i] = GetClientTeam(i);
+				g_assignedTeamWhenLive[i] = team;
 			}
 			
 			#if DEBUG > 1
@@ -250,6 +263,13 @@ public Action:ToggleLive()
 		#if DEBUG
 			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
 		#endif
+		
+		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
+		SetConVarBool(g_hPausable, false);
+		SetConVarBool(g_hNeoRestartThis, true);
+		SetConVarBool(g_hForceCamera, true);
+		
+		g_loggingEnabled = GetConVarBool(g_hLogMode);
 		
 		ToggleRecording();
 		
@@ -284,9 +304,6 @@ public Action:ToggleLive()
 		
 		SetConVarBool(g_hForceCamera, false);
 		
-		if (g_isAlltalkByDefault)
-			SetConVarBool(g_hAlltalk, true);
-		
 		for (new i = 1; i <= MaxClients; i++)
 		{
 			strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), ""); // Empty live players array
@@ -297,6 +314,8 @@ public Action:ToggleLive()
 	}
 	
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
+	
+	return Plugin_Handled;
 }
 
 public Action:TogglePause()
@@ -573,9 +592,6 @@ public Action:ToggleSourceTV()
 			return Plugin_Stop;
 		}
 		
-		if (g_isSourceTVRecording)
-			ServerCommand("tv_stoprecord");
-		
 		new String:demoPath[PLATFORM_MAX_PATH];
 		new String:timestamp[16];
 		new String:mapName[32];
@@ -610,6 +626,7 @@ public Action:ToggleSourceTV()
 		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
 		strcopy(replayName, sizeof(replayName), replayBuffer);
 		
+		ServerCommand("tv_stoprecord"); // Stop any previous server record
 		ServerCommand("tv_record \"%s/%s\"", demoPath, replayName); // SourceTV bot needs to be connected for this to do anything. This is checked above with IsSourceTVBotConnected()
 		g_isSourceTVRecording = true;
 		
@@ -679,4 +696,30 @@ stock GetPlayersReady()
 	}
 	
 	return playersReady;
+}
+
+stock GetDesiredCommsBehaviour()
+{
+	new behaviour = GetConVarInt(g_hCommsBehaviour); // 0: disable alltalk, 1: enable alltalk, 2: use whichever initial alltalk value (tracked with g_isAlltalkByDefault)
+	
+	if (behaviour <= 1)
+		return behaviour;
+	
+	else
+		return g_isAlltalkByDefault;
+}
+
+public Action:LogCompetitive(const String:message[])
+{
+	new String:loggingPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
+	
+	new String:debugFile[] = "logfile.log"; // Static debug file for logging. We later want to use keyvalues using match IDs etc
+	Format(loggingPath, sizeof(loggingPath), "%s/%s", loggingPath, debugFile);
+		
+	new Handle:hFile = OpenFile(loggingPath, "a"); // C++ fopen modes
+	
+	WriteFileLine(hFile, message);
+	
+	CloseHandle(hFile);
 }
