@@ -83,7 +83,7 @@ public PanelHandler_CancelPause(Handle:menu, MenuAction:action, client, choice)
 			CancelPauseRequest(client);
 		}
 		
-		case 2:
+		case 2: // Exit menu
 		{
 			PrecacheSound(g_menuSoundOk);
 			EmitSoundToClient(client, g_menuSoundCancel);
