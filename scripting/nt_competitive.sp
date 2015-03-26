@@ -358,8 +358,9 @@ public Action:Command_OverrideStart(client, args)
 	{
 		g_isExpectingOverride = false;
 		
-		for (new i = TEAM_SPECTATOR + 1; i == 2; i++) // Cancel both teams' override preference
-			g_isWantingOverride[i] = false;
+		// Cancel both teams' override preference
+		g_isWantingOverride[TEAM_JINRAI] = false;
+		g_isWantingOverride[TEAM_NSF] = false;
 		
 		LiveCountDown();
 	}
