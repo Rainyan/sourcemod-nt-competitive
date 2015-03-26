@@ -296,6 +296,9 @@ public Action:ToggleLive()
 		KvGotoFirstSubKey(kv);
 		KvSetNum(kv, "round", 1);
 		
+		KvSetSectionName(kv, "testing");
+		KvSetNum(kv, "anotherVal", 5);
+		
 		new String:timestamp[15];
 		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
 		
@@ -730,6 +733,9 @@ stock GetDesiredCommsBehaviour()
 
 public Action:LogCompetitive(const String:message[])
 {
+	if (!g_loggingEnabled)
+		return Plugin_Stop;
+	
 	new String:loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	
@@ -741,4 +747,6 @@ public Action:LogCompetitive(const String:message[])
 	WriteFileLine(hFile, message);
 	
 	CloseHandle(hFile);
+	
+	return Plugin_Handled;
 }
