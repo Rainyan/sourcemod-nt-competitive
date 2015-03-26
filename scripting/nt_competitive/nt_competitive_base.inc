@@ -20,6 +20,7 @@ new String:g_soundLive[] = "buttons/button17.wav";
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
 new g_liveTimer = 5;
+new g_loggingEnabled;
 new g_nsfScore;
 new g_pausingReason;
 new g_pausingTeam;
@@ -49,6 +50,7 @@ new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
 new Handle:g_hCompetitionName;
 new Handle:g_hForceCamera;
+new Handle:g_hLogMode;
 new Handle:g_hMatchSize;
 new Handle:g_hMaxPauseLength;
 new Handle:g_hMaxTimeouts;
@@ -266,6 +268,8 @@ public Action:ToggleLive()
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
 		SetConVarBool(g_hForceCamera, true);
+		
+		g_loggingEnabled = GetConVarBool(g_hLogMode);
 		
 		ToggleRecording();
 		

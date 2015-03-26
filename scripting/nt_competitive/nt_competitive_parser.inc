@@ -119,6 +119,12 @@ public Event_CommsBehaviour(Handle:cvar, const String:oldVal[], const String:new
 		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
 }
 
+public Event_LogMode(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	// We won't toggle logging whilst live
+	PrintToChatAll("Logging mode changed. Changes will become active once the game isn't live anymore.");
+}
+
 public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	if (StringToInt(newVal)) // If nonzero, we have a restart. So we reset the variable.

@@ -58,6 +58,7 @@ public OnPluginStart()
 	g_hNSFName			= CreateConVar("sm_competitive_nsf_name",			"NSF",						"NSF team's name. Will use \"NSF\" if left empty.");
 	g_hCompetitionName	= CreateConVar("sm_competitive_title",				"",							"Name of the tournament/competition. Also used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
 	g_hCommsBehaviour	= CreateConVar("sm_competitive_comms_behaviour",	"0",						"Voice comms behaviour when live. 0 = no alltalk, 1 = enable alltalk, 2 = check sv_alltalk value before live state.", _, true, 0.0, true, 2.0);
+	g_hLogMode			= CreateConVar("sm_competitive_log_mode",			"1",						"Competitive logging mode. 1 = enabled, 0 = disabled.", _, true, 0.0, true, 1.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -70,6 +71,7 @@ public OnPluginStart()
 	HookConVarChange(g_hJinraiName,			Event_TeamNameJinrai);
 	HookConVarChange(g_hNSFName,			Event_TeamNameNSF);
 	HookConVarChange(g_hCommsBehaviour,		Event_CommsBehaviour);
+	HookConVarChange(g_hLogMode,			Event_LogMode);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
