@@ -19,12 +19,28 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	g_jinraiScore	= GetTeamScore(TEAM_JINRAI);
 	g_nsfScore		= GetTeamScore(TEAM_NSF);
 	
+	if (g_roundCount == 1)
+	{
+		new String:tournamentName[128];
+		GetConVarString(g_hCompetitionName, tournamentName, sizeof(tournamentName));
+		
+		if (strlen(tournamentName) > 0)
+			LogCompetitive(tournamentName); // Log tournament name, if any
+	
+		LogCompetitive("Competitive match started: %s vs %s");
+	}
+	
+	new String:roundBuffer[64];
+	Format(roundBuffer, sizeof(roundBuffer), "***** Round %i *****", g_roundCount);
+	LogCompetitive(roundBuffer);
+	
 	if (g_shouldPause)
 	{
 		g_shouldPause = false;
 		new Float:pauseTime = 5.0;
 		CreateTimer(pauseTime, Timer_TogglePause);
 		PrintToChatAll("%s Pausing the game...", g_tag);
+		LogCompetitive("Game is PAUSED.");
 	}
 	
 	new roundLimit = GetConVarInt(g_hRoundLimit);
@@ -37,8 +53,12 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
 			PrintToServer("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore, g_nsfScore, roundLimit, g_roundCount);
 		#endif
-			
-		PrintToChatAll("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
+		
+		new String:msgBuffer[256];
+		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
+		
+		PrintToChatAll(msgBuffer);
+		LogCompetitive(msgBuffer);
 	}
 	
 	// NSF wins, Jinrai can't catch up anymore
@@ -49,12 +69,22 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			PrintToServer("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore, g_jinraiScore, roundLimit, g_roundCount);
 		#endif
 		
-		PrintToChatAll("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore, g_jinraiScore);
+		new String:msgBuffer[256];
+		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore, g_jinraiScore);
+		
+		PrintToChatAll(msgBuffer);
+		LogCompetitive(msgBuffer);
 	}
 	
 	// Tie, we ran out of rounds to play
 	else if ((g_roundCount - 1) == roundLimit)
-		PrintToChatAll("%s MATCH TIED %i - %i", g_tag, g_nsfScore, g_jinraiScore);
+	{
+		new String:msgBuffer[256];
+		Format(msgBuffer, sizeof(msgBuffer), "%s MATCH TIED %i - %i", g_tag, g_nsfScore, g_jinraiScore);
+		
+		PrintToChatAll(msgBuffer);
+		LogCompetitive(msgBuffer);
+	}
 	
 	// Match point, one team has almost won
 	else if ((g_jinraiScore > g_nsfScore + roundLimit - (g_roundCount - 1) - 1) || (g_nsfScore > g_jinraiScore + roundLimit - g_roundCount - 1))
@@ -68,7 +98,10 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	// Check if game ended, and toggle off live mode if appropriate
 	if ((g_jinraiScore > g_nsfScore + roundLimit - (g_roundCount - 1)) || (g_nsfScore > g_jinraiScore + roundLimit - (g_roundCount - 1)) || ((g_roundCount - 1) == roundLimit))
+	{
 		ToggleLive();
+		LogCompetitive("Competitive match ended.");
+	}
 	
 	return Plugin_Handled;
 }
@@ -80,6 +113,13 @@ public Action:Command_JoinTeam(client, args)
 			return Plugin_Continue;
 	#endif
 	
+	new String:clientName[MAX_NAME_LENGTH];
+	GetClientName(client, clientName, sizeof(clientName));
+	
+	new String:steamID[MAX_STEAMID_LENGTH];
+	if (!GetClientAuthString(client, steamID, sizeof(steamID)))
+		LogError("Failed fetching auth string for %s (client %i)", clientName, client);
+	
 	new String:team[10];
 	GetCmdArg(1, team, sizeof(team));
 	new iTeam = StringToInt(team);
@@ -88,10 +128,22 @@ public Action:Command_JoinTeam(client, args)
 		return Plugin_Continue;
 	
 	else if (g_assignedTeamWhenLive[client] == TEAM_UNASSIGNED) // Team not explicitly restricted for this player, let them join (substitutes after going live etc)
+	{
+		new String:msgBuffer[512];
+		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
+		LogCompetitive(msgBuffer);
+		
 		return Plugin_Continue;
+	}
 	
 	else if (iTeam == g_assignedTeamWhenLive[client]) // Player attempts to join their correct team, let them
+	{
+		new String:msgBuffer[512];
+		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
+		LogCompetitive(msgBuffer);
+		
 		return Plugin_Continue;
+	}
 	
 	new String:tempTeamName[13]; // We use this variable here for clarity, since teams can rename themselves
 	switch (g_assignedTeamWhenLive[client])
@@ -106,9 +158,13 @@ public Action:Command_JoinTeam(client, args)
 			strcopy(tempTeamName, sizeof(tempTeamName), "as spectator");
 	}
 	
-	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
+	new String:msgBuffer[256];
+	Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> attempted to join team %s instead of their assigned team %s. Blocked.", clientName, steamID, g_teamName[iTeam], g_teamName[g_assignedTeamWhenLive[client]]);
+	LogCompetitive(msgBuffer);
 	
 	ReplyToCommand(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
+	
+	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
 	
 	return Plugin_Stop;
 }
@@ -128,7 +184,12 @@ public Event_LogMode(Handle:cvar, const String:oldVal[], const String:newVal[])
 public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	if (StringToInt(newVal)) // If nonzero, we have a restart. So we reset the variable.
+	{
 		g_roundCount = 0;
+		
+		if (g_isLive)
+			LogCompetitive("Match restarted.");
+	}
 }
 
 public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:newVal[])
@@ -166,6 +227,14 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 	else // Name change ok
 	{
 		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), newVal);
+		
+		if (g_isLive)
+		{
+			new String:msgBuffer[256];
+			Format(msgBuffer, sizeof(msgBuffer), "Jinrai changed team name to: %s", newVal);
+			
+			LogCompetitive(msgBuffer);
+		}
 		
 		#if DEBUG
 			PrintToServer("Jinrai name: %s", newVal);
@@ -208,6 +277,14 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 	else // Name change ok
 	{
 		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), newVal);
+		
+		if (g_isLive)
+		{
+			new String:msgBuffer[256];
+			Format(msgBuffer, sizeof(msgBuffer), "NSF changed team name to: %s", newVal);
+			
+			LogCompetitive(msgBuffer);
+		}
 		
 		#if DEBUG
 			PrintToServer("NSF name: %s", newVal);
