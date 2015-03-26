@@ -11,6 +11,7 @@
 #define DEBUG 2 // Extended debug
 
 #include <sourcemod>
+#include <sdktools>
 #include <smlib>
 #include <neotokyo>
 #include "nt_competitive/nt_competitive_base"
@@ -76,15 +77,22 @@ public OnPluginStart()
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
+	// Initialize SourceTV path
 	new String:sourceTVPath[PLATFORM_MAX_PATH];
 	GetConVarString(g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath));
 	if (!DirExists(sourceTVPath))
 		InitDirectory(sourceTVPath);
 	
+	// Initialize logs path
 	new String:loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
+	
+	// Initialize keyvalues path
+	BuildPath(Path_SM, g_kvPath, sizeof(g_kvPath), "data/competitive/matches");
+	if (!DirExists(g_kvPath))
+		InitDirectory(g_kvPath);
 	
 	AutoExecConfig();
 }

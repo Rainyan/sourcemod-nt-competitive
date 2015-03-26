@@ -16,6 +16,7 @@ new String:g_livePlayers[44][MAXPLAYERS+1]; // Array for storing SteamIDs to all
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new String:g_soundLive[] = "buttons/button17.wav";
+new String:g_kvPath[PLATFORM_MAX_PATH];
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
@@ -143,7 +144,7 @@ public Action:ToggleRecording()
 				continue;
 			
 			new String:steamID[MAX_STEAMID_LENGTH];
-			GetClientAuthString(i, steamID, sizeof(steamID));
+			GetClientAuthId(i, AuthId_Steam2, steamID, sizeof(steamID));
 			
 			new String:timestamp[15];
 			FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
@@ -213,14 +214,15 @@ public Action:ToggleLive()
 {
 	if (!g_isLive)
 	{
-		g_isLive = true;
+		g_isLive = true; // Flip live bool
 		
 		#if DEBUG
 			PrintToServer("Creating SteamID array of players...");
 			new foundPlayers;
 		#endif
 		
-		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
+		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
+		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (!Client_IsValid(i) || IsFakeClient(i) ||IsClientInGame(i))
 				continue;
@@ -237,7 +239,7 @@ public Action:ToggleLive()
 			}
 			
 			new String:steamID[MAX_STEAMID_LENGTH];
-			GetClientAuthString(i, steamID, sizeof(steamID));
+			GetClientAuthId(i, AuthId_Steam2, steamID, sizeof(steamID));
 			new team = GetClientTeam(i);
 			
 			if (strlen(steamID) == 0)
@@ -264,6 +266,7 @@ public Action:ToggleLive()
 			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
 		#endif
 		
+		// Set convars for competitive
 		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);

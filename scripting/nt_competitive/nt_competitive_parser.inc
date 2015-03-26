@@ -117,7 +117,7 @@ public Action:Command_JoinTeam(client, args)
 	GetClientName(client, clientName, sizeof(clientName));
 	
 	new String:steamID[MAX_STEAMID_LENGTH];
-	if (!GetClientAuthString(client, steamID, sizeof(steamID)))
+	if (!GetClientAuthId(client, AuthId_Steam2, steamID, sizeof(steamID)))
 		LogError("Failed fetching auth string for %s (client %i)", clientName, client);
 	
 	new String:team[10];
