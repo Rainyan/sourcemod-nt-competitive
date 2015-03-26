@@ -292,7 +292,9 @@ public Action:ToggleLive()
 		// Create match keyvalues (to-do: load previous game after cancel/servercrash/etc)
 		// We could later use md5 hash for id inside kv meta
 		new Handle:kv = CreateKeyValues("competitive_match", "match_id", "debugID1"); // name, firstKey, firstValue
-		StringToKeyValues(kv, "Test string");
+		
+		KvGotoFirstSubKey(kv);
+		KvSetNum(kv, "round", 1);
 		
 		new String:timestamp[15];
 		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
