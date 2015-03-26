@@ -90,6 +90,10 @@ public OnPluginStart()
 		InitDirectory(loggingPath);
 	
 	// Initialize keyvalues path
+	BuildPath(Path_SM, g_kvPath, sizeof(g_kvPath), "data/competitive");
+	if (!DirExists(g_kvPath))
+		InitDirectory(g_kvPath);
+	
 	BuildPath(Path_SM, g_kvPath, sizeof(g_kvPath), "data/competitive/matches");
 	if (!DirExists(g_kvPath))
 		InitDirectory(g_kvPath);
