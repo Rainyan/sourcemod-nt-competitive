@@ -425,6 +425,39 @@ public Action:Command_UnpauseOther(client, args) // Pretend the other team made 
 	return Plugin_Handled;
 }
 
+public Action:Command_OverrideStartOther(client, args) // Pretend the other team made a force start request. Debug command.
+{
+	new bool:foundSomeoneInOtherTeam;
+	new team = GetClientTeam(client);
+	new otherTeam;
+	
+	if (team == TEAM_JINRAI)
+		otherTeam = TEAM_NSF;
+	else
+		otherTeam = TEAM_JINRAI;
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i))
+			continue;
+		
+		new forLoopTeam = GetClientTeam(i);
+		if (forLoopTeam == otherTeam)
+		{
+			foundSomeoneInOtherTeam = true;
+			Command_OverrideStart(i, 0); // Make someone from the other team perform a force start request. Args (0) not used, but the command expects them.
+			break;
+		}
+	}
+	
+	if (!foundSomeoneInOtherTeam)
+		ReplyToCommand(client, "%s Debug: Could not find any players in the other team to fake force start.", g_tag);
+	else
+		ReplyToCommand(client, "%s Debug: Faked force start request from the other team.", g_tag);
+	
+	return Plugin_Handled;
+}
+
 public Action:Timer_TogglePauseLoop(Handle:timer)
 {
 	TogglePauseLoop();
