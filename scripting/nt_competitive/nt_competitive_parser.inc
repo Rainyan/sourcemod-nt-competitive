@@ -10,6 +10,10 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	{
 		UpdatePlayersAlive();
 		
+		new victim = GetClientOfUserId(GetEventInt(event, "userid"));
+		new victimTeam = GetClientTeam(victim);
+		g_playersAlive[victimTeam]--; // This hook is fired too soon for UpdatePlayersAlive() to consider the victim dead, so we manually subtract 1 here
+		
 		new String:msgBuffer[sizeof(g_tag) + ( sizeof(g_teamName[]) * 2 ) + 24];
 		Format(msgBuffer, sizeof(msgBuffer), "%s %s (%i) -- vs -- %s (%i)", g_tag, g_teamName[TEAM_JINRAI], g_playersAlive[TEAM_JINRAI], g_teamName[TEAM_NSF], g_playersAlive[TEAM_NSF]);
 		
