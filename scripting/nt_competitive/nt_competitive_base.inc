@@ -684,6 +684,10 @@ bool:IsSourceTVBotConnected()
 	GetConVarString(hBotName, botName, sizeof(botName));
 	CloseHandle(hBotName);
 	
+	#if DEBUG > 1
+		PrintToServer("Looking for a SourceTV bot...");
+	#endif
+	
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (!Client_IsValid(i) || !IsFakeClient(i)) // We are looking for a valid fake client (bot)
