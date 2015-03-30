@@ -338,13 +338,17 @@ public Action:UnPauseRequest(client)
 
 public Action:Command_OverrideStart(client, args)
 {
+	new team = GetClientTeam(client);
+	
+	if (team != TEAM_JINRAI || team != TEAM_NSF) // Spectator or unassigned, ignore
+		return Plugin_Stop;
+	
 	if (!g_isExpectingOverride)
 	{
 		ReplyToCommand(client, "%s Not expecting any !start override currently.", g_tag);
 		return Plugin_Stop;
 	}
 	
-	new team = GetClientTeam(client);
 	new bool:bothTeamsWantOverride;
 	
 	// Check if everyone in the team is still ready
@@ -386,9 +390,6 @@ public Action:Command_OverrideStart(client, args)
 	
 	else if (team == TEAM_NSF)
 		bothTeamsWantOverride = g_isWantingOverride[TEAM_JINRAI];
-	
-	else // Spectator or unassigned, ignore
-		return Plugin_Stop;
 	
 	g_isWantingOverride[team] = true;
 	PrintToChatAll("%s Team %s wishes to start the match with current players.", g_tag, g_teamName[team]);
