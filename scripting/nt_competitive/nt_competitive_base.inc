@@ -107,7 +107,7 @@ public Action:CheckIfEveryoneIsReady()
 	{
 		g_isExpectingOverride = true;
 		PrintToChatAll("%s There are %i more players than expected.", g_tag, (players - GetConVarInt(g_hMatchSize)));
-		PrintToChatAll("To force the match start, both teams must !start");
+		PrintToChatAll("To force the match start with %i players, both teams must !start", players);
 		
 		return Plugin_Stop;
 	}
