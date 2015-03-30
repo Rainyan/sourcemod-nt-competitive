@@ -801,7 +801,7 @@ public Action:UpdatePlayersAlive() // Updates g_playersAlive array
 	g_playersAlive[TEAM_NSF] = nsfAlive;
 }
 
-public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new round start
+public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new round start (otherwise we have to do a spawn check to avoid marking unspawned players as dead).
 {
 	new jinraiPlayers;
 	new nsfPlayers;
@@ -825,7 +825,7 @@ public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this 
 			nsfPlayers++;
 	}
 	
-	// We only call this in round start, so it's safe to assume any team players are alive
+	// We only call this in round start, so it's safe to assume any team players are alive. 
 	g_playersAlive[TEAM_JINRAI] = jinraiPlayers;
 	g_playersAlive[TEAM_NSF] = nsfPlayers;
 }
