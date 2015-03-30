@@ -201,7 +201,7 @@ public Action:ToggleRecording()
 
 public Action:LiveCountDown()
 {
-	g_hTimerLiveCountdown = CreateTimer(1.0, Timer_Live_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	g_hTimerLiveCountdown = CreateTimer(1.0, Timer_Live_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 	CreateTimer(float(g_liveTimer), Timer_GoLive);
 }
 
@@ -535,7 +535,7 @@ public Action:Timer_StartTenSecondsLeft(Handle:timer)
 		g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 }
 
-public Action:Timer_Live_TenSecondsCountdown(Handle:timer)
+public Action:Timer_Live_SecondsCountdown(Handle:timer)
 {
 	if (g_liveTimer > 0)
 	{
@@ -552,7 +552,7 @@ public Action:Timer_Live_TenSecondsCountdown(Handle:timer)
 			g_hTimerLiveCountdown = INVALID_HANDLE;
 		}
 		
-		g_liveTimer = 10;
+		g_liveTimer = 5; // Countdown from this many seconds
 	}
 }
 
