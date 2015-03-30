@@ -418,7 +418,7 @@ public Action:Command_UnOverrideStart(client, args)
 	
 	new team = GetClientTeam(client);
 	
-	if (team != TEAM_JINRAI || team != TEAM_NSF) // Spectator or unassigned, ignore
+	if (team != TEAM_JINRAI && team != TEAM_NSF) // Spectator or unassigned, ignore
 		return Plugin_Stop;
 	
 	if (!g_isWantingOverride[team])
