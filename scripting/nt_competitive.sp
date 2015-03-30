@@ -410,16 +410,16 @@ public Action:Command_OverrideStart(client, args)
 
 public Action:Command_UnOverrideStart(client, args)
 {
+	new team = GetClientTeam(client);
+	
+	if (team != TEAM_JINRAI && team != TEAM_NSF) // Spectator or unassigned, ignore
+		return Plugin_Stop;
+	
 	if (!g_isExpectingOverride)
 	{
 		ReplyToCommand(client, "%s Not expecting any !start override currently.", g_tag);
 		return Plugin_Stop;
 	}
-	
-	new team = GetClientTeam(client);
-	
-	if (team != TEAM_JINRAI && team != TEAM_NSF) // Spectator or unassigned, ignore
-		return Plugin_Stop;
 	
 	if (!g_isWantingOverride[team])
 	{
