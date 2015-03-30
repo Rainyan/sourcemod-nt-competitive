@@ -11,6 +11,7 @@
 #define DEBUG 2 // Extended debug
 
 #include <sourcemod>
+#include <sdktools>
 #include <smlib>
 #include <neotokyo>
 #include "nt_competitive/nt_competitive_base"
@@ -29,22 +30,30 @@ public Plugin:myinfo = {
 
 public OnPluginStart()
 {
-	RegConsoleCmd("sm_ready",	Command_Ready,				"Mark yourself as ready for a competitive match.");
-	RegConsoleCmd("sm_unready",	Command_UnReady,			"Mark yourself as not ready for a competitive match.");
-	RegConsoleCmd("sm_start",	Command_OverrideStart,		"Force a competitive match start when using an unexpected setup.");
-	RegConsoleCmd("sm_unstart",	Command_UnOverrideStart,	"Cancel sm_start.");
-	RegConsoleCmd("sm_pause",	Command_Pause,				"Request a pause or timeout in a competitive match.");
-	RegConsoleCmd("sm_timeout",	Command_Pause,				"Request a pause or timeout in a competitive match.");
-	RegConsoleCmd("jointeam",	Command_JoinTeam); // There's no pick team event for NT, so we do this instead
+	RegConsoleCmd("sm_ready",		Command_Ready,				"Mark yourself as ready for a competitive match.");
+	
+	RegConsoleCmd("sm_unready",		Command_UnReady,			"Mark yourself as not ready for a competitive match.");
+	RegConsoleCmd("sm_notready",	Command_UnReady,			"Mark yourself as not ready for a competitive match.");
+	
+	RegConsoleCmd("sm_start",		Command_OverrideStart,		"Force a competitive match start when using an unexpected setup.");
+	RegConsoleCmd("sm_unstart",		Command_UnOverrideStart,	"Cancel sm_start.");
+	
+	RegConsoleCmd("sm_pause",		Command_Pause,				"Request a pause or timeout in a competitive match.");
+	RegConsoleCmd("sm_timeout",		Command_Pause,				"Request a pause or timeout in a competitive match.");
+	
+	RegConsoleCmd("jointeam",		Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 	
 	#if DEBUG
 		RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
 		RegAdminCmd("sm_ignoreteams",		Command_IgnoreTeams,		ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
 		RegAdminCmd("sm_pause_resetbool",	Command_ResetPauseBool,		ADMFLAG_GENERIC,	"Reset g_isPaused to FALSE. Debug command.");
-		RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Debug command.");
+		RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Logs the cmd argument. Debug command.");
+		RegAdminCmd("sm_unpause_other",		Command_UnpauseOther,		ADMFLAG_GENERIC,	"Pretend the other team requested unpause. Debug command.");
+		RegAdminCmd("sm_start_other",		Command_OverrideStartOther,	ADMFLAG_GENERIC,	"Pretend the other team requested force start. Debug command.");
 	#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
+	HookEvent("player_death",		Event_PlayerDeath);
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
 	CreateConVar("sm_competitive_version", PLUGIN_VERSION, "Competitive plugin version.", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
@@ -60,6 +69,7 @@ public OnPluginStart()
 	g_hCompetitionName	= CreateConVar("sm_competitive_title",				"",							"Name of the tournament/competition. Also used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
 	g_hCommsBehaviour	= CreateConVar("sm_competitive_comms_behaviour",	"0",						"Voice comms behaviour when live. 0 = no alltalk, 1 = enable alltalk, 2 = check sv_alltalk value before live state.", _, true, 0.0, true, 2.0);
 	g_hLogMode			= CreateConVar("sm_competitive_log_mode",			"1",						"Competitive logging mode. 1 = enabled, 0 = disabled.", _, true, 0.0, true, 1.0);
+	g_hKillVersobity	= CreateConVar("sm_competitive_killverbosity",		"1",						"Display the players still alive in console after each kill.", _, true, 0.0, true, 1.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -73,18 +83,30 @@ public OnPluginStart()
 	HookConVarChange(g_hNSFName,			Event_TeamNameNSF);
 	HookConVarChange(g_hCommsBehaviour,		Event_CommsBehaviour);
 	HookConVarChange(g_hLogMode,			Event_LogMode);
+	HookConVarChange(g_hKillVersobity,		Event_KillVerbosity);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
+	// Initialize SourceTV path
 	new String:sourceTVPath[PLATFORM_MAX_PATH];
 	GetConVarString(g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath));
 	if (!DirExists(sourceTVPath))
 		InitDirectory(sourceTVPath);
 	
+	// Initialize logs path
 	new String:loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
+	
+	// Initialize keyvalues path
+	BuildPath(Path_SM, g_kvPath, sizeof(g_kvPath), "data/competitive");
+	if (!DirExists(g_kvPath))
+		InitDirectory(g_kvPath);
+	
+	BuildPath(Path_SM, g_kvPath, sizeof(g_kvPath), "data/competitive/matches");
+	if (!DirExists(g_kvPath))
+		InitDirectory(g_kvPath);
 	
 	AutoExecConfig();
 }
@@ -96,7 +118,8 @@ public OnMapStart()
 
 public OnConfigsExecuted()
 {
-	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
+	g_isAlltalkByDefault	=	GetConVarBool(g_hAlltalk);
+	g_killVerbosity			=	GetConVarInt(g_hKillVersobity);
 }
 
 public OnClientAuthorized(client, const String:authID[])
@@ -160,7 +183,7 @@ public Action:Command_Pause(client, args)
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
 	
-	else if (!g_isPaused && g_shouldPause)
+	if (!g_isPaused && g_shouldPause)
 	{
 		if (team != g_pausingTeam)
 		{
@@ -186,12 +209,7 @@ public Action:Command_Pause(client, args)
 	
 	else if (g_isPaused)
 	{
-		new otherTeam;
-		
-		if (team == TEAM_JINRAI)
-			otherTeam = TEAM_NSF;
-		else
-			otherTeam = TEAM_JINRAI;
+		new otherTeam = GetOtherTeam(team);
 		
 		if (!g_isTeamReadyForUnPause[g_pausingTeam] && team != g_pausingTeam)
 		{
@@ -301,13 +319,7 @@ public Action:CancelPauseRequest(client)
 public Action:UnPauseRequest(client)
 {
 	new team = GetClientTeam(client);
-	new otherTeam;
-	
-	// We check for non playable teams already in Command_Pause before calling this
-	if (team == TEAM_JINRAI)
-		otherTeam = TEAM_NSF;
-	else
-		otherTeam = TEAM_JINRAI;
+	new otherTeam = GetOtherTeam(team); // We check for non playable teams already in Command_Pause before calling this
 	
 	g_isTeamReadyForUnPause[team] = true;
 	PrintToChatAll("%s %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
@@ -321,13 +333,17 @@ public Action:UnPauseRequest(client)
 
 public Action:Command_OverrideStart(client, args)
 {
+	new team = GetClientTeam(client);
+	
+	if (team != TEAM_JINRAI && team != TEAM_NSF) // Spectator or unassigned, ignore
+		return Plugin_Stop;
+	
 	if (!g_isExpectingOverride)
 	{
 		ReplyToCommand(client, "%s Not expecting any !start override currently.", g_tag);
 		return Plugin_Stop;
 	}
 	
-	new team = GetClientTeam(client);
 	new bool:bothTeamsWantOverride;
 	
 	// Check if everyone in the team is still ready
@@ -343,6 +359,11 @@ public Action:Command_OverrideStart(client, args)
 		
 		if (GetClientTeam(i) == team && g_isReady[i])
 			playersInTeamReady++;
+	}
+	
+	if (playersInTeam < playersInTeamReady)
+	{
+		LogError("There are more players marked ready than there are players in the team!");
 	}
 	
 	if (playersInTeam != playersInTeamReady)
@@ -365,9 +386,6 @@ public Action:Command_OverrideStart(client, args)
 	else if (team == TEAM_NSF)
 		bothTeamsWantOverride = g_isWantingOverride[TEAM_JINRAI];
 	
-	else // Spectator or unassigned, ignore
-		return Plugin_Stop;
-	
 	g_isWantingOverride[team] = true;
 	PrintToChatAll("%s Team %s wishes to start the match with current players.", g_tag, g_teamName[team]);
 	
@@ -387,16 +405,16 @@ public Action:Command_OverrideStart(client, args)
 
 public Action:Command_UnOverrideStart(client, args)
 {
+	new team = GetClientTeam(client);
+	
+	if (team != TEAM_JINRAI && team != TEAM_NSF) // Spectator or unassigned, ignore
+		return Plugin_Stop;
+	
 	if (!g_isExpectingOverride)
 	{
 		ReplyToCommand(client, "%s Not expecting any !start override currently.", g_tag);
 		return Plugin_Stop;
 	}
-	
-	new team = GetClientTeam(client);
-	
-	if (team != TEAM_JINRAI || team != TEAM_NSF) // Spectator or unassigned, ignore
-		return Plugin_Stop;
 	
 	if (!g_isWantingOverride[team])
 	{
@@ -482,7 +500,7 @@ public Action:Command_LoggingTest(client, args)
 	GetCmdArg(1, message, sizeof(message));
 	LogCompetitive(message);
 	
-	ReplyToCommand(client, "Message sent.");
+	ReplyToCommand(client, "Debug log message sent.");
 	
 	return Plugin_Handled;
 }

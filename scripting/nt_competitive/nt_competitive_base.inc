@@ -16,6 +16,7 @@ new String:g_livePlayers[44][MAXPLAYERS+1]; // Array for storing SteamIDs to all
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new String:g_soundLive[] = "buttons/button17.wav";
+new String:g_kvPath[PLATFORM_MAX_PATH];
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
 new g_jinraiScore;
@@ -28,6 +29,8 @@ new g_roundCount;
 new g_spamTimerCount;
 new g_unpauseTimer = 10;
 new g_usedTimeouts[4];
+new g_killVerbosity;
+new g_playersAlive[sizeof(g_teamName)];
 
 new Float:g_fRoundTime;
 
@@ -61,6 +64,7 @@ new Handle:g_hSourceTVEnabled;
 new Handle:g_hSourceTVPath;
 new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
+new Handle:g_hKillVersobity;
 
 new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
@@ -106,7 +110,7 @@ public Action:CheckIfEveryoneIsReady()
 	{
 		g_isExpectingOverride = true;
 		PrintToChatAll("%s There are %i more players than expected.", g_tag, (players - GetConVarInt(g_hMatchSize)));
-		PrintToChatAll("To force the match start, both teams must !start");
+		PrintToChatAll("To force the match start with %i players, both teams must !start", players);
 		
 		return Plugin_Stop;
 	}
@@ -143,7 +147,7 @@ public Action:ToggleRecording()
 				continue;
 			
 			new String:steamID[MAX_STEAMID_LENGTH];
-			GetClientAuthString(i, steamID, sizeof(steamID));
+			GetClientAuthId(i, AuthId_Steam2, steamID, sizeof(steamID));
 			
 			new String:timestamp[15];
 			FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
@@ -200,7 +204,7 @@ public Action:ToggleRecording()
 
 public Action:LiveCountDown()
 {
-	g_hTimerLiveCountdown = CreateTimer(1.0, Timer_Live_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	g_hTimerLiveCountdown = CreateTimer(1.0, Timer_Live_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 	CreateTimer(float(g_liveTimer), Timer_GoLive);
 }
 
@@ -213,14 +217,15 @@ public Action:ToggleLive()
 {
 	if (!g_isLive)
 	{
-		g_isLive = true;
+		g_isLive = true; // Flip live bool
 		
 		#if DEBUG
 			PrintToServer("Creating SteamID array of players...");
 			new foundPlayers;
 		#endif
 		
-		for (new i = 1; i <= MaxClients; i++) // Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
+		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
+		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (!Client_IsValid(i) || IsFakeClient(i) ||IsClientInGame(i))
 				continue;
@@ -237,7 +242,7 @@ public Action:ToggleLive()
 			}
 			
 			new String:steamID[MAX_STEAMID_LENGTH];
-			GetClientAuthString(i, steamID, sizeof(steamID));
+			GetClientAuthId(i, AuthId_Steam2, steamID, sizeof(steamID));
 			new team = GetClientTeam(i);
 			
 			if (strlen(steamID) == 0)
@@ -264,6 +269,7 @@ public Action:ToggleLive()
 			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
 		#endif
 		
+		// Set convars for competitive
 		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hNeoRestartThis, true);
@@ -285,6 +291,28 @@ public Action:ToggleLive()
 		Format(liveTitle, sizeof(liveTitle), "%s %s: %s - %s", g_tag, competitionName, g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
 		
 		PrintToChatAll(liveTitle);
+		
+		#if DEBUG
+			// Create match keyvalues (to-do: load previous game after cancel/servercrash/etc)
+			// We could later use md5 (smlib) hash for id inside kv meta
+			new Handle:kv = CreateKeyValues("competitive_match", "match_id", "debugID1"); // name, firstKey, firstValue
+			
+			KvGotoFirstSubKey(kv);
+			KvSetNum(kv, "round", 1);
+			
+			KvSetSectionName(kv, "testing");
+			KvSetNum(kv, "anotherVal", 5);
+			
+			new String:timestamp[15];
+			FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
+			
+			new String:kvFilePath[PLATFORM_MAX_PATH] = "matchDebug.kv";
+			Format(kvFilePath, sizeof(kvFilePath), "%s/%s_%s", g_kvPath, timestamp, kvFilePath);
+			
+			KeyValuesToFile(kv, kvFilePath);
+			CloseHandle(kv);
+		#endif
+		// End kv debug
 		
 		SpamTimer();
 	}
@@ -360,6 +388,62 @@ public Action:TogglePause()
 	SetConVarBool(g_hPausable, true);
 	
 	CreateTimer(0.5, Timer_TogglePauseLoop);
+	
+	return Plugin_Handled;
+}
+
+public Action:Command_UnpauseOther(client, args) // Pretend the other team made an unpause request. Debug command.
+{
+	new bool:foundSomeoneInOtherTeam;
+	new team = GetClientTeam(client);
+	new otherTeam = GetOtherTeam(team);
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i))
+			continue;
+		
+		new forLoopTeam = GetClientTeam(i);
+		if (forLoopTeam == otherTeam)
+		{
+			foundSomeoneInOtherTeam = true;
+			UnPauseRequest(i); // Make someone from the other team perform an unpause request
+			break;
+		}
+	}
+	
+	if (!foundSomeoneInOtherTeam)
+		ReplyToCommand(client, "%s Debug: Could not find any players in the other team to fake unpause.", g_tag);
+	else
+		ReplyToCommand(client, "%s Debug: Faked unpause request from the other team.", g_tag);
+	
+	return Plugin_Handled;
+}
+
+public Action:Command_OverrideStartOther(client, args) // Pretend the other team made a force start request. Debug command.
+{
+	new bool:foundSomeoneInOtherTeam;
+	new team = GetClientTeam(client);
+	new otherTeam = GetOtherTeam(team);
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i))
+			continue;
+		
+		new forLoopTeam = GetClientTeam(i);
+		if (forLoopTeam == otherTeam)
+		{
+			foundSomeoneInOtherTeam = true;
+			Command_OverrideStart(i, 0); // Make someone from the other team perform a force start request. Args (0) not used, but the command expects them.
+			break;
+		}
+	}
+	
+	if (!foundSomeoneInOtherTeam)
+		ReplyToCommand(client, "%s Debug: Could not find any players in the other team to fake force start.", g_tag);
+	else
+		ReplyToCommand(client, "%s Debug: Faked force start request from the other team.", g_tag);
 	
 	return Plugin_Handled;
 }
@@ -507,10 +591,10 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 public Action:Timer_StartTenSecondsLeft(Handle:timer)
 {
 	if (g_hTimerPauseCountdown == INVALID_HANDLE)
-		g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+		g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 }
 
-public Action:Timer_Live_TenSecondsCountdown(Handle:timer)
+public Action:Timer_Live_SecondsCountdown(Handle:timer)
 {
 	if (g_liveTimer > 0)
 	{
@@ -527,11 +611,11 @@ public Action:Timer_Live_TenSecondsCountdown(Handle:timer)
 			g_hTimerLiveCountdown = INVALID_HANDLE;
 		}
 		
-		g_liveTimer = 10;
+		g_liveTimer = 5; // Countdown from this many seconds
 	}
 }
 
-public Action:Timer_Unpause_TenSecondsCountdown(Handle:timer)
+public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 {
 	if (g_unpauseTimer > 0)
 	{
@@ -548,7 +632,7 @@ public Action:Timer_Unpause_TenSecondsCountdown(Handle:timer)
 			g_hTimerPauseCountdown = INVALID_HANDLE;
 		}
 		
-		g_unpauseTimer = 10;
+		g_unpauseTimer = 10; // Countdown from this many seconds
 	}
 }
 
@@ -574,7 +658,7 @@ public Action:ToggleSourceTV()
 		g_isSourceTVRecording = false;
 		
 		#if DEBUG
-			PrintToServer("tv_stoprecord");
+			PrintToServer("ToggleSourceTV: tv_stoprecord");
 		#endif
 	}
 	
@@ -631,7 +715,7 @@ public Action:ToggleSourceTV()
 		g_isSourceTVRecording = true;
 		
 		#if DEBUG
-			PrintToServer("tv_record \"%s/%s\"", demoPath, replayName);
+			PrintToServer("ToggleSourceTV: tv_record \"%s/%s\"", demoPath, replayName);
 		#endif
 	}
 	
@@ -640,12 +724,13 @@ public Action:ToggleSourceTV()
 
 public Action:PlayLiveBeep()
 {
+	PrecacheSound(g_soundLive);
+	
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (!Client_IsValid(i) || IsFakeClient(i))
 			continue;
 		
-		PrecacheSound(g_soundLive);
 		EmitSoundToClient(i, g_soundLive);
 	}
 }
@@ -657,6 +742,10 @@ bool:IsSourceTVBotConnected()
 	new String:botName[MAX_NAME_LENGTH];
 	GetConVarString(hBotName, botName, sizeof(botName));
 	CloseHandle(hBotName);
+	
+	#if DEBUG > 1
+		PrintToServer("Looking for a SourceTV bot...");
+	#endif
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -709,8 +798,30 @@ stock GetDesiredCommsBehaviour()
 		return g_isAlltalkByDefault;
 }
 
+stock GetOtherTeam(team)
+{
+	new otherTeam;
+	
+	if (team == TEAM_JINRAI)
+		otherTeam = TEAM_NSF;
+	
+	else if (team == TEAM_NSF)
+		otherTeam = TEAM_JINRAI;
+	
+	else
+	{
+		LogError("Requested other team for invalid team (%i), returning -1 instead.");
+		otherTeam = -1;
+	}
+	
+	return otherTeam;
+}
+
 public Action:LogCompetitive(const String:message[])
 {
+	if (!g_loggingEnabled)
+		return Plugin_Stop;
+	
 	new String:loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	
@@ -722,4 +833,74 @@ public Action:LogCompetitive(const String:message[])
 	WriteFileLine(hFile, message);
 	
 	CloseHandle(hFile);
+	
+	return Plugin_Handled;
+}
+
+public PrintToConsoleAll(const String:message[])
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i) || IsFakeClient(i))
+			continue;
+		
+		PrintToConsole(i, message);
+	}
+}
+
+public Action:UpdatePlayersAlive() // Updates g_playersAlive array
+{
+	new jinraiAlive;
+	new nsfAlive;
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		#if !defined DEBUG || DEBUG == 0
+			if (IsFakeClient(i))
+				continue;
+		#endif
+		
+		if (!Client_IsValid(i) || !IsPlayerAlive(i))
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team == TEAM_JINRAI)
+			jinraiAlive++;
+		
+		else if (team == TEAM_NSF)
+			nsfAlive++;
+	}
+	
+	g_playersAlive[TEAM_JINRAI] = jinraiAlive;
+	g_playersAlive[TEAM_NSF] = nsfAlive;
+}
+
+public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new round start (otherwise we have to do a spawn check to avoid marking unspawned players as dead).
+{
+	new jinraiPlayers;
+	new nsfPlayers;
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		#if !defined DEBUG || DEBUG == 0
+			if (IsFakeClient(i))
+				continue;
+		#endif
+		
+		if (!Client_IsValid(i))
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team == TEAM_JINRAI)
+			jinraiPlayers++;
+		
+		else if (team == TEAM_NSF)
+			nsfPlayers++;
+	}
+	
+	// We only call this in round start, so it's safe to assume any team players are alive. 
+	g_playersAlive[TEAM_JINRAI] = jinraiPlayers;
+	g_playersAlive[TEAM_NSF] = nsfPlayers;
 }
