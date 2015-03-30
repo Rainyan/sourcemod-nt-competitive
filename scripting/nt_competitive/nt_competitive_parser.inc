@@ -4,6 +4,19 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 	g_isSpawned[client] = true;
 }
 
+public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (g_killVerbosity == 1) // Print remaining playercount of both teams to everyone's console
+	{
+		UpdatePlayersAlive();
+		
+		new String:msgBuffer[sizeof(g_tag) + ( sizeof(g_teamName[]) * 2 ) + 24];
+		Format(msgBuffer, sizeof(msgBuffer), "%s %s (%i) -- vs -- %s (%i)", g_tag, g_teamName[TEAM_JINRAI], g_playersAlive[TEAM_JINRAI], g_teamName[TEAM_NSF], g_playersAlive[TEAM_NSF]);
+		
+		PrintToConsoleAll(msgBuffer);
+	}
+}
+
 public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	for (new i = 1; i <= MaxClients; i++)
@@ -167,6 +180,11 @@ public Action:Command_JoinTeam(client, args)
 	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
 	
 	return Plugin_Stop;
+}
+
+public Event_KillVerbosity(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	g_killVerbosity = StringToInt(newVal);
 }
 
 public Event_CommsBehaviour(Handle:cvar, const String:oldVal[], const String:newVal[])

@@ -29,6 +29,8 @@ new g_roundCount;
 new g_spamTimerCount;
 new g_unpauseTimer = 10;
 new g_usedTimeouts[4];
+new g_killVerbosity;
+new g_playersAlive[sizeof(g_teamName)];
 
 new Float:g_fRoundTime;
 
@@ -62,6 +64,7 @@ new Handle:g_hSourceTVEnabled;
 new Handle:g_hSourceTVPath;
 new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
+new Handle:g_hKillVersobity;
 
 new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
@@ -757,4 +760,43 @@ public Action:LogCompetitive(const String:message[])
 	CloseHandle(hFile);
 	
 	return Plugin_Handled;
+}
+
+public PrintToConsoleAll(const String:message[])
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i) || IsFakeClient(i))
+			continue;
+		
+		PrintToConsole(i, message);
+	}
+}
+
+public Action:UpdatePlayersAlive() // Updates g_playersAlive array
+{
+	new jinraiAlive;
+	new nsfAlive;
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		#if !defined DEBUG || DEBUG == 0
+			if (IsFakeClient(i))
+				continue;
+		#endif
+		
+		if (!Client_IsValid(i) || !IsPlayerAlive(i))
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team == TEAM_JINRAI)
+			jinraiAlive++;
+		
+		else if (team == TEAM_NSF)
+			nsfAlive++;
+	}
+	
+	g_playersAlive[TEAM_JINRAI] = jinraiAlive;
+	g_playersAlive[TEAM_NSF] = nsfAlive;
 }

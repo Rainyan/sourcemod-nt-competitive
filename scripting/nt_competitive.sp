@@ -51,6 +51,7 @@ public OnPluginStart()
 	#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
+	HookEvent("player_death",		Event_PlayerDeath);
 	HookEvent("player_spawn",		Event_PlayerSpawn);
 	
 	CreateConVar("sm_competitive_version", PLUGIN_VERSION, "Competitive plugin version.", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
@@ -67,6 +68,9 @@ public OnPluginStart()
 	g_hCommsBehaviour	= CreateConVar("sm_competitive_comms_behaviour",	"0",						"Voice comms behaviour when live. 0 = no alltalk, 1 = enable alltalk, 2 = check sv_alltalk value before live state.", _, true, 0.0, true, 2.0);
 	g_hLogMode			= CreateConVar("sm_competitive_log_mode",			"1",						"Competitive logging mode. 1 = enabled, 0 = disabled.", _, true, 0.0, true, 1.0);
 	
+	
+	g_hKillVersobity	= CreateConVar("sm_competitive_killverbosity",		"1",						"Display the players still alive in console after each kill.", _, true, 0.0, true, 1.0);
+	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
@@ -79,6 +83,7 @@ public OnPluginStart()
 	HookConVarChange(g_hNSFName,			Event_TeamNameNSF);
 	HookConVarChange(g_hCommsBehaviour,		Event_CommsBehaviour);
 	HookConVarChange(g_hLogMode,			Event_LogMode);
+	HookConVarChange(g_hKillVersobity,		Event_KillVerbosity);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
@@ -113,7 +118,8 @@ public OnMapStart()
 
 public OnConfigsExecuted()
 {
-	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
+	g_isAlltalkByDefault	=	GetConVarBool(g_hAlltalk);
+	g_killVerbosity			=	GetConVarInt(g_hKillVersobity);
 }
 
 public OnClientAuthorized(client, const String:authID[])
