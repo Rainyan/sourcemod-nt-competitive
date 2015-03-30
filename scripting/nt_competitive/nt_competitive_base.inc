@@ -599,7 +599,7 @@ public Action:ToggleSourceTV()
 		g_isSourceTVRecording = false;
 		
 		#if DEBUG
-			PrintToServer("tv_stoprecord");
+			PrintToServer("ToggleSourceTV: tv_stoprecord");
 		#endif
 	}
 	
@@ -656,7 +656,7 @@ public Action:ToggleSourceTV()
 		g_isSourceTVRecording = true;
 		
 		#if DEBUG
-			PrintToServer("tv_record \"%s/%s\"", demoPath, replayName);
+			PrintToServer("ToggleSourceTV: tv_record \"%s/%s\"", demoPath, replayName);
 		#endif
 	}
 	
