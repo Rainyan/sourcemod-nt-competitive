@@ -665,12 +665,13 @@ public Action:ToggleSourceTV()
 
 public Action:PlayLiveBeep()
 {
+	PrecacheSound(g_soundLive);
+	
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (!Client_IsValid(i) || IsFakeClient(i))
 			continue;
 		
-		PrecacheSound(g_soundLive);
 		EmitSoundToClient(i, g_soundLive);
 	}
 }
