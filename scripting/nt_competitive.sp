@@ -362,6 +362,11 @@ public Action:Command_OverrideStart(client, args)
 			playersInTeamReady++;
 	}
 	
+	if (playersInTeam < playersInTeamReady)
+	{
+		LogError("There are more players marked ready than there are players in the team!");
+	}
+	
 	if (playersInTeam != playersInTeamReady)
 	{
 		ReplyToCommand(client, "%s Only %i of %i players in your team are marked !ready.", g_tag, playersInTeamReady, playersInTeam);
