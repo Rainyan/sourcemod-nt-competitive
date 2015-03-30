@@ -177,7 +177,7 @@ public Action:Command_Pause(client, args)
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
 	
-	else if (!g_isPaused && g_shouldPause)
+	if (!g_isPaused && g_shouldPause)
 	{
 		if (team != g_pausingTeam)
 		{
