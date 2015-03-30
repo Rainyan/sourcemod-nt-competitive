@@ -505,7 +505,7 @@ public Action:Command_LoggingTest(client, args)
 	GetCmdArg(1, message, sizeof(message));
 	LogCompetitive(message);
 	
-	ReplyToCommand(client, "Message sent.");
+	ReplyToCommand(client, "Debug log message sent.");
 	
 	return Plugin_Handled;
 }
