@@ -396,12 +396,7 @@ public Action:Command_UnpauseOther(client, args) // Pretend the other team made 
 {
 	new bool:foundSomeoneInOtherTeam;
 	new team = GetClientTeam(client);
-	new otherTeam;
-	
-	if (team == TEAM_JINRAI)
-		otherTeam = TEAM_NSF;
-	else
-		otherTeam = TEAM_JINRAI;
+	new otherTeam = GetOtherTeam(team);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -429,12 +424,7 @@ public Action:Command_OverrideStartOther(client, args) // Pretend the other team
 {
 	new bool:foundSomeoneInOtherTeam;
 	new team = GetClientTeam(client);
-	new otherTeam;
-	
-	if (team == TEAM_JINRAI)
-		otherTeam = TEAM_NSF;
-	else
-		otherTeam = TEAM_JINRAI;
+	new otherTeam = GetOtherTeam(team);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -806,6 +796,25 @@ stock GetDesiredCommsBehaviour()
 	
 	else
 		return g_isAlltalkByDefault;
+}
+
+stock GetOtherTeam(team)
+{
+	new otherTeam;
+	
+	if (team == TEAM_JINRAI)
+		otherTeam = TEAM_NSF;
+	
+	else if (team == TEAM_NSF)
+		otherTeam = TEAM_JINRAI;
+	
+	else
+	{
+		LogError("Requested other team for invalid team (%i), returning -1 instead.");
+		otherTeam = -1;
+	}
+	
+	return otherTeam;
 }
 
 public Action:LogCompetitive(const String:message[])

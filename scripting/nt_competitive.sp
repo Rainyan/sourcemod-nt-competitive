@@ -209,12 +209,7 @@ public Action:Command_Pause(client, args)
 	
 	else if (g_isPaused)
 	{
-		new otherTeam;
-		
-		if (team == TEAM_JINRAI)
-			otherTeam = TEAM_NSF;
-		else
-			otherTeam = TEAM_JINRAI;
+		new otherTeam = GetOtherTeam(team);
 		
 		if (!g_isTeamReadyForUnPause[g_pausingTeam] && team != g_pausingTeam)
 		{
@@ -324,13 +319,7 @@ public Action:CancelPauseRequest(client)
 public Action:UnPauseRequest(client)
 {
 	new team = GetClientTeam(client);
-	new otherTeam;
-	
-	// We check for non playable teams already in Command_Pause before calling this
-	if (team == TEAM_JINRAI)
-		otherTeam = TEAM_NSF;
-	else
-		otherTeam = TEAM_JINRAI;
+	new otherTeam = GetOtherTeam(team); // We check for non playable teams already in Command_Pause before calling this
 	
 	g_isTeamReadyForUnPause[team] = true;
 	PrintToChatAll("%s %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
