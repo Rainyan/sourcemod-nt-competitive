@@ -36,6 +36,8 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	g_jinraiScore	= GetTeamScore(TEAM_JINRAI);
 	g_nsfScore		= GetTeamScore(TEAM_NSF);
 	
+	ResetPlayersAlive(); // Reset global count of living players. Used for kill feeds etc
+	
 	if (g_roundCount == 1)
 	{
 		new String:tournamentName[128];

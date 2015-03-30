@@ -800,3 +800,32 @@ public Action:UpdatePlayersAlive() // Updates g_playersAlive array
 	g_playersAlive[TEAM_JINRAI] = jinraiAlive;
 	g_playersAlive[TEAM_NSF] = nsfAlive;
 }
+
+public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new round start
+{
+	new jinraiPlayers;
+	new nsfPlayers;
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		#if !defined DEBUG || DEBUG == 0
+			if (IsFakeClient(i))
+				continue;
+		#endif
+		
+		if (!Client_IsValid(i))
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team == TEAM_JINRAI)
+			jinraiPlayers++;
+		
+		else if (team == TEAM_NSF)
+			nsfPlayers++;
+	}
+	
+	// We only call this in round start, so it's safe to assume any team players are alive
+	g_playersAlive[TEAM_JINRAI] = jinraiPlayers;
+	g_playersAlive[TEAM_NSF] = nsfPlayers;
+}
