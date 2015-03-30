@@ -532,7 +532,7 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 public Action:Timer_StartTenSecondsLeft(Handle:timer)
 {
 	if (g_hTimerPauseCountdown == INVALID_HANDLE)
-		g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_TenSecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+		g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 }
 
 public Action:Timer_Live_SecondsCountdown(Handle:timer)
@@ -556,7 +556,7 @@ public Action:Timer_Live_SecondsCountdown(Handle:timer)
 	}
 }
 
-public Action:Timer_Unpause_TenSecondsCountdown(Handle:timer)
+public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 {
 	if (g_unpauseTimer > 0)
 	{
@@ -573,7 +573,7 @@ public Action:Timer_Unpause_TenSecondsCountdown(Handle:timer)
 			g_hTimerPauseCountdown = INVALID_HANDLE;
 		}
 		
-		g_unpauseTimer = 10;
+		g_unpauseTimer = 10; // Countdown from this many seconds
 	}
 }
 
