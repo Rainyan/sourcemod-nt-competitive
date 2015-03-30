@@ -392,6 +392,39 @@ public Action:TogglePause()
 	return Plugin_Handled;
 }
 
+public Action:Command_UnpauseOther(client, args) // Pretend the other team made an unpause request. Debug command.
+{
+	new bool:foundSomeoneInOtherTeam;
+	new team = GetClientTeam(client);
+	new otherTeam;
+	
+	if (team == TEAM_JINRAI)
+		otherTeam = TEAM_NSF;
+	else
+		otherTeam = TEAM_JINRAI;
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i))
+			continue;
+		
+		new forLoopTeam = GetClientTeam(i);
+		if (forLoopTeam == otherTeam)
+		{
+			foundSomeoneInOtherTeam = true;
+			UnPauseRequest(i); // Make someone from the other team perform an unpause request
+			break;
+		}
+	}
+	
+	if (!foundSomeoneInOtherTeam)
+		ReplyToCommand(client, "%s Debug: Could not find any players in the other team to fake unpause.", g_tag);
+	else
+		ReplyToCommand(client, "%s Debug: Faked unpause request from the other team.", g_tag);
+	
+	return Plugin_Handled;
+}
+
 public Action:Timer_TogglePauseLoop(Handle:timer)
 {
 	TogglePauseLoop();
