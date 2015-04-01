@@ -20,3 +20,5 @@ To-do:
 Compile dependencies:
   - <a target="_blank" href="https://github.com/bcserv/smlib/">SMLIB</a>
   - <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">SourceMod NT include</a>
+
+Requires SourceMod 1.7.0 or later.
