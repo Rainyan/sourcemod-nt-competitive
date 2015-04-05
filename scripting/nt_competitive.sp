@@ -70,6 +70,7 @@ public OnPluginStart()
 	g_hCommsBehaviour	= CreateConVar("sm_competitive_comms_behaviour",	"0",						"Voice comms behaviour when live. 0 = no alltalk, 1 = enable alltalk, 2 = check sv_alltalk value before live state.", _, true, 0.0, true, 2.0);
 	g_hLogMode			= CreateConVar("sm_competitive_log_mode",			"1",						"Competitive logging mode. 1 = enabled, 0 = disabled.", _, true, 0.0, true, 1.0);
 	g_hKillVersobity	= CreateConVar("sm_competitive_killverbosity",		"1",						"Display the players still alive in console after each kill.", _, true, 0.0, true, 1.0);
+	g_hClientRecording	= CreateConVar("sm_competitive_record_clients",		"0",						"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -84,6 +85,7 @@ public OnPluginStart()
 	HookConVarChange(g_hCommsBehaviour,		Event_CommsBehaviour);
 	HookConVarChange(g_hLogMode,			Event_LogMode);
 	HookConVarChange(g_hKillVersobity,		Event_KillVerbosity);
+	HookConVarChange(g_hClientRecording,	Event_ClientRecording);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
@@ -119,6 +121,7 @@ public OnMapStart()
 public OnConfigsExecuted()
 {
 	g_isAlltalkByDefault	=	GetConVarBool(g_hAlltalk);
+	g_shouldClientsRecord	=	GetConVarBool(g_hClientRecording);
 	g_killVerbosity			=	GetConVarInt(g_hKillVersobity);
 }
 
