@@ -45,8 +45,11 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		
 		if (strlen(tournamentName) > 0)
 			LogCompetitive(tournamentName); // Log tournament name, if any
-	
-		LogCompetitive("Competitive match started: %s vs %s");
+		
+		new String:msgBuffer[256];
+		Format(msgBuffer, sizeof(msgBuffer), "Competitive match started: %s vs %s", g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
+		
+		LogCompetitive(msgBuffer);
 	}
 	
 	new String:roundBuffer[64];

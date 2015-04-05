@@ -12,7 +12,7 @@ new String:g_teamName[][64] = {
 	"Jinrai",
 	"NSF"
 };
-new String:g_livePlayers[44][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
+new String:g_livePlayers[MAX_STEAMID_LENGTH][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new String:g_soundLive[] = "buttons/button17.wav";
@@ -860,7 +860,7 @@ public Action:UpdatePlayersAlive() // Updates g_playersAlive array
 				continue;
 		#endif
 		
-		if (!Client_IsValid(i) || !IsPlayerAlive(i))
+		if (!Client_IsValid(i) || (!IsClientInGame(i) && !IsPlayerAlive(i)))
 			continue;
 		
 		new team = GetClientTeam(i);
