@@ -860,7 +860,7 @@ public Action:UpdatePlayersAlive() // Updates g_playersAlive array
 				continue;
 		#endif
 		
-		if (!Client_IsValid(i) || !IsPlayerAlive(i))
+		if (!Client_IsValid(i) || (!IsClientInGame(i) && !IsPlayerAlive(i)))
 			continue;
 		
 		new team = GetClientTeam(i);
