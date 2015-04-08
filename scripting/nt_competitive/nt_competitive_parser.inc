@@ -219,6 +219,15 @@ public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 	}
 }
 
+public Event_ClientRecording(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	if (StringToInt(newVal))
+		g_shouldClientsRecord = true;
+	
+	else
+		g_shouldClientsRecord = false;
+}
+
 public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	new String:nsfName[sizeof(g_teamName[])];

@@ -44,6 +44,7 @@ new bool:g_isSpawned[MAXPLAYERS+1];
 new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
+new bool:g_shouldClientsRecord;
 
 #if DEBUG
 	new bool:g_debug_ignoreLiveTeams;
@@ -65,6 +66,7 @@ new Handle:g_hSourceTVPath;
 new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
 new Handle:g_hKillVersobity;
+new Handle:g_hClientRecording;
 
 new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
@@ -139,6 +141,9 @@ public Action:Command_IgnoreTeams(client, args)
 
 public Action:ToggleRecording()
 {
+	if (!g_shouldClientsRecord)
+		return Plugin_Stop;
+	
 	if (g_isLive) // Start recording
 	{
 		for (new i = 1; i <= MaxClients; i++)
@@ -200,6 +205,8 @@ public Action:ToggleRecording()
 			#endif
 		}
 	}
+	
+	return Plugin_Handled;
 }
 
 public Action:LiveCountDown()
@@ -860,7 +867,10 @@ public Action:UpdatePlayersAlive() // Updates g_playersAlive array
 				continue;
 		#endif
 		
-		if (!Client_IsValid(i) || (!IsClientInGame(i) && !IsPlayerAlive(i)))
+		if (!Client_IsValid(i) || !IsClientInGame(i))
+			continue;
+		
+		if (!IsPlayerAlive(i))
 			continue;
 		
 		new team = GetClientTeam(i);
