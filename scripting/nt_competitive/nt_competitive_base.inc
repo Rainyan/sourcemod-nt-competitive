@@ -36,6 +36,7 @@ new Float:g_fRoundTime;
 
 new bool:g_isAlltalkByDefault;
 new bool:g_isExpectingOverride;
+new bool:g_isExpectingUnPauseTimer;
 new bool:g_isLive;
 new bool:g_isPaused;
 new bool:g_isReady[MAXPLAYERS+1];
@@ -367,6 +368,8 @@ public Action:TogglePause()
 			g_usedTimeouts[g_pausingTeam]++;
 		
 		g_isPaused = true;
+		g_isExpectingUnPauseTimer = true;
+		
 		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		PrintToChatAll("%s Use !pause when ready.", g_tag);
 		
@@ -383,8 +386,12 @@ public Action:TogglePause()
 	}
 	
 	else
-	{	
+	{
+		if (!g_isExpectingUnPauseTimer)
+			LogError("Unpause timer executed unexpectedly.");
+		
 		g_isPaused = false;
+		g_isExpectingUnPauseTimer = false;
 		
 		if (g_isLive) // Only announce the unpause if a match is still going
 		{
@@ -597,8 +604,11 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 
 public Action:Timer_StartTenSecondsLeft(Handle:timer)
 {
-	if (g_hTimerPauseCountdown == INVALID_HANDLE)
-		g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	if (g_isPaused)
+	{
+		if (g_hTimerPauseCountdown == INVALID_HANDLE)
+			g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	}
 }
 
 public Action:Timer_Live_SecondsCountdown(Handle:timer)
