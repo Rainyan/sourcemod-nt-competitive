@@ -28,6 +28,20 @@ public Plugin:myinfo = {
 	url			=	"https://github.com/Rainyan/sourcemod-nt-competitive"
 };
 
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	CreateNative("Competitive_IsLive", Competitive_IsLive);
+	return APLRes_Success;
+}
+
+public Competitive_IsLive(Handle:plugin, numParams)
+{
+	if (g_isLive)
+		return true;
+	
+	return false;
+}
+
 public OnPluginStart()
 {
 	RegConsoleCmd("sm_ready",		Command_Ready,				"Mark yourself as ready for a competitive match.");
