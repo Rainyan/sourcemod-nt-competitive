@@ -64,34 +64,36 @@ public OnPluginStart()
 	
 	CreateConVar("sm_competitive_version", PLUGIN_VERSION, "Competitive plugin version.", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	
-	g_hRoundLimit		= CreateConVar("sm_competitive_round_limit",		"15",						"How many rounds are played in a competitive match.", _, true, 1.0);
-	g_hMatchSize		= CreateConVar("sm_competitive_players_total",		"10",						"How many players total are expected to ready up before starting a competitive match.");
-	g_hMaxTimeouts		= CreateConVar("sm_competitive_max_timeouts",		"1",						"How many time-outs are allowed per match per team.", _, true, 0.0);
-	g_hMaxPauseLength	= CreateConVar("sm_competitive_max_pause_length",	"180",						"How long can a competitive time-out last, in seconds.", _, true, 0.0);
-	g_hSourceTVEnabled	= CreateConVar("sm_competitive_sourcetv_enabled",	"1",						"Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
-	g_hSourceTVPath		= CreateConVar("sm_competitive_sourcetv_path",		"replays_competitive",		"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
-	g_hJinraiName		= CreateConVar("sm_competitive_jinrai_name",		"Jinrai",					"Jinrai team's name. Will use \"Jinrai\" if left empty.");
-	g_hNSFName			= CreateConVar("sm_competitive_nsf_name",			"NSF",						"NSF team's name. Will use \"NSF\" if left empty.");
-	g_hCompetitionName	= CreateConVar("sm_competitive_title",				"",							"Name of the tournament/competition. Also used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
-	g_hCommsBehaviour	= CreateConVar("sm_competitive_comms_behaviour",	"0",						"Voice comms behaviour when live. 0 = no alltalk, 1 = enable alltalk, 2 = check sv_alltalk value before live state.", _, true, 0.0, true, 2.0);
-	g_hLogMode			= CreateConVar("sm_competitive_log_mode",			"1",						"Competitive logging mode. 1 = enabled, 0 = disabled.", _, true, 0.0, true, 1.0);
-	g_hKillVersobity	= CreateConVar("sm_competitive_killverbosity",		"1",						"Display the players still alive in console after each kill.", _, true, 0.0, true, 1.0);
-	g_hClientRecording	= CreateConVar("sm_competitive_record_clients",		"0",						"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
+	g_hRoundLimit						= CreateConVar("sm_competitive_round_limit",						"15",					"How many rounds are played in a competitive match.", _, true, 1.0);
+	g_hMatchSize						= CreateConVar("sm_competitive_players_total",						"10",					"How many players total are expected to ready up before starting a competitive match.");
+	g_hMaxTimeouts						= CreateConVar("sm_competitive_max_timeouts",						"1",					"How many time-outs are allowed per match per team.", _, true, 0.0);
+	g_hMaxPauseLength					= CreateConVar("sm_competitive_max_pause_length",					"180",					"How long can a competitive time-out last, in seconds.", _, true, 0.0);
+	g_hSourceTVEnabled					= CreateConVar("sm_competitive_sourcetv_enabled",					"1",					"Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
+	g_hSourceTVPath						= CreateConVar("sm_competitive_sourcetv_path",						"replays_competitive",	"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
+	g_hJinraiName						= CreateConVar("sm_competitive_jinrai_name",						"Jinrai",				"Jinrai team's name. Will use \"Jinrai\" if left empty.");
+	g_hNSFName							= CreateConVar("sm_competitive_nsf_name",							"NSF",					"NSF team's name. Will use \"NSF\" if left empty.");
+	g_hCompetitionName					= CreateConVar("sm_competitive_title",								"",						"Name of the tournament/competition. Also used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
+	g_hCommsBehaviour					= CreateConVar("sm_competitive_comms_behaviour",					"0",					"Voice comms behaviour when live. 0 = no alltalk, 1 = enable alltalk, 2 = check sv_alltalk value before live state.", _, true, 0.0, true, 2.0);
+	g_hLogMode							= CreateConVar("sm_competitive_log_mode",							"1",					"Competitive logging mode. 1 = enabled, 0 = disabled.", _, true, 0.0, true, 1.0);
+	g_hKillVersobity					= CreateConVar("sm_competitive_killverbosity",						"1",					"Display the players still alive in console after each kill.", _, true, 0.0, true, 1.0);
+	g_hClientRecording					= CreateConVar("sm_competitive_record_clients",						"0",					"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
+	g_hTimeAllowedForUnpauseRejoiner	= CreateConVar("sm_competitive_max_unpause_during_pause_rejoin",	"5",					"How many seconds are we allowed to unpause during a team's own pause, if one of their players has dropped from the server and needs to reconnect. If connect time exceeds this, the player will have to wait for actual unpause to rejoin the game. If zero, nobody is allowed to rejoin until the pause has completely ended.", _, true, 0.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
 	g_hPausable			= FindConVar("sv_pausable");
 	
-	HookConVarChange(g_hNeoRestartThis,		Event_Restart);
-	HookConVarChange(g_hSourceTVEnabled,	Event_SourceTVEnabled);
-	HookConVarChange(g_hSourceTVPath,		Event_SourceTVPath);
-	HookConVarChange(g_hJinraiName,			Event_TeamNameJinrai);
-	HookConVarChange(g_hNSFName,			Event_TeamNameNSF);
-	HookConVarChange(g_hCommsBehaviour,		Event_CommsBehaviour);
-	HookConVarChange(g_hLogMode,			Event_LogMode);
-	HookConVarChange(g_hKillVersobity,		Event_KillVerbosity);
-	HookConVarChange(g_hClientRecording,	Event_ClientRecording);
+	HookConVarChange(g_hNeoRestartThis,					Event_Restart);
+	HookConVarChange(g_hSourceTVEnabled,				Event_SourceTVEnabled);
+	HookConVarChange(g_hSourceTVPath,					Event_SourceTVPath);
+	HookConVarChange(g_hJinraiName,						Event_TeamNameJinrai);
+	HookConVarChange(g_hNSFName,						Event_TeamNameNSF);
+	HookConVarChange(g_hCommsBehaviour,					Event_CommsBehaviour);
+	HookConVarChange(g_hLogMode,						Event_LogMode);
+	HookConVarChange(g_hKillVersobity,					Event_KillVerbosity);
+	HookConVarChange(g_hClientRecording,				Event_ClientRecording);
+	HookConVarChange(g_hTimeAllowedForUnpauseRejoiner,	Event_TimeAllowedForUnpauseRejoiner);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
@@ -126,15 +128,17 @@ public OnMapStart()
 
 public OnConfigsExecuted()
 {
-	g_isAlltalkByDefault	=	GetConVarBool(g_hAlltalk);
-	g_shouldClientsRecord	=	GetConVarBool(g_hClientRecording);
-	g_killVerbosity			=	GetConVarInt(g_hKillVersobity);
+	g_isAlltalkByDefault					= GetConVarBool(g_hAlltalk);
+	g_shouldClientsRecord					= GetConVarBool(g_hClientRecording);
+	g_killVerbosity							= GetConVarInt(g_hKillVersobity);
+	g_ftimeAllowedForRejoinerDuringUnpause	= GetConVarFloat(g_hTimeAllowedForUnpauseRejoiner);
 }
 
 public OnClientAuthorized(client, const String:authID[])
 {
 	if (g_isLive)
 	{
+		// ** Check for competitor status below **
 		new bool:isPlayerCompeting;
 		new earlierUserid;
 		
@@ -161,6 +165,12 @@ public OnClientAuthorized(client, const String:authID[])
 		#if DEBUG
 			PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
 		#endif
+		
+		// ** Check for competitor rejoining during a pause below **
+		if (g_isPaused && isPlayerCompeting && g_assignedTeamWhenLive[client] == g_pausingTeam)
+		{
+			UnPauseForClientRejoin(client);
+		}
 	}
 }
 

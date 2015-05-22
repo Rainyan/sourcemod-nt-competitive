@@ -31,8 +31,10 @@ new g_unpauseTimer = 10;
 new g_usedTimeouts[4];
 new g_killVerbosity;
 new g_playersAlive[sizeof(g_teamName)];
+new g_timeSinceUnpausedForRejoin;
 
 new Float:g_fRoundTime;
+new Float:g_ftimeAllowedForRejoinerDuringUnpause;
 
 new bool:g_isAlltalkByDefault;
 new bool:g_isExpectingOverride;
@@ -68,11 +70,13 @@ new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
 new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
+new Handle:g_hTimeAllowedForUnpauseRejoiner;
 
 new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerSpamLive = INVALID_HANDLE;
 new Handle:g_hTimerPauseCountdown = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
+new Handle:g_hTimerCheckRejoinPause = INVALID_HANDLE;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -352,6 +356,47 @@ public Action:ToggleLive()
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
 	
 	return Plugin_Handled;
+}
+
+public Action:UnPauseForClientRejoin(client)
+{
+	if (!g_isPaused)
+		return Plugin_Stop;
+	
+	if (!Client_IsValid(client, false)) // Client is waiting to join server, so don't check if actually connected yet
+		return Plugin_Stop;
+	
+	if (g_hTimerCheckRejoinPause != INVALID_HANDLE) // We already have one timer handle looping, stop
+		return Plugin_Stop;
+	
+	TogglePauseLoop();
+	
+	g_hTimerCheckRejoinPause = CreateTimer(1.0, Timer_CheckIfRejoiningClientEnteredServer, client, TIMER_REPEAT); // Timer increment needs to be 1 second to match sm_competitive_max_unpause_during_pause_rejoin rule. Alternatively g_timeSinceUnpausedForRejoin needs tweaking.
+	
+	return Plugin_Handled;
+}
+
+public Action:Timer_CheckIfRejoiningClientEnteredServer(Handle:timer, any:client)
+{
+	// Player has finished joining, we can re-pause and kill this timer
+	if (Client_IsValid(client))
+	{
+		g_timeSinceUnpausedForRejoin = 0;
+		TogglePauseLoop();
+		return Plugin_Stop;
+	}
+	
+	// Player didn't connect in time, we will re-pause regardless and kill this timer
+	else if (g_timeSinceUnpausedForRejoin >= g_ftimeAllowedForRejoinerDuringUnpause)
+	{
+		g_timeSinceUnpausedForRejoin = 0;
+		TogglePauseLoop();
+		return Plugin_Stop;
+	}
+	
+	g_timeSinceUnpausedForRejoin++;
+	
+	return Plugin_Continue; // Player hasn't joined yet, keep looping this timer
 }
 
 public Action:TogglePause()
