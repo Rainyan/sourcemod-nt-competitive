@@ -196,6 +196,11 @@ public Event_KillVerbosity(Handle:cvar, const String:oldVal[], const String:newV
 	g_killVerbosity = StringToInt(newVal);
 }
 
+public Event_TimeAllowedForUnpauseRejoiner(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	g_ftimeAllowedForRejoinerDuringUnpause = StringToFloat(newVal);
+}
+
 public Event_CommsBehaviour(Handle:cvar, const String:oldVal[], const String:newVal[])
 {	
 	if (g_isLive)
