@@ -34,14 +34,6 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	return APLRes_Success;
 }
 
-public Competitive_IsLive(Handle:plugin, numParams)
-{
-	if (g_isLive)
-		return true;
-	
-	return false;
-}
-
 public OnPluginStart()
 {
 	RegConsoleCmd("sm_ready",		Command_Ready,				"Mark yourself as ready for a competitive match.");
@@ -520,4 +512,12 @@ public Action:Command_LoggingTest(client, args)
 	ReplyToCommand(client, "Debug log message sent.");
 	
 	return Plugin_Handled;
+}
+
+public Competitive_IsLive(Handle:plugin, numParams)
+{
+	if (g_isLive)
+		return true;
+	
+	return false;
 }
