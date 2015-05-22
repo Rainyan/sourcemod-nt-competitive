@@ -679,6 +679,12 @@ public Action:Timer_Live_SecondsCountdown(Handle:timer)
 
 public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 {
+	if (!g_isLive || !g_isPaused)
+	{
+		LogError("Timer_Unpause_SecondsCountdown called at the wrong time, ignoring.");
+		return Plugin_Continue;
+	}
+	
 	if (g_unpauseTimer > 0)
 	{
 		//PlayLiveBeep(); // Can't EmitSound when paused?
@@ -696,6 +702,8 @@ public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 		
 		g_unpauseTimer = 10; // Countdown from this many seconds
 	}
+	
+	return Plugin_Continue;
 }
 
 public InitDirectory(const String:sDir[])
