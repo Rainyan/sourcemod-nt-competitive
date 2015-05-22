@@ -78,6 +78,8 @@ new Handle:g_hTimerPauseCountdown = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 new Handle:g_hTimerCheckRejoinPause = INVALID_HANDLE;
 new Handle:g_hTimerStartUnPauseCountdown = INVALID_HANDLE;
+new Handle:g_hTimerUnpauseHalfLeft = INVALID_HANDLE;
+new Handle:g_hTimerUnPauseGame = INVALID_HANDLE;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -423,10 +425,28 @@ public Action:TogglePause()
 			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		#endif
 		
-		CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
+		if (g_hTimerUnPauseGame != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerUnPauseGame);
+			g_hTimerUnPauseGame = INVALID_HANDLE;
+		}
+		
+		if (g_hTimerUnPauseGame != INVALID_HANDLE)
+			LogError("Could not close handle g_hTimerUnPauseGame");
+		
+		g_hTimerUnPauseGame = CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
+		
+		if (g_hTimerUnpauseHalfLeft != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerUnpauseHalfLeft);
+			g_hTimerUnpauseHalfLeft = INVALID_HANDLE;
+		}
+		
+		if (g_hTimerUnpauseHalfLeft != INVALID_HANDLE)
+			LogError("Could not close handle g_hTimerUnpauseHalfLeft");
 		
 		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
-			CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
+			g_hTimerUnpauseHalfLeft = CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
 		
 		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
 		{
@@ -445,6 +465,25 @@ public Action:TogglePause()
 	
 	else
 	{
+		// Close any open unpause timer, countdown timer, and half countdown timer handles below
+		if (g_hTimerUnPauseGame != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerUnPauseGame);
+			g_hTimerUnPauseGame = INVALID_HANDLE;
+		}
+		
+		if (g_hTimerUnPauseGame != INVALID_HANDLE)
+			LogError("Could not close handle g_hTimerUnPauseGame");
+		
+		if (g_hTimerUnpauseHalfLeft != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerUnpauseHalfLeft);
+			g_hTimerUnpauseHalfLeft = INVALID_HANDLE;
+		}
+		
+		if (g_hTimerUnpauseHalfLeft != INVALID_HANDLE)
+			LogError("Could not close handle g_hTimerUnpauseHalfLeft");
+		
 		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
 		{
 			KillTimer(g_hTimerStartUnPauseCountdown);
