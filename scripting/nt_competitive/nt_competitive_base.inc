@@ -77,6 +77,7 @@ new Handle:g_hTimerSpamLive = INVALID_HANDLE;
 new Handle:g_hTimerPauseCountdown = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 new Handle:g_hTimerCheckRejoinPause = INVALID_HANDLE;
+new Handle:g_hTimerStartUnPauseCountdown = INVALID_HANDLE;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -427,11 +428,32 @@ public Action:TogglePause()
 		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
 			CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
 		
-		CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
+		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerStartUnPauseCountdown);
+			g_hTimerStartUnPauseCountdown = INVALID_HANDLE;
+		}
+		
+		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
+		{
+			LogError("Could not close handle g_hTimerStartUnPauseCountdown");
+			return Plugin_Stop;
+		}
+		
+		g_hTimerStartUnPauseCountdown = CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
 	}
 	
 	else
 	{
+		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimerStartUnPauseCountdown);
+			g_hTimerStartUnPauseCountdown = INVALID_HANDLE;
+		}
+		
+		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
+			LogError("Could not close handle g_hTimerStartUnPauseCountdown");
+		
 		if (!g_isExpectingUnPauseTimer)
 			LogError("Unpause timer executed unexpectedly.");
 		
