@@ -72,12 +72,6 @@ new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
 new Handle:g_hTimeAllowedForUnpauseRejoiner;
 
-new Handle:g_hTimerTogglePause = INVALID_HANDLE;
-new Handle:g_hTimerCheckRejoinPause = INVALID_HANDLE;
-new Handle:g_hTimerStartUnPauseCountdown = INVALID_HANDLE;
-new Handle:g_hTimerUnpauseHalfLeft = INVALID_HANDLE;
-new Handle:g_hTimerUnPauseGame = INVALID_HANDLE;
-
 public Action:CheckIfEveryoneIsReady()
 {
 	new players;
@@ -384,13 +378,10 @@ public Action:UnPauseForClientRejoin(client)
 	
 	if (!Client_IsValid(client, false)) // Client is waiting to join server, so don't check if actually connected yet
 		return Plugin_Stop;
-	
-	if (g_hTimerCheckRejoinPause != INVALID_HANDLE) // We already have one timer handle looping, stop
-		return Plugin_Stop;
-	
+		
 	TogglePauseLoop();
 	
-	g_hTimerCheckRejoinPause = CreateTimer(1.0, Timer_CheckIfRejoiningClientEnteredServer, client, TIMER_REPEAT); // Timer increment needs to be 1 second to match sm_competitive_max_unpause_during_pause_rejoin rule. Alternatively g_timeSinceUnpausedForRejoin needs tweaking.
+	CreateTimer(1.0, Timer_CheckIfRejoiningClientEnteredServer, client, TIMER_REPEAT); // Timer increment needs to be 1 second to match sm_competitive_max_unpause_during_pause_rejoin rule. Alternatively g_timeSinceUnpausedForRejoin needs tweaking.
 	
 	return Plugin_Handled;
 }
@@ -402,6 +393,7 @@ public Action:Timer_CheckIfRejoiningClientEnteredServer(Handle:timer, any:client
 	{
 		g_timeSinceUnpausedForRejoin = 0;
 		TogglePauseLoop();
+		
 		return Plugin_Stop;
 	}
 	
@@ -410,6 +402,7 @@ public Action:Timer_CheckIfRejoiningClientEnteredServer(Handle:timer, any:client
 	{
 		g_timeSinceUnpausedForRejoin = 0;
 		TogglePauseLoop();
+		
 		return Plugin_Stop;
 	}
 	
@@ -434,81 +427,25 @@ public Action:TogglePause()
 		g_isPaused = true;
 		g_isExpectingUnPauseTimer = true;
 		
-		PrintToChatAll("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
+		PrintToChatAll("%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		PrintToChatAll("%s Use !pause when ready.", g_tag);
 		
 		#if DEBUG > 1
 			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		#endif
 		
-		if (g_hTimerUnPauseGame != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerUnPauseGame);
-			g_hTimerUnPauseGame = INVALID_HANDLE;
-		}
 		
-		if (g_hTimerUnPauseGame != INVALID_HANDLE)
-			LogError("Could not close handle g_hTimerUnPauseGame");
-		
-		g_hTimerUnPauseGame = CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
-		
-		if (g_hTimerUnpauseHalfLeft != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerUnpauseHalfLeft);
-			g_hTimerUnpauseHalfLeft = INVALID_HANDLE;
-		}
-		
-		if (g_hTimerUnpauseHalfLeft != INVALID_HANDLE)
-			LogError("Could not close handle g_hTimerUnpauseHalfLeft");
+		CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
 		
 		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
-			g_hTimerUnpauseHalfLeft = CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
+			CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
 		
-		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerStartUnPauseCountdown);
-			g_hTimerStartUnPauseCountdown = INVALID_HANDLE;
-		}
-		
-		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
-		{
-			LogError("Could not close handle g_hTimerStartUnPauseCountdown");
-			return Plugin_Stop;
-		}
-		
-		g_hTimerStartUnPauseCountdown = CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
+		CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
 	}
 	
 	else
 	{
 		// Close any open unpause timer, countdown timer, and half countdown timer handles below
-		if (g_hTimerUnPauseGame != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerUnPauseGame);
-			g_hTimerUnPauseGame = INVALID_HANDLE;
-		}
-		
-		if (g_hTimerUnPauseGame != INVALID_HANDLE)
-			LogError("Could not close handle g_hTimerUnPauseGame");
-		
-		if (g_hTimerUnpauseHalfLeft != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerUnpauseHalfLeft);
-			g_hTimerUnpauseHalfLeft = INVALID_HANDLE;
-		}
-		
-		if (g_hTimerUnpauseHalfLeft != INVALID_HANDLE)
-			LogError("Could not close handle g_hTimerUnpauseHalfLeft");
-		
-		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerStartUnPauseCountdown);
-			g_hTimerStartUnPauseCountdown = INVALID_HANDLE;
-		}
-		
-		if (g_hTimerStartUnPauseCountdown != INVALID_HANDLE)
-			LogError("Could not close handle g_hTimerStartUnPauseCountdown");
-		
 		if (!g_isExpectingUnPauseTimer)
 			LogError("Unpause timer executed unexpectedly.");
 		
@@ -587,6 +524,8 @@ public Action:Command_OverrideStartOther(client, args) // Pretend the other team
 public Action:Timer_TogglePauseLoop(Handle:timer)
 {
 	TogglePauseLoop();
+	
+	return Plugin_Stop;
 }
 
 public Action:TogglePauseLoop()
@@ -610,13 +549,7 @@ public Action:TogglePauseLoop()
 				unspawnedClients[1]++;
 			
 			if (forcePause || unspawnedClients[1] <= unspawnedClients[0])
-			{
-				if (g_hTimerTogglePause != INVALID_HANDLE)
-				{
-					KillTimer(g_hTimerTogglePause);
-					g_hTimerTogglePause = INVALID_HANDLE;
-				}
-				
+			{				
 				ClientCommand(i, "pause");
 				
 				#if DEBUG > 1
@@ -643,12 +576,6 @@ public Action:TogglePauseLoop()
 					PrintToServer("Found %i invalid clients. Found %i valid unspawned clients.", invalidClients, unspawnedClients[1]);
 			#endif
 			
-			if (g_hTimerTogglePause != INVALID_HANDLE)
-			{
-				KillTimer(g_hTimerTogglePause);
-				g_hTimerTogglePause = INVALID_HANDLE;
-			}
-			
 			if (GetGameTime() > g_fRoundTime + 13.9)
 			{
 				forcePause = true;
@@ -661,7 +588,7 @@ public Action:TogglePauseLoop()
 				continue;
 			}
 			
-			g_hTimerTogglePause = CreateTimer(1.0, Timer_TogglePauseLoop);
+			CreateTimer(1.0, Timer_TogglePauseLoop);
 			
 			#if DEBUG > 1
 				PrintToServer("No valid spawned client found. Restarting loop in TogglePauseLoop");
@@ -715,26 +642,36 @@ public Action:Timer_Unpause(Handle:timer)
 	{
 		PrintToChatAll("%s Maximum pause time has ended!", g_tag);
 		TogglePause();
+		
+		return Plugin_Stop;
 	}
+	
+	return Plugin_Continue;
 }
 
 public Action:Timer_UnpauseNotice_Half(Handle:timer)
 {
 	// Show notification when half of the max pause time has elapsed
 	if (g_isPaused)
+	{
 		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxPauseLength)) / 2));
+		return Plugin_Continue;
+	}
+	
+	return Plugin_Stop;
 }
 
 public Action:Timer_StartTenSecondsLeft(Handle:timer)
 {
 	CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	
+	return Plugin_Stop;
 }
 
 public Action:Timer_Live_SecondsCountdown(Handle:timer)
 {
 	if (g_liveTimer > 0)
 	{
-		//PlayLiveBeep(); // Can't EmitSound when paused?
 		PrintToChatAll("%s Match starting in: %i", g_tag, g_liveTimer);
 		g_liveTimer--;
 		
@@ -748,15 +685,12 @@ public Action:Timer_Live_SecondsCountdown(Handle:timer)
 
 public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 {
-	if (!g_isLive || !g_isPaused)
-	{
-		LogError("Timer_Unpause_SecondsCountdown called at the wrong time, ignoring.");
+	if (!g_isLive || !g_isPaused) // Pause has properly ended or the match is not live anymore
 		return Plugin_Stop;
-	}
 	
 	if (g_unpauseTimer > 0)
 	{
-		//PlayLiveBeep(); // Can't EmitSound when paused?
+		PlayLiveBeep();
 		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
 		g_unpauseTimer--;
 		
@@ -856,15 +790,10 @@ public Action:ToggleSourceTV()
 
 public Action:PlayLiveBeep()
 {
-	PrecacheSound(g_soundLive);
+	new Float:volume = 0.5; // Volume between 0.0 - 1.0
 	
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (!Client_IsValid(i) || IsFakeClient(i))
-			continue;
-		
-		EmitSoundToClient(i, g_soundLive);
-	}
+	PrecacheSound(g_soundLive);
+	EmitSoundToAll(g_soundLive, _, _, _, _, volume);
 }
 
 bool:IsSourceTVBotConnected()
