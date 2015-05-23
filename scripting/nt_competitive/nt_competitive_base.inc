@@ -15,7 +15,7 @@ new String:g_teamName[][64] = {
 new String:g_livePlayers[MAXPLAYERS+1][MAX_STEAMID_LENGTH]; // Array for storing SteamIDs to allow disconnected players rejoining when live
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
-new String:g_soundLive[] = "buttons/button17.wav";
+//new String:g_soundLive[] = "buttons/button17.wav";
 new String:g_kvPath[PLATFORM_MAX_PATH];
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
@@ -434,7 +434,6 @@ public Action:TogglePause()
 			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 		#endif
 		
-		
 		CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
 		
 		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
@@ -690,7 +689,7 @@ public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 	
 	if (g_unpauseTimer > 0)
 	{
-		PlayLiveBeep();
+		//PlayLiveBeep(); Does not work whilst paused
 		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
 		g_unpauseTimer--;
 		
@@ -788,6 +787,7 @@ public Action:ToggleSourceTV()
 	return Plugin_Handled;
 }
 
+/* This doesn't work when the game is paused. Come up with some alternative?
 public Action:PlayLiveBeep()
 {
 	new Float:volume = 0.5; // Volume between 0.0 - 1.0
@@ -795,6 +795,7 @@ public Action:PlayLiveBeep()
 	PrecacheSound(g_soundLive);
 	EmitSoundToAll(g_soundLive, _, _, _, _, volume);
 }
+*/
 
 bool:IsSourceTVBotConnected()
 {
