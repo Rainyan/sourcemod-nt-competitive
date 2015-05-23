@@ -72,7 +72,6 @@ new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
 new Handle:g_hTimeAllowedForUnpauseRejoiner;
 
-new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimerPauseCountdown = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 new Handle:g_hTimerCheckRejoinPause = INVALID_HANDLE;
@@ -218,7 +217,7 @@ public Action:ToggleRecording()
 
 public Action:LiveCountDown()
 {
-	g_hTimerLiveCountdown = CreateTimer(1.0, Timer_Live_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	CreateTimer(1.0, Timer_Live_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 	CreateTimer((float(g_liveTimer) + 1.0), Timer_GoLive);
 }
 
@@ -743,18 +742,13 @@ public Action:Timer_Live_SecondsCountdown(Handle:timer)
 		//PlayLiveBeep(); // Can't EmitSound when paused?
 		PrintToChatAll("%s Match starting in: %i", g_tag, g_liveTimer);
 		g_liveTimer--;
+		
+		return Plugin_Continue;
 	}
 	
-	else
-	{
-		if (g_hTimerLiveCountdown != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerLiveCountdown);
-			g_hTimerLiveCountdown = INVALID_HANDLE;
-		}
-		
-		g_liveTimer = 5; // Countdown from this many seconds
-	}
+	g_liveTimer = 5; // Reset variable. Countdown from this many seconds
+	
+	return Plugin_Stop;
 }
 
 public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
