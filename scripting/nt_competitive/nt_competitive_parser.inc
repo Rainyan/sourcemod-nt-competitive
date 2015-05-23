@@ -114,7 +114,11 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	// Just another round, simply announce round number
 	else
-		PrintToChatAll("%s Round %i/%i", g_tag, g_roundCount, roundLimit);
+	{
+		// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
+		if (g_spamTimerCount <= 1)
+			PrintToChatAll("%s Round %i/%i", g_tag, g_roundCount, roundLimit);
+	}
 	// ** Announce match state above **
 	
 	

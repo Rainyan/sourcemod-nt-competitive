@@ -12,7 +12,7 @@ new String:g_teamName[][64] = {
 	"Jinrai",
 	"NSF"
 };
-new String:g_livePlayers[MAX_STEAMID_LENGTH][MAXPLAYERS+1]; // Array for storing SteamIDs to allow disconnected players rejoining when live
+new String:g_livePlayers[32+1][MAX_STEAMID_LENGTH]; // Array for storing SteamIDs to allow disconnected players rejoining when live
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new String:g_soundLive[] = "buttons/button17.wav";
@@ -73,7 +73,6 @@ new Handle:g_hClientRecording;
 new Handle:g_hTimeAllowedForUnpauseRejoiner;
 
 new Handle:g_hTimerLiveCountdown = INVALID_HANDLE;
-new Handle:g_hTimerSpamLive = INVALID_HANDLE;
 new Handle:g_hTimerPauseCountdown = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 new Handle:g_hTimerCheckRejoinPause = INVALID_HANDLE;
@@ -220,7 +219,7 @@ public Action:ToggleRecording()
 public Action:LiveCountDown()
 {
 	g_hTimerLiveCountdown = CreateTimer(1.0, Timer_Live_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
-	CreateTimer(float(g_liveTimer), Timer_GoLive);
+	CreateTimer((float(g_liveTimer) + 1.0), Timer_GoLive);
 }
 
 public Action:Timer_GoLive(Handle:timer)
@@ -284,11 +283,15 @@ public Action:ToggleLive()
 			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
 		#endif
 		
+		if (foundPlayers < 2)
+			LogError("Less than 2 players found!");
+		
 		// Set convars for competitive
 		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
 		SetConVarBool(g_hPausable, false);
-		SetConVarBool(g_hNeoRestartThis, true);
 		SetConVarBool(g_hForceCamera, true);
+		
+		NeoRestartThis();
 		
 		g_loggingEnabled = GetConVarBool(g_hLogMode);
 		
@@ -359,6 +362,21 @@ public Action:ToggleLive()
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
 	
 	return Plugin_Handled;
+}
+
+public Action:NeoRestartThis()
+{
+	/*	Do quadruple restart to avoid the no primary weapon on spawn bug.
+		We do four restarts so the sides won't change from when the match went live. */
+	CreateTimer(0.25, Timer_NeoRestartThis);
+	CreateTimer(0.50, Timer_NeoRestartThis);
+	CreateTimer(0.75, Timer_NeoRestartThis);
+	CreateTimer(1.00, Timer_NeoRestartThis);
+}
+
+public Action:Timer_NeoRestartThis(Handle:timer)
+{
+	SetConVarBool(g_hNeoRestartThis, true);
 }
 
 public Action:UnPauseForClientRejoin(client)
@@ -670,26 +688,27 @@ public Action:Timer_DisablePause(Handle:timer)
 public Action:Timer_SpamLive(Handle:timer)
 {
 	// Print the LIVE message X times, then kill the repeat timer calling this
+	new spamLiveTimes = 5;
 	g_spamTimerCount++;
 	
-	if (g_spamTimerCount <= 3)
+	if (g_spamTimerCount == 1) // Don't spam "LIVE" during the first increment. This has to do with chat message ordering (round number msgs) during match start, in Event_RoundStart.
+		return Plugin_Continue;
+	
+	else if (g_spamTimerCount <= (spamLiveTimes + 1)) // spamLiveTimes+1, because we won't trigger during first increment (see comment above)
 		PrintToChatAll("%s LIVE", g_tag);
 	
 	else
 	{
-		if (g_hTimerSpamLive != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerSpamLive);
-			g_hTimerSpamLive = INVALID_HANDLE;
-		}
-		
 		g_spamTimerCount = 0;
+		return Plugin_Stop;
 	}
+	
+	return Plugin_Continue;
 }
 
 public Action:SpamTimer()
 {
-	g_hTimerSpamLive = CreateTimer(0.75, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
+	CreateTimer(0.25, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
 }
 
 public Action:Timer_Unpause(Handle:timer)

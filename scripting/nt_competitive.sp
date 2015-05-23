@@ -142,10 +142,11 @@ public OnClientAuthorized(client, const String:authID[])
 		new bool:isPlayerCompeting;
 		new earlierUserid;
 		
-		for (new i = 1; i <= sizeof(g_livePlayers[]); i++)
+		for (new i = 0; i < sizeof(g_livePlayers); i++)
 		{
 			#if DEBUG > 1
-				PrintToServer("Checking array index %i, array size %i", i, sizeof(g_livePlayers[]));
+				PrintToServer("Checking array index %i, array size %i", i, sizeof(g_livePlayers));
+				PrintToServer("Contents: %s", g_livePlayers[i]);
 			#endif
 			
 			if (StrEqual(authID, g_livePlayers[i]))
