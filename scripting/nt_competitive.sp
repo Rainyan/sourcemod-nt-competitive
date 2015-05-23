@@ -138,6 +138,12 @@ public OnClientAuthorized(client, const String:authID[])
 {
 	if (g_isLive)
 	{
+		if (Client_IsValid(client) && IsFakeClient(client))
+		{
+			g_assignedTeamWhenLive[client] = -1; // This is a bot, let them join whichever team they like
+			return;
+		}
+		
 		// ** Check for competitor status below **
 		new bool:isPlayerCompeting;
 		new earlierUserid;
@@ -173,6 +179,8 @@ public OnClientAuthorized(client, const String:authID[])
 			UnPauseForClientRejoin(client);
 		}
 	}
+	
+	return;
 }
 
 public Action:Command_ResetPauseBool(client, args)
