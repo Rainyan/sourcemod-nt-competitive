@@ -72,7 +72,6 @@ new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
 new Handle:g_hTimeAllowedForUnpauseRejoiner;
 
-new Handle:g_hTimerPauseCountdown = INVALID_HANDLE;
 new Handle:g_hTimerTogglePause = INVALID_HANDLE;
 new Handle:g_hTimerCheckRejoinPause = INVALID_HANDLE;
 new Handle:g_hTimerStartUnPauseCountdown = INVALID_HANDLE;
@@ -728,11 +727,7 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 
 public Action:Timer_StartTenSecondsLeft(Handle:timer)
 {
-	if (g_isPaused)
-	{
-		if (g_hTimerPauseCountdown == INVALID_HANDLE)
-			g_hTimerPauseCountdown = CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
-	}
+	CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 }
 
 public Action:Timer_Live_SecondsCountdown(Handle:timer)
@@ -756,7 +751,7 @@ public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 	if (!g_isLive || !g_isPaused)
 	{
 		LogError("Timer_Unpause_SecondsCountdown called at the wrong time, ignoring.");
-		return Plugin_Continue;
+		return Plugin_Stop;
 	}
 	
 	if (g_unpauseTimer > 0)
@@ -764,20 +759,13 @@ public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 		//PlayLiveBeep(); // Can't EmitSound when paused?
 		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
 		g_unpauseTimer--;
-	}
-	
-	else
-	{
-		if (g_hTimerPauseCountdown != INVALID_HANDLE)
-		{
-			KillTimer(g_hTimerPauseCountdown);
-			g_hTimerPauseCountdown = INVALID_HANDLE;
-		}
 		
-		g_unpauseTimer = 10; // Countdown from this many seconds
+		return Plugin_Continue;
 	}
 	
-	return Plugin_Continue;
+	g_unpauseTimer = 10; // Countdown from this many seconds
+	
+	return Plugin_Stop;
 }
 
 public InitDirectory(const String:sDir[])
