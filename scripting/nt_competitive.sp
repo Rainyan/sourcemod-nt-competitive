@@ -124,6 +124,8 @@ public OnPluginStart()
 public OnMapStart()
 {
 	g_roundCount = 0;
+	
+	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
 
 public OnConfigsExecuted()

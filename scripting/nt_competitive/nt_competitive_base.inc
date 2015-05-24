@@ -28,7 +28,7 @@ new g_pausingTeam;
 new g_roundCount;
 new g_spamTimerCount;
 new g_unpauseTimer = 10;
-new g_usedTimeouts[4];
+new g_usedTimeouts[sizeof(g_teamName)];
 new g_killVerbosity;
 new g_playersAlive[sizeof(g_teamName)];
 new g_timeSinceUnpausedForRejoin;
@@ -44,8 +44,8 @@ new bool:g_isPaused;
 new bool:g_isReady[MAXPLAYERS+1];
 new bool:g_isSourceTVRecording;
 new bool:g_isSpawned[MAXPLAYERS+1];
-new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
-new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
+new bool:g_isTeamReadyForUnPause[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
+new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 new bool:g_shouldClientsRecord;
 new bool:g_isUnpausedForClientRejoin;
@@ -978,4 +978,103 @@ public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this 
 	// We only call this in round start, so it's safe to assume any team players are alive. 
 	g_playersAlive[TEAM_JINRAI] = jinraiPlayers;
 	g_playersAlive[TEAM_NSF] = nsfPlayers;
+}
+
+public Action:ResetGlobalVariables() // Make sure all global variables are reset properly
+{
+	new i; // for looping arrays
+	new String:errorMsgExplanatoryEnding[] = "These values have now been reset."; // Repeating phrase for error messages below
+	
+	// Reset global integers
+	new correctInt = 0; // Value to check variables against
+	
+	if (g_jinraiScore != correctInt || g_nsfScore != correctInt || g_roundCount != correctInt || g_timeSinceUnpausedForRejoin != correctInt)
+	{	
+		LogError("Global integers not properly reset. \
+		g_jinraiScore = %i. g_nsfScore = %i. g_roundCount = %i. g_timeSinceUnpausedForRejoin = %i. \
+		These should all be %i. %s", g_jinraiScore, g_nsfScore, g_roundCount, g_timeSinceUnpausedForRejoin, correctInt, errorMsgExplanatoryEnding);
+		
+		g_jinraiScore					= correctInt;
+		g_nsfScore						= correctInt;
+		g_roundCount					= correctInt;
+		g_timeSinceUnpausedForRejoin	= correctInt;
+	}
+	
+	for (i = 0; i <= sizeof(g_usedTimeouts); i++)
+	{
+		if (g_usedTimeouts[i] != correctInt)
+		{
+			LogError("Global integers not properly reset. \
+			g_usedTimeouts[%i] = %i. This should be %i. %s", i, g_usedTimeouts[i], correctInt, errorMsgExplanatoryEnding);
+			g_usedTimeouts[i] = correctInt;
+		}
+	}
+	
+	correctInt = -1;
+	
+	for (i = 0; i <= sizeof(g_assignedTeamWhenLive); i++)
+	{	
+		if (g_assignedTeamWhenLive[i] != correctInt)
+		{
+			LogError("Global integers not properly reset. \
+			g_assignedTeamWhenLive[%i] = %i. This should be %i. %s", i, g_assignedTeamWhenLive[i], correctInt, errorMsgExplanatoryEnding);
+			g_assignedTeamWhenLive[i] = correctInt;
+		}
+	}
+	
+	// Reset global strings
+	for (i = 0; i <= sizeof(g_livePlayers); i++)
+	{
+		if (strlen(g_livePlayers[i]) > 1)
+		{
+			LogError("Global strings not properly set. \
+			g_livePlayers[%i] = %s. This string should be empty. %s", i, g_livePlayers[i], errorMsgExplanatoryEnding);
+			strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), "");
+		}
+	}
+	
+	// Reset global bools
+	new bool:correctBool = false; // Value to check variables against
+	
+	if (g_isExpectingOverride != correctBool || g_isExpectingUnPauseTimer != correctBool || g_isLive != correctBool || g_isPaused != correctBool || g_isSourceTVRecording != correctBool || g_shouldPause != correctBool || g_shouldClientsRecord != correctBool || g_isUnpausedForClientRejoin != correctBool)
+	{
+		LogError("Global booleans not properly reset. \
+		g_isExpectingOverride = %i. g_isExpectingUnPauseTimer = %i. g_isLive = %i. g_isPaused = %i. g_isSourceTVRecording = %i. g_shouldPause = %i. g_shouldClientsRecord = %i. g_isUnpausedForClientRejoin = %i. \
+		These should all be %i. %s", g_isExpectingOverride, g_isExpectingUnPauseTimer, g_isLive, g_isPaused, g_isSourceTVRecording, g_shouldPause, g_shouldClientsRecord, g_isUnpausedForClientRejoin, correctBool, errorMsgExplanatoryEnding);
+		
+		g_isExpectingOverride		= correctBool;
+		g_isExpectingUnPauseTimer	= correctBool;
+		g_isLive					= correctBool;
+		g_isPaused					= correctBool;
+		g_isSourceTVRecording		= correctBool;
+		g_shouldPause				= correctBool;
+		g_shouldClientsRecord		= correctBool;
+		g_isUnpausedForClientRejoin	= correctBool;
+	}
+	
+	for (i = 0; i <= MaxClients; i++)
+	{
+		if (g_isReady[i] != correctBool || g_isSpawned[i] != correctBool)
+		{
+			LogError("Global booleans not properly reset. \
+			g_isReady[%i] = %i. g_isSpawned[%i] = %i. \
+			These should all be %i. %s", i, g_isReady[i], i, g_isSpawned[i], correctBool, errorMsgExplanatoryEnding);
+			
+			g_isReady[i]	= correctBool;
+			g_isSpawned[i]	= correctBool;
+		}
+	}
+	
+	for (i = 0; i <= sizeof(g_teamName); i++)
+	{
+		if (g_isTeamReadyForUnPause[i] != correctBool || g_isWantingOverride[i] != correctBool)
+		{
+			LogError("Global booleans not properly reset. \
+			g_isTeamReadyForUnPause[%i] = %i. g_isWantingOverride[%i] = %i. \
+			These should all be %i. %s", i, g_isTeamReadyForUnPause[i], i, g_isWantingOverride[i], correctBool, errorMsgExplanatoryEnding);
+			
+			g_isTeamReadyForUnPause[i]	= correctBool;
+			g_isWantingOverride[i]		= correctBool;
+		}
+	}
 }
