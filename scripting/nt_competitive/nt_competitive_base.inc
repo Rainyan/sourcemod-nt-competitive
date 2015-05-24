@@ -48,6 +48,7 @@ new bool:g_isTeamReadyForUnPause[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[4]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 new bool:g_shouldClientsRecord;
+new bool:g_isUnpausedForClientRejoin;
 
 #if DEBUG
 	new bool:g_debug_ignoreLiveTeams;
@@ -374,10 +375,15 @@ public Action:Timer_NeoRestartThis(Handle:timer)
 public Action:UnPauseForClientRejoin(client)
 {
 	if (!g_isPaused)
+	{
+		g_isUnpausedForClientRejoin = false;
 		return Plugin_Stop;
+	}
 	
 	if (!Client_IsValid(client, false)) // Client is waiting to join server, so don't check if actually connected yet
 		return Plugin_Stop;
+	
+	g_isUnpausedForClientRejoin = true;
 		
 	TogglePauseLoop();
 	
@@ -392,6 +398,8 @@ public Action:Timer_CheckIfRejoiningClientEnteredServer(Handle:timer, any:client
 	if (Client_IsValid(client))
 	{
 		g_timeSinceUnpausedForRejoin = 0;
+		g_isUnpausedForClientRejoin = false;
+		
 		TogglePauseLoop();
 		
 		return Plugin_Stop;
@@ -401,6 +409,8 @@ public Action:Timer_CheckIfRejoiningClientEnteredServer(Handle:timer, any:client
 	else if (g_timeSinceUnpausedForRejoin >= g_ftimeAllowedForRejoinerDuringUnpause)
 	{
 		g_timeSinceUnpausedForRejoin = 0;
+		g_isUnpausedForClientRejoin = false;
+		
 		TogglePauseLoop();
 		
 		return Plugin_Stop;

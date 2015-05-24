@@ -176,7 +176,8 @@ public OnClientAuthorized(client, const String:authID[])
 		// ** Check for competitor rejoining during a pause below **
 		if (g_isPaused && isPlayerCompeting && g_assignedTeamWhenLive[client] == g_pausingTeam)
 		{
-			UnPauseForClientRejoin(client);
+			if (!g_isUnpausedForClientRejoin)
+				UnPauseForClientRejoin(client);
 		}
 	}
 	
