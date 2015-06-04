@@ -913,7 +913,7 @@ public PrintToConsoleAll(const String:message[])
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || IsFakeClient(i))
+		if (!Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i))
 			continue;
 		
 		PrintToConsole(i, message);
