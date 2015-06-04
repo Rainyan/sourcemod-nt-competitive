@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.3"
+#define PLUGIN_VERSION "0.3.4"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -124,6 +124,8 @@ public OnPluginStart()
 public OnMapStart()
 {
 	g_roundCount = 0;
+	
+	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
 
 public OnConfigsExecuted()
@@ -138,6 +140,12 @@ public OnClientAuthorized(client, const String:authID[])
 {
 	if (g_isLive)
 	{
+		if (Client_IsValid(client) && IsFakeClient(client))
+		{
+			g_assignedTeamWhenLive[client] = -1; // This is a bot, let them join whichever team they like
+			return;
+		}
+		
 		// ** Check for competitor status below **
 		new bool:isPlayerCompeting;
 		new earlierUserid;
@@ -170,9 +178,12 @@ public OnClientAuthorized(client, const String:authID[])
 		// ** Check for competitor rejoining during a pause below **
 		if (g_isPaused && isPlayerCompeting && g_assignedTeamWhenLive[client] == g_pausingTeam)
 		{
-			UnPauseForClientRejoin(client);
+			if (!g_isUnpausedForClientRejoin)
+				UnPauseForClientRejoin(client);
 		}
 	}
+	
+	return;
 }
 
 public Action:Command_ResetPauseBool(client, args)
