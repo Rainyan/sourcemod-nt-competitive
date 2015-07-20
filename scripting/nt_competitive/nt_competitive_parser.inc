@@ -188,7 +188,8 @@ public Action:Command_JoinTeam(client, args)
 	Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> attempted to join team %s instead of their assigned team %s. Blocked.", clientName, steamID, g_teamName[iTeam], g_teamName[g_assignedTeamWhenLive[client]]);
 	LogCompetitive(msgBuffer);
 	
-	ReplyToCommand(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
+	PrintToChat(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
+	PrintToConsole(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
 	
 	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
 	

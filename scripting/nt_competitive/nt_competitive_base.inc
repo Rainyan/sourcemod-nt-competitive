@@ -18,7 +18,7 @@ new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 //new String:g_soundLive[] = "buttons/button17.wav";
 new String:g_kvPath[PLATFORM_MAX_PATH];
 
-new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
+new g_assignedTeamWhenLive[MAXPLAYERS+1];
 new g_jinraiScore;
 new g_liveTimer = 5;
 new g_loggingEnabled;
@@ -234,7 +234,7 @@ public Action:ToggleLive()
 		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (!Client_IsValid(i) || IsFakeClient(i) ||IsClientInGame(i))
+			if (!Client_IsValid(i) || IsFakeClient(i) ||!IsClientInGame(i))
 				continue;
 			
 			if (!IsClientAuthorized(i))
@@ -242,6 +242,7 @@ public Action:ToggleLive()
 				new String:clientName[MAX_NAME_LENGTH];
 				GetClientName(i, clientName, sizeof(clientName));
 				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
+				PrintToServer("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
 				
 				g_isLive = false;
 				
@@ -250,10 +251,14 @@ public Action:ToggleLive()
 			
 			new String:steamID[MAX_STEAMID_LENGTH];
 			GetClientAuthId(i, AuthId_Steam2, steamID, sizeof(steamID));
+			PrintToServer("SteamID of %i: %s", i, steamID);
 			new team = GetClientTeam(i);
 			
 			if (strlen(steamID) == 0)
+			{
 				LogError("Client %i returned empty SteamID, probably not authorized whilst attempting to save SteamID into g_livePlayers!", i);
+				continue;
+			}
 			
 			else
 			{
@@ -1000,7 +1005,7 @@ public Action:ResetGlobalVariables() // Make sure all global variables are reset
 		g_timeSinceUnpausedForRejoin	= correctInt;
 	}
 	
-	for (i = 0; i <= sizeof(g_usedTimeouts); i++)
+	for (i = 0; i < sizeof(g_usedTimeouts); i++)
 	{
 		if (g_usedTimeouts[i] != correctInt)
 		{
@@ -1012,18 +1017,20 @@ public Action:ResetGlobalVariables() // Make sure all global variables are reset
 	
 	correctInt = -1;
 	
-	for (i = 0; i <= sizeof(g_assignedTeamWhenLive); i++)
+	for (i = 0; i < sizeof(g_assignedTeamWhenLive); i++)
 	{	
 		if (g_assignedTeamWhenLive[i] != correctInt)
 		{
+			/*
 			LogError("Global integers not properly reset. \
 			g_assignedTeamWhenLive[%i] = %i. This should be %i. %s", i, g_assignedTeamWhenLive[i], correctInt, errorMsgExplanatoryEnding);
+			*/
 			g_assignedTeamWhenLive[i] = correctInt;
 		}
 	}
 	
 	// Reset global strings
-	for (i = 0; i <= sizeof(g_livePlayers); i++)
+	for (i = 0; i < sizeof(g_livePlayers); i++)
 	{
 		if (strlen(g_livePlayers[i]) > 1)
 		{
@@ -1065,7 +1072,7 @@ public Action:ResetGlobalVariables() // Make sure all global variables are reset
 		}
 	}
 	
-	for (i = 0; i <= sizeof(g_teamName); i++)
+	for (i = 0; i < sizeof(g_teamName); i++)
 	{
 		if (g_isTeamReadyForUnPause[i] != correctBool || g_isWantingOverride[i] != correctBool)
 		{
