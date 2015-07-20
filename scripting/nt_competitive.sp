@@ -138,6 +138,8 @@ public OnConfigsExecuted()
 	g_shouldClientsRecord					= GetConVarBool(g_hClientRecording);
 	g_killVerbosity							= GetConVarInt(g_hKillVersobity);
 	g_ftimeAllowedForRejoinerDuringUnpause	= GetConVarFloat(g_hTimeAllowedForUnpauseRejoiner);
+	g_limitLiveTeams						= GetConVarInt(g_hLimitLiveTeams);
+	g_limitTeams							= GetConVarInt(g_hLimitTeams);
 }
 
 public OnClientAuthorized(client, const String:authID[])
