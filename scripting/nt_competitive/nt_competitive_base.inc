@@ -33,6 +33,7 @@ new g_killVerbosity;
 new g_playersAlive[sizeof(g_teamName)];
 new g_timeSinceUnpausedForRejoin;
 new g_limitLiveTeams;
+new g_limitTeams;
 
 new Float:g_fRoundTime;
 new Float:g_ftimeAllowedForRejoinerDuringUnpause;
@@ -70,6 +71,7 @@ new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
 new Handle:g_hTimeAllowedForUnpauseRejoiner;
 new Handle:g_hLimitLiveTeams;
+new Handle:g_hLimitTeams;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -97,7 +99,7 @@ public Action:CheckIfEveryoneIsReady()
 	if (players < playersReady)
 		LogError("More players ready than there are players total.");
 	
-	if (players < GetConVarInt(g_hMatchSize)) // Everyone connected is ready, but there are less people than expected
+	if ( players < GetConVarInt(g_hMatchSize) && g_limitTeams ) // Everyone connected is ready, but there are less people than expected
 	{
 		g_isExpectingOverride = true;
 		PrintToChatAll("%s Waiting for %i more players to join.", g_tag, (GetConVarInt(g_hMatchSize) - players));
@@ -106,7 +108,7 @@ public Action:CheckIfEveryoneIsReady()
 		return Plugin_Stop;
 	}
 	
-	else if (players > GetConVarInt(g_hMatchSize)) // Everyone connected is ready, but there are more people than expected
+	else if ( players > GetConVarInt(g_hMatchSize) && g_limitTeams ) // Everyone connected is ready, but there are more people than expected
 	{
 		g_isExpectingOverride = true;
 		PrintToChatAll("%s There are %i more players than expected.", g_tag, (players - GetConVarInt(g_hMatchSize)));

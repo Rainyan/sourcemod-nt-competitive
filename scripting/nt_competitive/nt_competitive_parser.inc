@@ -191,6 +191,11 @@ public Action:Command_JoinTeam(client, args)
 	return Plugin_Stop;
 }
 
+public Event_LimitTeams(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	g_limitTeams = StringToInt(newVal);
+}
+
 public Event_LimitLiveTeams(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	g_limitLiveTeams = StringToInt(newVal);
