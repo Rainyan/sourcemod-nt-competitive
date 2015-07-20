@@ -122,6 +122,38 @@ public Action:CheckIfEveryoneIsReady()
 	return Plugin_Handled;
 }
 
+public Action:Command_ReadyList(client, args)
+{
+	if (!Client_IsValid(client))
+		return Plugin_Stop;
+	
+	PrintToChat(client, "%s List of readied players is printed in your console.", g_tag);
+	
+	PrintToConsole(client, "\n%s Players and their READY state:", g_tag);
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i))
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team != TEAM_JINRAI && team != TEAM_NSF)
+			continue;
+		
+		new String:clientName[MAX_NAME_LENGTH];
+		GetClientName(i, clientName, sizeof(clientName));
+		
+		if (g_isReady[i])
+			PrintToConsole(client, "[READY]\t%s", clientName);
+		
+		else
+			PrintToConsole(client, "[NOT READY]\t%s", clientName);
+	}
+	PrintToConsole(client, "\n");
+	
+	return Plugin_Handled;
+}
+
 public Action:Command_IgnoreTeams(client, args)
 {
 	if (g_limitLiveTeams)

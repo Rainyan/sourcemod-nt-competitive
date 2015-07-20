@@ -47,6 +47,8 @@ public OnPluginStart()
 	RegConsoleCmd("sm_pause",		Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("sm_timeout",		Command_Pause,				"Request a pause or timeout in a competitive match.");
 	
+	RegConsoleCmd("sm_readylist",	Command_ReadyList,			"List everyone who has or hasn't readied up.");
+	
 	RegConsoleCmd("jointeam",		Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 	
 	#if DEBUG
@@ -122,7 +124,7 @@ public OnPluginStart()
 	if (!DirExists(g_kvPath))
 		InitDirectory(g_kvPath);
 	
-	AutoExecConfig();
+	AutoExecConfig(true);
 }
 
 public OnMapStart()
