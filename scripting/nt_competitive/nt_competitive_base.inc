@@ -364,17 +364,15 @@ public Action:ToggleLive()
 
 public Action:NeoRestartThis()
 {
-	/*	Do quadruple restart to avoid the no primary weapon on spawn bug.
-		We do four restarts so the sides won't change from when the match went live. */
-	CreateTimer(0.25, Timer_NeoRestartThis);
-	CreateTimer(0.50, Timer_NeoRestartThis);
-	CreateTimer(0.75, Timer_NeoRestartThis);
-	CreateTimer(1.00, Timer_NeoRestartThis);
-}
-
-public Action:Timer_NeoRestartThis(Handle:timer)
-{
 	SetConVarBool(g_hNeoRestartThis, true);
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i))
+			continue;
+		
+		SetPlayerRank(i, 0);
+	}
 }
 
 public Action:UnPauseForClientRejoin(client)
