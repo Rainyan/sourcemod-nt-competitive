@@ -133,11 +133,9 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 }
 
 public Action:Command_JoinTeam(client, args)
-{
-	#if DEBUG
-		if (g_debug_ignoreLiveTeams)
-			return Plugin_Continue;
-	#endif
+{	
+	if (!g_isLive || !g_limitLiveTeams)
+		return Plugin_Continue;
 	
 	new String:clientName[MAX_NAME_LENGTH];
 	GetClientName(client, clientName, sizeof(clientName));
@@ -150,10 +148,7 @@ public Action:Command_JoinTeam(client, args)
 	GetCmdArg(1, team, sizeof(team));
 	new iTeam = StringToInt(team);
 	
-	if (!g_isLive)
-		return Plugin_Continue;
-	
-	else if (g_assignedTeamWhenLive[client] == TEAM_UNASSIGNED) // Team not explicitly restricted for this player, let them join (substitutes after going live etc)
+	if (g_assignedTeamWhenLive[client] == TEAM_UNASSIGNED) // Team not explicitly restricted for this player, let them join (substitutes after going live etc)
 	{
 		new String:msgBuffer[512];
 		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
@@ -194,6 +189,11 @@ public Action:Command_JoinTeam(client, args)
 	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
 	
 	return Plugin_Stop;
+}
+
+public Event_LimitLiveTeams(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	g_limitLiveTeams = StringToInt(newVal);
 }
 
 public Event_KillVerbosity(Handle:cvar, const String:oldVal[], const String:newVal[])

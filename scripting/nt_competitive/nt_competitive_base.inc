@@ -32,6 +32,7 @@ new g_usedTimeouts[sizeof(g_teamName)];
 new g_killVerbosity;
 new g_playersAlive[sizeof(g_teamName)];
 new g_timeSinceUnpausedForRejoin;
+new g_limitLiveTeams;
 
 new Float:g_fRoundTime;
 new Float:g_ftimeAllowedForRejoinerDuringUnpause;
@@ -49,10 +50,6 @@ new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, n
 new bool:g_shouldPause;
 new bool:g_shouldClientsRecord;
 new bool:g_isUnpausedForClientRejoin;
-
-#if DEBUG
-	new bool:g_debug_ignoreLiveTeams;
-#endif
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -72,6 +69,7 @@ new Handle:g_hNSFName;
 new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
 new Handle:g_hTimeAllowedForUnpauseRejoiner;
+new Handle:g_hLimitLiveTeams;
 
 public Action:CheckIfEveryoneIsReady()
 {
@@ -124,15 +122,15 @@ public Action:CheckIfEveryoneIsReady()
 
 public Action:Command_IgnoreTeams(client, args)
 {
-	if (!g_debug_ignoreLiveTeams)
+	if (g_limitLiveTeams)
 	{
-		g_debug_ignoreLiveTeams = true;
+		SetConVarInt(g_hLimitLiveTeams, 0);
 		ReplyToCommand(client, "Now ignoring team change protection.");
 	}
 	
 	else
 	{
-		g_debug_ignoreLiveTeams = false;
+		SetConVarInt(g_hLimitLiveTeams, 1);
 		ReplyToCommand(client, "Enforcing teams.");
 	}
 	
