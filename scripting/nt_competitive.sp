@@ -78,7 +78,7 @@ public OnPluginStart()
 	g_hKillVersobity					= CreateConVar("sm_competitive_killverbosity",						"1",					"Display the players still alive in console after each kill.", _, true, 0.0, true, 1.0);
 	g_hClientRecording					= CreateConVar("sm_competitive_record_clients",						"0",					"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
 	g_hTimeAllowedForUnpauseRejoiner	= CreateConVar("sm_competitive_max_unpause_during_pause_rejoin",	"5",					"How many seconds are we allowed to unpause during a team's own pause, if one of their players has dropped from the server and needs to reconnect. If connect time exceeds this, the player will have to wait for actual unpause to rejoin the game. If zero, nobody is allowed to rejoin until the pause has completely ended.", _, true, 0.0);
-	g_hLimitLiveTeams					= CreateConVar("sm_limit_live_teams",								"1",					"Are players allowed to change teams when a game is live.", _, true, 0.0, true, 1.0);
+	g_hLimitLiveTeams					= CreateConVar("sm_limit_live_teams",								"1",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
 	g_hLimitTeams						= CreateConVar("sm_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
