@@ -196,7 +196,17 @@ public Action:Command_ResetPauseBool(client, args)
 
 public Action:Command_ForceLive(client, args)
 {
-	LiveCountDown();
+	if (!g_isLive)
+	{
+		PrintToChatAll("Match manually started by an admin.");
+		LiveCountDown();
+	}
+	
+	else
+	{
+		PrintToChatAll("Match manually ended by an admin.");
+		ToggleLive();
+	}
 	
 	return Plugin_Handled;
 }
