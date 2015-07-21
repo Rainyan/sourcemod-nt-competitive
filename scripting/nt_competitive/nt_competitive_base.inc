@@ -18,7 +18,7 @@ new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 //new String:g_soundLive[] = "buttons/button17.wav";
 new String:g_kvPath[PLATFORM_MAX_PATH];
 
-new g_assignedTeamWhenLive[MAXPLAYERS+1] = -1;
+new g_assignedTeamWhenLive[MAXPLAYERS+1];
 new g_jinraiScore;
 new g_liveTimer = 5;
 new g_loggingEnabled;
@@ -32,6 +32,8 @@ new g_usedTimeouts[sizeof(g_teamName)];
 new g_killVerbosity;
 new g_playersAlive[sizeof(g_teamName)];
 new g_timeSinceUnpausedForRejoin;
+new g_limitLiveTeams;
+new g_limitTeams;
 
 new Float:g_fRoundTime;
 new Float:g_ftimeAllowedForRejoinerDuringUnpause;
@@ -49,10 +51,6 @@ new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, n
 new bool:g_shouldPause;
 new bool:g_shouldClientsRecord;
 new bool:g_isUnpausedForClientRejoin;
-
-#if DEBUG
-	new bool:g_debug_ignoreLiveTeams;
-#endif
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -72,19 +70,17 @@ new Handle:g_hNSFName;
 new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
 new Handle:g_hTimeAllowedForUnpauseRejoiner;
+new Handle:g_hLimitLiveTeams;
+new Handle:g_hLimitTeams;
 
 public Action:CheckIfEveryoneIsReady()
-{
-	new players;
+{	
+	new players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
 	
-	#if DEBUG // Count bots for debug purposes
-		players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
-		
-		if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as bot (player) in this debug case
-			players--;
-	#else
-		players = Client_GetCount(true, false); // countInGameOnly, countFakeClients
-	#endif
+	if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as a player
+	{
+		players--;
+	}
 	
 	new playersReady = GetPlayersReady();
 	
@@ -99,7 +95,7 @@ public Action:CheckIfEveryoneIsReady()
 	if (players < playersReady)
 		LogError("More players ready than there are players total.");
 	
-	if (players < GetConVarInt(g_hMatchSize)) // Everyone connected is ready, but there are less people than expected
+	if ( players < GetConVarInt(g_hMatchSize) && g_limitTeams ) // Everyone connected is ready, but there are less people than expected
 	{
 		g_isExpectingOverride = true;
 		PrintToChatAll("%s Waiting for %i more players to join.", g_tag, (GetConVarInt(g_hMatchSize) - players));
@@ -108,7 +104,7 @@ public Action:CheckIfEveryoneIsReady()
 		return Plugin_Stop;
 	}
 	
-	else if (players > GetConVarInt(g_hMatchSize)) // Everyone connected is ready, but there are more people than expected
+	else if ( players > GetConVarInt(g_hMatchSize) && g_limitTeams ) // Everyone connected is ready, but there are more people than expected
 	{
 		g_isExpectingOverride = true;
 		PrintToChatAll("%s There are %i more players than expected.", g_tag, (players - GetConVarInt(g_hMatchSize)));
@@ -122,17 +118,49 @@ public Action:CheckIfEveryoneIsReady()
 	return Plugin_Handled;
 }
 
+public Action:Command_ReadyList(client, args)
+{
+	if (!Client_IsValid(client))
+		return Plugin_Stop;
+	
+	PrintToChat(client, "%s List of readied players is printed in your console.", g_tag);
+	
+	PrintToConsole(client, "\n%s Players and their READY state:", g_tag);
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i))
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team != TEAM_JINRAI && team != TEAM_NSF)
+			continue;
+		
+		new String:clientName[MAX_NAME_LENGTH];
+		GetClientName(i, clientName, sizeof(clientName));
+		
+		if (g_isReady[i])
+			PrintToConsole(client, "[READY]\t%s", clientName);
+		
+		else
+			PrintToConsole(client, "[NOT READY]\t%s", clientName);
+	}
+	PrintToConsole(client, "\n");
+	
+	return Plugin_Handled;
+}
+
 public Action:Command_IgnoreTeams(client, args)
 {
-	if (!g_debug_ignoreLiveTeams)
+	if (g_limitLiveTeams)
 	{
-		g_debug_ignoreLiveTeams = true;
+		SetConVarInt(g_hLimitLiveTeams, 0);
 		ReplyToCommand(client, "Now ignoring team change protection.");
 	}
 	
 	else
 	{
-		g_debug_ignoreLiveTeams = false;
+		SetConVarInt(g_hLimitLiveTeams, 1);
 		ReplyToCommand(client, "Enforcing teams.");
 	}
 	
@@ -234,7 +262,7 @@ public Action:ToggleLive()
 		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (!Client_IsValid(i) || IsFakeClient(i) ||IsClientInGame(i))
+			if (!Client_IsValid(i) || IsFakeClient(i) ||!IsClientInGame(i))
 				continue;
 			
 			if (!IsClientAuthorized(i))
@@ -242,6 +270,7 @@ public Action:ToggleLive()
 				new String:clientName[MAX_NAME_LENGTH];
 				GetClientName(i, clientName, sizeof(clientName));
 				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
+				PrintToServer("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
 				
 				g_isLive = false;
 				
@@ -250,10 +279,14 @@ public Action:ToggleLive()
 			
 			new String:steamID[MAX_STEAMID_LENGTH];
 			GetClientAuthId(i, AuthId_Steam2, steamID, sizeof(steamID));
+			PrintToServer("SteamID of %i: %s", i, steamID);
 			new team = GetClientTeam(i);
 			
 			if (strlen(steamID) == 0)
+			{
 				LogError("Client %i returned empty SteamID, probably not authorized whilst attempting to save SteamID into g_livePlayers!", i);
+				continue;
+			}
 			
 			else
 			{
@@ -337,17 +370,9 @@ public Action:ToggleLive()
 		
 		ToggleRecording();
 		
-		g_roundCount = 0;
-		g_usedTimeouts[TEAM_JINRAI] = 0;
-		g_usedTimeouts[TEAM_NSF] = 0;
-		
 		SetConVarBool(g_hForceCamera, false);
 		
-		for (new i = 1; i <= MaxClients; i++)
-		{
-			strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), ""); // Empty live players array
-			g_assignedTeamWhenLive[i] = TEAM_UNASSIGNED;
-		}
+		ResetGlobalVariables();
 		
 		PrintToChatAll("%s Match has ended.", g_tag);
 	}
@@ -359,17 +384,15 @@ public Action:ToggleLive()
 
 public Action:NeoRestartThis()
 {
-	/*	Do quadruple restart to avoid the no primary weapon on spawn bug.
-		We do four restarts so the sides won't change from when the match went live. */
-	CreateTimer(0.25, Timer_NeoRestartThis);
-	CreateTimer(0.50, Timer_NeoRestartThis);
-	CreateTimer(0.75, Timer_NeoRestartThis);
-	CreateTimer(1.00, Timer_NeoRestartThis);
-}
-
-public Action:Timer_NeoRestartThis(Handle:timer)
-{
 	SetConVarBool(g_hNeoRestartThis, true);
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!Client_IsValid(i))
+			continue;
+		
+		SetPlayerRank(i, 0);
+	}
 }
 
 public Action:UnPauseForClientRejoin(client)
@@ -983,52 +1006,59 @@ public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this 
 public Action:ResetGlobalVariables() // Make sure all global variables are reset properly
 {
 	new i; // for looping arrays
-	new String:errorMsgExplanatoryEnding[] = "These values have now been reset."; // Repeating phrase for error messages below
+	//new String:errorMsgExplanatoryEnding[] = "These values have now been reset."; // Repeating phrase for error messages below
 	
 	// Reset global integers
 	new correctInt = 0; // Value to check variables against
 	
 	if (g_jinraiScore != correctInt || g_nsfScore != correctInt || g_roundCount != correctInt || g_timeSinceUnpausedForRejoin != correctInt)
 	{	
+		/*
 		LogError("Global integers not properly reset. \
 		g_jinraiScore = %i. g_nsfScore = %i. g_roundCount = %i. g_timeSinceUnpausedForRejoin = %i. \
 		These should all be %i. %s", g_jinraiScore, g_nsfScore, g_roundCount, g_timeSinceUnpausedForRejoin, correctInt, errorMsgExplanatoryEnding);
-		
+		*/
 		g_jinraiScore					= correctInt;
 		g_nsfScore						= correctInt;
 		g_roundCount					= correctInt;
 		g_timeSinceUnpausedForRejoin	= correctInt;
 	}
 	
-	for (i = 0; i <= sizeof(g_usedTimeouts); i++)
+	for (i = 0; i < sizeof(g_usedTimeouts); i++)
 	{
 		if (g_usedTimeouts[i] != correctInt)
 		{
+			/*
 			LogError("Global integers not properly reset. \
 			g_usedTimeouts[%i] = %i. This should be %i. %s", i, g_usedTimeouts[i], correctInt, errorMsgExplanatoryEnding);
+			*/
 			g_usedTimeouts[i] = correctInt;
 		}
 	}
 	
 	correctInt = -1;
 	
-	for (i = 0; i <= sizeof(g_assignedTeamWhenLive); i++)
+	for (i = 0; i < sizeof(g_assignedTeamWhenLive); i++)
 	{	
 		if (g_assignedTeamWhenLive[i] != correctInt)
 		{
+			/*
 			LogError("Global integers not properly reset. \
 			g_assignedTeamWhenLive[%i] = %i. This should be %i. %s", i, g_assignedTeamWhenLive[i], correctInt, errorMsgExplanatoryEnding);
+			*/
 			g_assignedTeamWhenLive[i] = correctInt;
 		}
 	}
 	
 	// Reset global strings
-	for (i = 0; i <= sizeof(g_livePlayers); i++)
+	for (i = 0; i < sizeof(g_livePlayers); i++)
 	{
 		if (strlen(g_livePlayers[i]) > 1)
 		{
+			/*
 			LogError("Global strings not properly set. \
 			g_livePlayers[%i] = %s. This string should be empty. %s", i, g_livePlayers[i], errorMsgExplanatoryEnding);
+			*/
 			strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), "");
 		}
 	}
@@ -1038,10 +1068,11 @@ public Action:ResetGlobalVariables() // Make sure all global variables are reset
 	
 	if (g_isExpectingOverride != correctBool || g_isExpectingUnPauseTimer != correctBool || g_isLive != correctBool || g_isPaused != correctBool || g_isSourceTVRecording != correctBool || g_shouldPause != correctBool || g_shouldClientsRecord != correctBool || g_isUnpausedForClientRejoin != correctBool)
 	{
+		/*
 		LogError("Global booleans not properly reset. \
 		g_isExpectingOverride = %i. g_isExpectingUnPauseTimer = %i. g_isLive = %i. g_isPaused = %i. g_isSourceTVRecording = %i. g_shouldPause = %i. g_shouldClientsRecord = %i. g_isUnpausedForClientRejoin = %i. \
 		These should all be %i. %s", g_isExpectingOverride, g_isExpectingUnPauseTimer, g_isLive, g_isPaused, g_isSourceTVRecording, g_shouldPause, g_shouldClientsRecord, g_isUnpausedForClientRejoin, correctBool, errorMsgExplanatoryEnding);
-		
+		*/
 		g_isExpectingOverride		= correctBool;
 		g_isExpectingUnPauseTimer	= correctBool;
 		g_isLive					= correctBool;
@@ -1056,23 +1087,25 @@ public Action:ResetGlobalVariables() // Make sure all global variables are reset
 	{
 		if (g_isReady[i] != correctBool || g_isSpawned[i] != correctBool)
 		{
+			/*
 			LogError("Global booleans not properly reset. \
 			g_isReady[%i] = %i. g_isSpawned[%i] = %i. \
 			These should all be %i. %s", i, g_isReady[i], i, g_isSpawned[i], correctBool, errorMsgExplanatoryEnding);
-			
+			*/
 			g_isReady[i]	= correctBool;
 			g_isSpawned[i]	= correctBool;
 		}
 	}
 	
-	for (i = 0; i <= sizeof(g_teamName); i++)
+	for (i = 0; i < sizeof(g_teamName); i++)
 	{
 		if (g_isTeamReadyForUnPause[i] != correctBool || g_isWantingOverride[i] != correctBool)
 		{
+			/*
 			LogError("Global booleans not properly reset. \
 			g_isTeamReadyForUnPause[%i] = %i. g_isWantingOverride[%i] = %i. \
 			These should all be %i. %s", i, g_isTeamReadyForUnPause[i], i, g_isWantingOverride[i], correctBool, errorMsgExplanatoryEnding);
-			
+			*/
 			g_isTeamReadyForUnPause[i]	= correctBool;
 			g_isWantingOverride[i]		= correctBool;
 		}

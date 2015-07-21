@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.4"
+#define PLUGIN_VERSION "0.3.5"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -46,6 +46,8 @@ public OnPluginStart()
 	
 	RegConsoleCmd("sm_pause",		Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("sm_timeout",		Command_Pause,				"Request a pause or timeout in a competitive match.");
+	
+	RegConsoleCmd("sm_readylist",	Command_ReadyList,			"List everyone who has or hasn't readied up.");
 	
 	RegConsoleCmd("jointeam",		Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 	
@@ -78,6 +80,8 @@ public OnPluginStart()
 	g_hKillVersobity					= CreateConVar("sm_competitive_killverbosity",						"1",					"Display the players still alive in console after each kill.", _, true, 0.0, true, 1.0);
 	g_hClientRecording					= CreateConVar("sm_competitive_record_clients",						"0",					"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
 	g_hTimeAllowedForUnpauseRejoiner	= CreateConVar("sm_competitive_max_unpause_during_pause_rejoin",	"5",					"How many seconds are we allowed to unpause during a team's own pause, if one of their players has dropped from the server and needs to reconnect. If connect time exceeds this, the player will have to wait for actual unpause to rejoin the game. If zero, nobody is allowed to rejoin until the pause has completely ended.", _, true, 0.0);
+	g_hLimitLiveTeams					= CreateConVar("sm_limit_live_teams",								"1",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
+	g_hLimitTeams						= CreateConVar("sm_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -94,6 +98,8 @@ public OnPluginStart()
 	HookConVarChange(g_hKillVersobity,					Event_KillVerbosity);
 	HookConVarChange(g_hClientRecording,				Event_ClientRecording);
 	HookConVarChange(g_hTimeAllowedForUnpauseRejoiner,	Event_TimeAllowedForUnpauseRejoiner);
+	HookConVarChange(g_hLimitLiveTeams,					Event_LimitLiveTeams);
+	HookConVarChange(g_hLimitTeams,						Event_LimitTeams);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
@@ -118,7 +124,7 @@ public OnPluginStart()
 	if (!DirExists(g_kvPath))
 		InitDirectory(g_kvPath);
 	
-	AutoExecConfig();
+	AutoExecConfig(true);
 }
 
 public OnMapStart()
@@ -134,6 +140,8 @@ public OnConfigsExecuted()
 	g_shouldClientsRecord					= GetConVarBool(g_hClientRecording);
 	g_killVerbosity							= GetConVarInt(g_hKillVersobity);
 	g_ftimeAllowedForRejoinerDuringUnpause	= GetConVarFloat(g_hTimeAllowedForUnpauseRejoiner);
+	g_limitLiveTeams						= GetConVarInt(g_hLimitLiveTeams);
+	g_limitTeams							= GetConVarInt(g_hLimitTeams);
 }
 
 public OnClientAuthorized(client, const String:authID[])
@@ -186,6 +194,11 @@ public OnClientAuthorized(client, const String:authID[])
 	return;
 }
 
+public OnClientDisconnect(client)
+{
+	g_isReady[client] = false;
+}
+
 public Action:Command_ResetPauseBool(client, args)
 {
 	g_isPaused = false;
@@ -196,7 +209,17 @@ public Action:Command_ResetPauseBool(client, args)
 
 public Action:Command_ForceLive(client, args)
 {
-	LiveCountDown();
+	if (!g_isLive)
+	{
+		PrintToChatAll("Match manually started by an admin.");
+		LiveCountDown();
+	}
+	
+	else
+	{
+		PrintToChatAll("Match manually ended by an admin.");
+		ToggleLive();
+	}
 	
 	return Plugin_Handled;
 }
