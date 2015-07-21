@@ -36,7 +36,6 @@ new g_limitLiveTeams;
 new g_limitTeams;
 
 new Float:g_fRoundTime;
-new Float:g_ftimeAllowedForRejoinerDuringUnpause;
 
 new bool:g_isAlltalkByDefault;
 new bool:g_isExpectingOverride;
@@ -50,7 +49,6 @@ new bool:g_isTeamReadyForUnPause[sizeof(g_teamName)]; // Unassigned, spec, jinra
 new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 new bool:g_shouldClientsRecord;
-new bool:g_isUnpausedForClientRejoin;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -69,7 +67,6 @@ new Handle:g_hJinraiName;
 new Handle:g_hNSFName;
 new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
-new Handle:g_hTimeAllowedForUnpauseRejoiner;
 new Handle:g_hLimitLiveTeams;
 new Handle:g_hLimitTeams;
 
@@ -395,55 +392,6 @@ public Action:NeoRestartThis()
 	}
 }
 
-public Action:UnPauseForClientRejoin(client)
-{
-	if (!g_isPaused)
-	{
-		g_isUnpausedForClientRejoin = false;
-		return Plugin_Stop;
-	}
-	
-	if (!Client_IsValid(client, false)) // Client is waiting to join server, so don't check if actually connected yet
-		return Plugin_Stop;
-	
-	g_isUnpausedForClientRejoin = true;
-		
-	TogglePauseLoop();
-	
-	CreateTimer(1.0, Timer_CheckIfRejoiningClientEnteredServer, client, TIMER_REPEAT); // Timer increment needs to be 1 second to match sm_competitive_max_unpause_during_pause_rejoin rule. Alternatively g_timeSinceUnpausedForRejoin needs tweaking.
-	
-	return Plugin_Handled;
-}
-
-public Action:Timer_CheckIfRejoiningClientEnteredServer(Handle:timer, any:client)
-{
-	// Player has finished joining, we can re-pause and kill this timer
-	if (Client_IsValid(client))
-	{
-		g_timeSinceUnpausedForRejoin = 0;
-		g_isUnpausedForClientRejoin = false;
-		
-		TogglePauseLoop();
-		
-		return Plugin_Stop;
-	}
-	
-	// Player didn't connect in time, we will re-pause regardless and kill this timer
-	else if (g_timeSinceUnpausedForRejoin >= g_ftimeAllowedForRejoinerDuringUnpause)
-	{
-		g_timeSinceUnpausedForRejoin = 0;
-		g_isUnpausedForClientRejoin = false;
-		
-		TogglePauseLoop();
-		
-		return Plugin_Stop;
-	}
-	
-	g_timeSinceUnpausedForRejoin++;
-	
-	return Plugin_Continue; // Player hasn't joined yet, keep looping this timer
-}
-
 public Action:TogglePause()
 {
 	if (!g_isPaused)
@@ -499,6 +447,12 @@ public Action:TogglePause()
 
 public Action:Command_UnpauseOther(client, args) // Pretend the other team made an unpause request. Debug command.
 {
+	if (client == 0)
+	{
+		ReplyToCommand(client, "%s This command can't be executed by the server.", g_tag);
+		return Plugin_Stop;
+	}
+	
 	new bool:foundSomeoneInOtherTeam;
 	new team = GetClientTeam(client);
 	new otherTeam = GetOtherTeam(team);
@@ -1066,7 +1020,7 @@ public Action:ResetGlobalVariables() // Make sure all global variables are reset
 	// Reset global bools
 	new bool:correctBool = false; // Value to check variables against
 	
-	if (g_isExpectingOverride != correctBool || g_isExpectingUnPauseTimer != correctBool || g_isLive != correctBool || g_isPaused != correctBool || g_isSourceTVRecording != correctBool || g_shouldPause != correctBool || g_shouldClientsRecord != correctBool || g_isUnpausedForClientRejoin != correctBool)
+	if (g_isExpectingOverride != correctBool || g_isExpectingUnPauseTimer != correctBool || g_isLive != correctBool || g_isPaused != correctBool || g_isSourceTVRecording != correctBool || g_shouldPause != correctBool || g_shouldClientsRecord != correctBool)
 	{
 		/*
 		LogError("Global booleans not properly reset. \
@@ -1080,7 +1034,6 @@ public Action:ResetGlobalVariables() // Make sure all global variables are reset
 		g_isSourceTVRecording		= correctBool;
 		g_shouldPause				= correctBool;
 		g_shouldClientsRecord		= correctBool;
-		g_isUnpausedForClientRejoin	= correctBool;
 	}
 	
 	for (i = 0; i <= MaxClients; i++)

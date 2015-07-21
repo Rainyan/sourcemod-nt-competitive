@@ -30,7 +30,9 @@ public Plugin:myinfo = {
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
-	CreateNative("Competitive_IsLive", Competitive_IsLive);
+	CreateNative("Competitive_IsLive",			Competitive_IsLive);
+	CreateNative("Competitive_IsPaused",		Competitive_IsPaused);
+	CreateNative("Competitive_GetTeamScore",	Competitive_GetTeamScore);
 	return APLRes_Success;
 }
 
@@ -45,6 +47,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_unstart",		Command_UnOverrideStart,	"Cancel sm_start.");
 	
 	RegConsoleCmd("sm_pause",		Command_Pause,				"Request a pause or timeout in a competitive match.");
+	RegConsoleCmd("sm_unpause",		Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("sm_timeout",		Command_Pause,				"Request a pause or timeout in a competitive match.");
 	
 	RegConsoleCmd("sm_readylist",	Command_ReadyList,			"List everyone who has or hasn't readied up.");
@@ -79,7 +82,6 @@ public OnPluginStart()
 	g_hLogMode							= CreateConVar("sm_competitive_log_mode",							"1",					"Competitive logging mode. 1 = enabled, 0 = disabled.", _, true, 0.0, true, 1.0);
 	g_hKillVersobity					= CreateConVar("sm_competitive_killverbosity",						"1",					"Display the players still alive in console after each kill.", _, true, 0.0, true, 1.0);
 	g_hClientRecording					= CreateConVar("sm_competitive_record_clients",						"0",					"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
-	g_hTimeAllowedForUnpauseRejoiner	= CreateConVar("sm_competitive_max_unpause_during_pause_rejoin",	"5",					"How many seconds are we allowed to unpause during a team's own pause, if one of their players has dropped from the server and needs to reconnect. If connect time exceeds this, the player will have to wait for actual unpause to rejoin the game. If zero, nobody is allowed to rejoin until the pause has completely ended.", _, true, 0.0);
 	g_hLimitLiveTeams					= CreateConVar("sm_limit_live_teams",								"1",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
 	g_hLimitTeams						= CreateConVar("sm_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
 	
@@ -97,7 +99,6 @@ public OnPluginStart()
 	HookConVarChange(g_hLogMode,						Event_LogMode);
 	HookConVarChange(g_hKillVersobity,					Event_KillVerbosity);
 	HookConVarChange(g_hClientRecording,				Event_ClientRecording);
-	HookConVarChange(g_hTimeAllowedForUnpauseRejoiner,	Event_TimeAllowedForUnpauseRejoiner);
 	HookConVarChange(g_hLimitLiveTeams,					Event_LimitLiveTeams);
 	HookConVarChange(g_hLimitTeams,						Event_LimitTeams);
 	
@@ -139,7 +140,6 @@ public OnConfigsExecuted()
 	g_isAlltalkByDefault					= GetConVarBool(g_hAlltalk);
 	g_shouldClientsRecord					= GetConVarBool(g_hClientRecording);
 	g_killVerbosity							= GetConVarInt(g_hKillVersobity);
-	g_ftimeAllowedForRejoinerDuringUnpause	= GetConVarFloat(g_hTimeAllowedForUnpauseRejoiner);
 	g_limitLiveTeams						= GetConVarInt(g_hLimitLiveTeams);
 	g_limitTeams							= GetConVarInt(g_hLimitTeams);
 }
@@ -182,16 +182,26 @@ public OnClientAuthorized(client, const String:authID[])
 		#if DEBUG
 			PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
 		#endif
-		
-		// ** Check for competitor rejoining during a pause below **
-		if (g_isPaused && isPlayerCompeting && g_assignedTeamWhenLive[client] == g_pausingTeam)
-		{
-			if (!g_isUnpausedForClientRejoin)
-				UnPauseForClientRejoin(client);
-		}
 	}
 	
 	return;
+}
+
+public bool OnClientConnect(client)
+{
+	new String:clientName[MAX_NAME_LENGTH];
+	GetClientName(client, clientName, sizeof(clientName));
+	
+	if (g_isPaused)
+	{
+		PrintToServer("pause join detected!");
+		
+		PrintToChatAll("%s Player \"%s\" is attempting to join.", g_tag, clientName);
+		PrintToChatAll("The server needs to be unpaused for joining to finish.");
+		PrintToChatAll("If you wish to unpause now, type !pause in chat.");
+	}
+	
+	return true;
 }
 
 public OnClientDisconnect(client)
@@ -565,4 +575,28 @@ public Competitive_IsLive(Handle:plugin, numParams)
 		return true;
 	
 	return false;
+}
+
+public Competitive_IsPaused(Handle:plugin, numParams)
+{
+	if (g_isPaused)
+		return true;
+	
+	return false;
+}
+
+public Competitive_GetTeamScore(Handle:plugin, numParams)
+{
+	if (numParams != 1)
+		return -1;
+	
+	new team = GetNativeCell(1);
+	
+	if (team == TEAM_JINRAI)
+		return g_jinraiScore;
+	
+	else if (team == TEAM_NSF)
+		return g_nsfScore;
+	
+	return -1;
 }
