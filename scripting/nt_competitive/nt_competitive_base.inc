@@ -74,17 +74,13 @@ new Handle:g_hLimitLiveTeams;
 new Handle:g_hLimitTeams;
 
 public Action:CheckIfEveryoneIsReady()
-{
-	new players;
+{	
+	new players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
 	
-	#if DEBUG // Count bots for debug purposes
-		players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
-		
-		if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as bot (player) in this debug case
-			players--;
-	#else
-		players = Client_GetCount(true, false); // countInGameOnly, countFakeClients
-	#endif
+	if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as bot (player) in this debug case
+	{
+		players--;
+	}
 	
 	new playersReady = GetPlayersReady();
 	
