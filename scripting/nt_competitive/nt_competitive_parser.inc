@@ -219,8 +219,11 @@ public Event_CommsBehaviour(Handle:cvar, const String:oldVal[], const String:new
 
 public Event_LogMode(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	// We won't toggle logging whilst live
-	PrintToChatAll("Logging mode changed. Changes will become active once the game isn't live anymore.");
+	if (g_isLive)
+	{
+		// We won't toggle logging whilst live
+		PrintToChatAll("Logging mode changed. Changes will become active once the game isn't live anymore.");
+	}
 }
 
 public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
