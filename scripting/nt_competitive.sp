@@ -194,6 +194,11 @@ public OnClientAuthorized(client, const String:authID[])
 	return;
 }
 
+public OnClientDisconnect(client)
+{
+	g_isReady[client] = false;
+}
+
 public Action:Command_ResetPauseBool(client, args)
 {
 	g_isPaused = false;
