@@ -77,7 +77,7 @@ public Action:CheckIfEveryoneIsReady()
 {	
 	new players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
 	
-	if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as bot (player) in this debug case
+	if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as a player
 	{
 		players--;
 	}
