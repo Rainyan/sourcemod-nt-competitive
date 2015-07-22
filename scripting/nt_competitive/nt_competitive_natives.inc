@@ -25,3 +25,10 @@ native bool:Competitive_IsPaused();
 	* @return	int		Team score. Returns -1 if error occurs.
 ****/
 native Competitive_GetTeamScore(team);
+
+/****
+	* Returns competitive match's winner.
+	*
+	* @return	int		Winner team index. Returns 0 if there is no winner.
+****/
+native Competitive_GetWinner();
