@@ -81,6 +81,8 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		
 		PrintToChatAll(msgBuffer);
 		LogCompetitive(msgBuffer);
+		
+		g_winner = TEAM_JINRAI;
 	}
 	
 	// NSF wins, Jinrai can't catch up anymore
@@ -96,6 +98,8 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		
 		PrintToChatAll(msgBuffer);
 		LogCompetitive(msgBuffer);
+		
+		g_winner = TEAM_NSF;
 	}
 	
 	// Tie, we ran out of rounds to play
@@ -204,11 +208,6 @@ public Event_LimitLiveTeams(Handle:cvar, const String:oldVal[], const String:new
 public Event_KillVerbosity(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	g_killVerbosity = StringToInt(newVal);
-}
-
-public Event_TimeAllowedForUnpauseRejoiner(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	g_ftimeAllowedForRejoinerDuringUnpause = StringToFloat(newVal);
 }
 
 public Event_CommsBehaviour(Handle:cvar, const String:oldVal[], const String:newVal[])
@@ -367,12 +366,38 @@ public Event_SourceTVPath(Handle:cvar, const String:oldVal[], const String:newVa
 		InitDirectory(newVal);
 }
 
+public Event_CompMode(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	if (StringToInt(newVal) == 1)
+		InitSQL();
+}
+
 public Action:Hook_Fade(UserMsg:msg_id, Handle:bf, const players[], playersNum, bool:reliable, bool:init)
 {
 	if (GetConVarInt(g_hForceCamera))
 	{
 		if (BfReadShort(bf) == 640 && !IsPlayerAlive(players[0]))
 			return Plugin_Stop;
+	}
+	
+	return Plugin_Continue;
+}
+
+public Action:Timer_CheckMMStatus(Handle:timer)
+{
+	if (!GetConVarBool(g_hCompMode)) // We're not in "matchmaking" mode anymore, stop this timer
+	{
+		if (g_hTimer_CheckMMStatus != INVALID_HANDLE)
+		{
+			KillTimer(g_hTimer_CheckMMStatus);
+			return Plugin_Stop;
+		}
+	}
+	
+	if ( GetPlayersQueued() >= GetConVarInt(g_hMatchSize) ) // There's enough people queued up to start a match
+	{
+		if (!g_isServerOfferingMatch)
+			OfferMatch();
 	}
 	
 	return Plugin_Continue;
