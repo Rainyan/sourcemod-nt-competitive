@@ -4,6 +4,11 @@
 #define REASON_TIMEOUT 1
 
 #define MAX_STEAMID_LENGTH 44
+#define MAX_SQL_LENGTH 2048
+
+#define SQL_CONFIG "nt_competitive"
+#define SQL_TABLE_QUEUED "queued"
+#define SQL_TABLE_OFFER_MATCH "match_offers"
 
 new String:g_tag[] = "[COMP]";
 new String:g_teamName[][64] = {
@@ -34,6 +39,7 @@ new g_playersAlive[sizeof(g_teamName)];
 new g_timeSinceUnpausedForRejoin;
 new g_limitLiveTeams;
 new g_limitTeams;
+new g_winner;
 
 new Float:g_fRoundTime;
 
@@ -49,6 +55,8 @@ new bool:g_isTeamReadyForUnPause[sizeof(g_teamName)]; // Unassigned, spec, jinra
 new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 new bool:g_shouldClientsRecord;
+new bool:g_isServerOfferingMatch;
+new bool:g_isSQLInitialized;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -69,6 +77,10 @@ new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
 new Handle:g_hLimitLiveTeams;
 new Handle:g_hLimitTeams;
+new Handle:g_hCompMode;
+
+new Handle:g_hTimer_CheckMMStatus = INVALID_HANDLE;
+new Handle:db = INVALID_HANDLE;
 
 public Action:CheckIfEveryoneIsReady()
 {	
@@ -250,6 +262,7 @@ public Action:ToggleLive()
 	if (!g_isLive)
 	{
 		g_isLive = true; // Flip live bool
+		g_winner = 0; // Reset winner (overlay module queries this value)
 		
 		#if DEBUG
 			PrintToServer("Creating SteamID array of players...");
@@ -1064,3 +1077,115 @@ public Action:ResetGlobalVariables() // Make sure all global variables are reset
 		}
 	}
 }
+
+GetPlayersQueued()
+{	
+	new String:sql[MAX_SQL_LENGTH];
+	
+	Format(sql, sizeof(sql), "SELECT players_queued FROM %s", SQL_TABLE_QUEUED);
+	
+	new Handle:query = SQL_Query(db, sql);
+	
+	if (query == INVALID_HANDLE)
+	{
+		LogError("SQL error: query failed");
+		return 0;
+	}
+	
+	new playersQueued;
+	
+	while (SQL_FetchRow(query))
+		playersQueued = SQL_FetchInt(query, 0);
+	
+	CloseHandle(query);
+	
+	return playersQueued;
+}
+
+InitSQL()
+{
+	new String:sqlError[256];
+	db = SQL_Connect(SQL_CONFIG, true, sqlError, sizeof(sqlError));
+	
+	if (db == INVALID_HANDLE)
+	{
+		LogError("SQL error: %s", sqlError);
+		return;
+	}
+	
+	new String:sql[MAX_SQL_LENGTH];
+	Format(sql, sizeof(sql), "CREATE TABLE IF NOT EXISTS %s( \
+		id INT(5) NOT NULL AUTO_INCREMENT, \
+		players_queued INT(2), \
+		Timestamp TIMESTAMP, \
+		PRIMARY KEY (id)) CHARACTER SET=utf8;", SQL_TABLE_QUEUED);
+	
+	if (!SQL_FastQuery(db, sql))
+	{
+		LogError("SQL error: query error");
+		return;
+	}
+	
+	Format(sql, sizeof(sql), "CREATE TABLE IF NOT EXISTS %s( \
+		id INT(5) NOT NULL AUTO_INCREMENT, \
+		server_ip VARCHAR(16), \
+		server_port INT(5), \
+		server_password VARCHAR(32), \
+		server_name VARCHAR(128), \
+		Timestamp TIMESTAMP, \
+		PRIMARY KEY (id)) CHARACTER SET=utf8;", SQL_TABLE_OFFER_MATCH);
+	
+	if (!SQL_FastQuery(db, sql))
+	{
+		LogError("SQL error: query error");
+		return;
+	}
+	
+	g_isSQLInitialized = true;
+	
+	return;
+}
+
+public Action:OfferMatch()
+{
+	if (!g_isSQLInitialized || g_isServerOfferingMatch)
+		return Plugin_Stop;
+	
+	new String:serverIP[16];
+	Server_GetIPString(serverIP, sizeof(serverIP));
+	new serverPort = Server_GetPort();
+	
+	new String:sql[MAX_SQL_LENGTH];
+	Format(sql, sizeof(sql), "SELECT * FROM %s WHERE server_ip=? AND server_port=?, ", SQL_TABLE_OFFER_MATCH);
+	
+	new String:sqlError[256];
+	new Handle:stmt = SQL_PrepareQuery(db, sql, sqlError, sizeof(sqlError));
+	
+	if (stmt == INVALID_HANDLE)
+	{
+		LogError("SQL error: %s", sqlError);
+		return Plugin_Stop;
+	}
+	
+	SQL_BindParamString(stmt, 0, serverIP, false);
+	SQL_BindParamInt(stmt, 1, serverPort);
+	
+	if (!SQL_Execute(stmt))
+	{
+		LogError("SQL error: %s", sqlError);
+	}
+	
+	new entries;
+	
+	while (SQL_FetchRow(stmt))
+	{
+		entries = SQL_FetchInt(stmt, 0);
+	}
+	
+	CloseHandle(stmt);
+	
+	PrintToServer("Found entries: %i", entries);
+	
+	return Plugin_Handled;
+}
+
