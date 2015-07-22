@@ -366,11 +366,13 @@ public Event_SourceTVPath(Handle:cvar, const String:oldVal[], const String:newVa
 		InitDirectory(newVal);
 }
 
-public Event_CompMode(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	if (StringToInt(newVal) == 1)
-		InitSQL();
-}
+#if DEBUG_DISABLE_SQL < 1
+	public Event_CompMode(Handle:cvar, const String:oldVal[], const String:newVal[])
+	{
+		if (StringToInt(newVal) == 1)
+			InitSQL();
+	}
+#endif
 
 public Action:Hook_Fade(UserMsg:msg_id, Handle:bf, const players[], playersNum, bool:reliable, bool:init)
 {
@@ -383,22 +385,24 @@ public Action:Hook_Fade(UserMsg:msg_id, Handle:bf, const players[], playersNum, 
 	return Plugin_Continue;
 }
 
-public Action:Timer_CheckMMStatus(Handle:timer)
-{
-	if (!GetConVarBool(g_hCompMode)) // We're not in "matchmaking" mode anymore, stop this timer
+#if DEBUG_DISABLE_SQL < 1
+	public Action:Timer_CheckMMStatus(Handle:timer)
 	{
-		if (g_hTimer_CheckMMStatus != INVALID_HANDLE)
+		if (!GetConVarBool(g_hCompMode)) // We're not in "matchmaking" mode anymore, stop this timer
 		{
-			KillTimer(g_hTimer_CheckMMStatus);
-			return Plugin_Stop;
+			if (g_hTimer_CheckMMStatus != INVALID_HANDLE)
+			{
+				KillTimer(g_hTimer_CheckMMStatus);
+				return Plugin_Stop;
+			}
 		}
+		
+		if ( GetPlayersQueued() >= GetConVarInt(g_hMatchSize) ) // There's enough people queued up to start a match
+		{
+			if (!g_isServerOfferingMatch)
+				OfferMatch();
+		}
+		
+		return Plugin_Continue;
 	}
-	
-	if ( GetPlayersQueued() >= GetConVarInt(g_hMatchSize) ) // There's enough people queued up to start a match
-	{
-		if (!g_isServerOfferingMatch)
-			OfferMatch();
-	}
-	
-	return Plugin_Continue;
-}
+#endif
