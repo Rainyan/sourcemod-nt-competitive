@@ -10,8 +10,6 @@
 //#define DEBUG 1 // Basic debug
 #define DEBUG 2 // Extended debug
 
-#define DEBUG_DISABLE_SQL 1
-
 #include <sourcemod>
 #include <sdktools>
 #include <smlib>
@@ -20,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.6.1"
+#define PLUGIN_VERSION "0.3.6.2"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -88,10 +86,6 @@ public OnPluginStart()
 	g_hLimitLiveTeams					= CreateConVar("sm_limit_live_teams",								"1",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
 	g_hLimitTeams						= CreateConVar("sm_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
 	
-	#if DEBUG_DISABLE_SQL < 1
-		g_hCompMode							= CreateConVar("sm_competitive_mode",								"0",					"Determines the type of competitive mode to use. 0: competitive or PUG match, manual joining only. 1: \"matchmaking\" mode, allow people to queue up and be notified once there's enough players around. Default: 0", _, true, 0.0, true, 1.0);
-	#endif
-	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
@@ -108,10 +102,6 @@ public OnPluginStart()
 	HookConVarChange(g_hClientRecording,				Event_ClientRecording);
 	HookConVarChange(g_hLimitLiveTeams,					Event_LimitLiveTeams);
 	HookConVarChange(g_hLimitTeams,						Event_LimitTeams);
-	
-	#if DEBUG_DISABLE_SQL < 1
-		HookConVarChange(g_hCompMode,						Event_CompMode);
-	#endif
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
@@ -153,16 +143,6 @@ public OnConfigsExecuted()
 	g_killVerbosity							= GetConVarInt(g_hKillVersobity);
 	g_limitLiveTeams						= GetConVarInt(g_hLimitLiveTeams);
 	g_limitTeams							= GetConVarInt(g_hLimitTeams);
-	
-	#if DEBUG_DISABLE_SQL < 1
-		if (GetConVarBool(g_hCompMode))
-		{
-			InitSQL();
-			
-			if (g_hTimer_CheckMMStatus == INVALID_HANDLE)
-				g_hTimer_CheckMMStatus = CreateTimer(60.0, Timer_CheckMMStatus, _, TIMER_REPEAT);
-		}
-	#endif
 }
 
 public OnClientAuthorized(client, const String:authID[])
