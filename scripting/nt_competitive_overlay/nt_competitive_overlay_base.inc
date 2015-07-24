@@ -12,6 +12,9 @@
 #define MAX_SQL_LENGTH 2048
 #define MENU_TIME 30
 
+#define SQL_CONFIG "nt_competitive_overlay"
+#define SQL_TABLE_NAME "competitive_overlay"
+
 new Handle:hTimer_UpdateData = INVALID_HANDLE;
 new Handle:db = INVALID_HANDLE;
 
@@ -25,15 +28,14 @@ new bool:g_ShowOverlayMsg;
 new bool:g_IsSettingCasterMsg[MAXPLAYERS+1];
 
 new Float:g_fGameTime_LastRound;
-
-new String:tableName[] = "competitive_overlay";
+ 
 new String:casterMessage[MAX_DATA_LENGTH];
 new String:g_winner[12];
 
 SQL_Init()
 {
 	new String:error[MAX_DATA_LENGTH];
-	db = SQL_Connect("nt_competitive_overlay", true, error, sizeof(error));
+	db = SQL_Connect(SQL_CONFIG, true, error, sizeof(error));
 	
 	if (db == INVALID_HANDLE)
 		LogError("SQL connection failed: %s", error);
@@ -65,7 +67,7 @@ bool:CheckTableExistsInSQL()
 		Gametime_FreezeLength FLOAT(6), \
 		Winner VARCHAR(12), \
 		Timestamp TIMESTAMP, \
-		PRIMARY KEY (id)) CHARACTER SET=utf8;", tableName);
+		PRIMARY KEY (id)) CHARACTER SET=utf8;", SQL_TABLE_NAME);
 	
 	if (!SQL_FastQuery(db, sql))
 	{
@@ -73,7 +75,7 @@ bool:CheckTableExistsInSQL()
 		SetFailState("Failed SQL query: %s", sqlError);
 	}
 	
-	Format(sql, sizeof(sql), "SELECT COUNT(*) FROM %s", tableName);
+	Format(sql, sizeof(sql), "SELECT COUNT(*) FROM %s", SQL_TABLE_NAME);
 	
 	new Handle:query = SQL_Query(db, sql);
 	if (query == INVALID_HANDLE)
@@ -113,7 +115,7 @@ bool:CheckTableExistsInSQL()
 		Format(sql, sizeof(sql), "INSERT INTO %s \
 									(Score_Jinrai, Score_NSF, Teamname_Jinrai, Teamname_NSF, Caster_Status, Pause_Status, Live_Status, Map_Name, Caster_ShowStatus, Gametime_LastSync, Gametime_LastRound, Gametime_RoundLength, Gametime_FreezeLength, Winner) \
 									VALUES \
-									(0, 0, '', '', '', 0, 0, '', 0, 0.0, 0.0, 0.0, 0.0, '')", tableName);
+									(0, 0, '', '', '', 0, 0, '', 0, 0.0, 0.0, 0.0, 0.0, '')", SQL_TABLE_NAME);
 		
 		if (!SQL_FastQuery(db, sql))
 		{
