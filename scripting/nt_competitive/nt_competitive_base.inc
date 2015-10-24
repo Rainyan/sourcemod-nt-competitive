@@ -71,7 +71,7 @@ new Handle:g_hClientRecording;
 new Handle:g_hLimitLiveTeams;
 new Handle:g_hLimitTeams;
 
-public Action:CheckIfEveryoneIsReady()
+void CheckIfEveryoneIsReady()
 {	
 	new players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
 	
@@ -88,7 +88,7 @@ public Action:CheckIfEveryoneIsReady()
 	#endif
 	
 	if (players > playersReady) // Everyone isn't ready, stop here
-		return Plugin_Stop;
+		return;
 	
 	if (players < playersReady)
 		LogError("More players ready than there are players total.");
@@ -99,7 +99,7 @@ public Action:CheckIfEveryoneIsReady()
 		PrintToChatAll("%s Waiting for %i more players to join.", g_tag, (GetConVarInt(g_hMatchSize) - players));
 		PrintToChatAll("To start the match without %i players, both teams must !start", GetConVarInt(g_hMatchSize));
 		
-		return Plugin_Stop;
+		return;
 	}
 	
 	else if ( players > GetConVarInt(g_hMatchSize) && g_limitTeams ) // Everyone connected is ready, but there are more people than expected
@@ -108,12 +108,10 @@ public Action:CheckIfEveryoneIsReady()
 		PrintToChatAll("%s There are %i more players than expected.", g_tag, (players - GetConVarInt(g_hMatchSize)));
 		PrintToChatAll("To force the match start with %i players, both teams must !start", players);
 		
-		return Plugin_Stop;
+		return;
 	}
 	
 	LiveCountDown(); // Passed all checks, ready to go live
-	
-	return Plugin_Handled;
 }
 
 public Action:Command_ReadyList(client, args)
@@ -165,10 +163,10 @@ public Action:Command_IgnoreTeams(client, args)
 	return Plugin_Handled;
 }
 
-public Action:ToggleRecording()
+void ToggleRecording()
 {
 	if (!g_shouldClientsRecord)
-		return Plugin_Stop;
+		return;
 	
 	if (g_isLive) // Start recording
 	{
@@ -231,11 +229,9 @@ public Action:ToggleRecording()
 			#endif
 		}
 	}
-	
-	return Plugin_Handled;
 }
 
-public Action:LiveCountDown()
+void LiveCountDown()
 {
 	CreateTimer(1.0, Timer_Live_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 	CreateTimer((float(g_liveTimer) + 1.0), Timer_GoLive);
@@ -246,7 +242,7 @@ public Action:Timer_GoLive(Handle:timer)
 	ToggleLive();
 }
 
-public Action:ToggleLive()
+void ToggleLive()
 {
 	if (!g_isLive)
 	{
@@ -273,7 +269,7 @@ public Action:ToggleLive()
 				
 				g_isLive = false;
 				
-				return Plugin_Stop;
+				return;
 			}
 			
 			new String:steamID[MAX_STEAMID_LENGTH];
@@ -377,11 +373,9 @@ public Action:ToggleLive()
 	}
 	
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
-	
-	return Plugin_Handled;
 }
 
-public Action:NeoRestartThis()
+void NeoRestartThis()
 {
 	SetConVarBool(g_hNeoRestartThis, true);
 	
@@ -394,14 +388,14 @@ public Action:NeoRestartThis()
 	}
 }
 
-public Action:TogglePause()
+void TogglePause()
 {
 	if (!g_isPaused)
 	{
 		if (!g_isLive)
 		{
 			LogError("Attempted to pause while match isn't live.");
-			return Plugin_Handled;
+			return;
 		}
 		
 		if (g_pausingReason == REASON_TIMEOUT)
@@ -443,8 +437,6 @@ public Action:TogglePause()
 	SetConVarBool(g_hPausable, true);
 	
 	CreateTimer(0.5, Timer_TogglePauseLoop);
-	
-	return Plugin_Handled;
 }
 
 public Action:Command_UnpauseOther(client, args) // Pretend the other team made an unpause request. Debug command.
@@ -516,7 +508,7 @@ public Action:Timer_TogglePauseLoop(Handle:timer)
 	return Plugin_Stop;
 }
 
-public Action:TogglePauseLoop()
+void TogglePauseLoop()
 {
 	new invalidClients;
 	new unspawnedClients[2];
@@ -619,7 +611,7 @@ public Action:Timer_SpamLive(Handle:timer)
 	return Plugin_Continue;
 }
 
-public Action:SpamTimer()
+void SpamTimer()
 {
 	CreateTimer(0.25, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
 }
@@ -690,7 +682,7 @@ public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 	return Plugin_Stop;
 }
 
-public InitDirectory(const String:sDir[])
+void InitDirectory(const String:sDir[])
 {
 	decl String:sPieces[32][PLATFORM_MAX_PATH];
 	new String:sPath[PLATFORM_MAX_PATH];
@@ -704,7 +696,7 @@ public InitDirectory(const String:sDir[])
 	}
 }
 
-public Action:ToggleSourceTV()
+void ToggleSourceTV()
 {
 	if (g_isSourceTVRecording)
 	{
@@ -719,7 +711,7 @@ public Action:ToggleSourceTV()
 	else
 	{
 		if (!GetConVarBool(g_hSourceTVEnabled) || !g_isLive)
-			return Plugin_Stop;
+			return;
 		
 		if (!IsSourceTVBotConnected())
 		{
@@ -727,7 +719,7 @@ public Action:ToggleSourceTV()
 				PrintToServer("ToggleSourceTV: SourceTV bot not found.");
 			#endif
 			
-			return Plugin_Stop;
+			return;
 		}
 		
 		new String:demoPath[PLATFORM_MAX_PATH];
@@ -772,12 +764,10 @@ public Action:ToggleSourceTV()
 			PrintToServer("ToggleSourceTV: tv_record \"%s/%s\"", demoPath, replayName);
 		#endif
 	}
-	
-	return Plugin_Handled;
 }
 
 /* This doesn't work when the game is paused. Come up with some alternative?
-public Action:PlayLiveBeep()
+void PlayLiveBeep()
 {
 	new Float:volume = 0.5; // Volume between 0.0 - 1.0
 	
@@ -823,7 +813,7 @@ bool:IsSourceTVBotConnected()
 	return false;
 }
 
-stock GetPlayersReady()
+int GetPlayersReady()
 {
 	new playersReady;
 
@@ -838,7 +828,7 @@ stock GetPlayersReady()
 	return playersReady;
 }
 
-stock GetDesiredCommsBehaviour()
+int GetDesiredCommsBehaviour()
 {
 	new behaviour = GetConVarInt(g_hCommsBehaviour); // 0: disable alltalk, 1: enable alltalk, 2: use whichever initial alltalk value (tracked with g_isAlltalkByDefault)
 	
@@ -849,7 +839,7 @@ stock GetDesiredCommsBehaviour()
 		return g_isAlltalkByDefault;
 }
 
-stock GetOtherTeam(team)
+int GetOtherTeam(team)
 {
 	new otherTeam;
 	
@@ -868,10 +858,10 @@ stock GetOtherTeam(team)
 	return otherTeam;
 }
 
-public Action:LogCompetitive(const String:message[])
+void LogCompetitive(const String:message[])
 {
 	if (!g_loggingEnabled)
-		return Plugin_Stop;
+		return;
 	
 	new String:loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
@@ -884,11 +874,9 @@ public Action:LogCompetitive(const String:message[])
 	WriteFileLine(hFile, message);
 	
 	CloseHandle(hFile);
-	
-	return Plugin_Handled;
 }
 
-public PrintToConsoleAll(const String:message[])
+void PrintToConsoleAll(const String:message[])
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -899,7 +887,7 @@ public PrintToConsoleAll(const String:message[])
 	}
 }
 
-public Action:UpdatePlayersAlive() // Updates g_playersAlive array
+void UpdatePlayersAlive() // Updates g_playersAlive array
 {
 	new jinraiAlive;
 	new nsfAlive;
@@ -930,7 +918,7 @@ public Action:UpdatePlayersAlive() // Updates g_playersAlive array
 	g_playersAlive[TEAM_NSF] = nsfAlive;
 }
 
-public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new round start (otherwise we have to do a spawn check to avoid marking unspawned players as dead).
+void ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new round start (otherwise we have to do a spawn check to avoid marking unspawned players as dead).
 {
 	new jinraiPlayers;
 	new nsfPlayers;
@@ -959,7 +947,7 @@ public Action:ResetPlayersAlive() // Reset g_playersAlive array. Only call this 
 	g_playersAlive[TEAM_NSF] = nsfPlayers;
 }
 
-public Action:ResetGlobalVariables() // Make sure all global variables are reset properly
+void ResetGlobalVariables() // Make sure all global variables are reset properly
 {
 	new i; // for looping arrays
 	//new String:errorMsgExplanatoryEnding[] = "These values have now been reset."; // Repeating phrase for error messages below
