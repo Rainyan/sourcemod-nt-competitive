@@ -32,6 +32,8 @@ new g_usedTimeouts[sizeof(g_teamName)];
 new g_playersAlive[sizeof(g_teamName)];
 new g_timeSinceUnpausedForRejoin;
 new g_winner;
+new g_health[MAXPLAYERS+1];
+new g_damageDealt[MAXPLAYERS+1][MAXPLAYERS+1];
 
 new Float:g_fRoundTime;
 

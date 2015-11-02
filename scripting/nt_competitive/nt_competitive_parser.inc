@@ -6,26 +6,87 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 
 public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if ( GetConVarBool(g_hKillVersobity) == true ) // Print remaining playercount of both teams to everyone's console
+	if ( GetConVarInt(g_hKillVersobity) == 0 ) // Do nothing
+		return Plugin_Continue;
+	
+	new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+	decl String:attackerName[MAX_NAME_LENGTH];
+	GetClientName( attacker, attackerName, sizeof(attackerName) );
+	
+	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
+	new victimTeam = GetClientTeam(victim);
+	
+	switch ( GetConVarInt(g_hKillVersobity) )
 	{
-		UpdatePlayersAlive();
+		case 1: // Print remaining playercount of both teams to everyone's console
+		{
+			UpdatePlayersAlive();
+			
+			g_playersAlive[victimTeam]--; // This hook is fired too soon for UpdatePlayersAlive() to consider the victim dead, so we manually subtract 1 here
+			
+			decl String:msgBuffer[sizeof(g_tag) + ( sizeof(g_teamName[]) * 2 ) + 27];
+			Format(msgBuffer, sizeof(msgBuffer), "%s %s (%i) -- vs -- %s (%i)", g_tag, g_teamName[TEAM_JINRAI], g_playersAlive[TEAM_JINRAI], g_teamName[TEAM_NSF], g_playersAlive[TEAM_NSF]);
+			
+			PrintToConsoleAll(msgBuffer);
+		}
 		
-		new victim = GetClientOfUserId(GetEventInt(event, "userid"));
-		new victimTeam = GetClientTeam(victim);
-		g_playersAlive[victimTeam]--; // This hook is fired too soon for UpdatePlayersAlive() to consider the victim dead, so we manually subtract 1 here
+		case 2: // Only show the victim how much damage they dealt to their killer (CSGO style)
+		{
+			decl String:msgBuffer[sizeof(g_tag) + MAX_NAME_LENGTH + 53];
+			Format(msgBuffer, sizeof(msgBuffer), "%s Player \"%s\" killed you. Damage dealt: %i", g_tag, attackerName, g_damageDealt[victim][attacker]);
+			
+			PrintToConsole(victim, msgBuffer);
+		}
 		
-		decl String:msgBuffer[sizeof(g_tag) + ( sizeof(g_teamName[]) * 2 ) + 24];
-		Format(msgBuffer, sizeof(msgBuffer), "%s %s (%i) -- vs -- %s (%i)", g_tag, g_teamName[TEAM_JINRAI], g_playersAlive[TEAM_JINRAI], g_teamName[TEAM_NSF], g_playersAlive[TEAM_NSF]);
-		
-		PrintToConsoleAll(msgBuffer);
+		case 3: // Only show the victim their killer's remaining health
+		{
+			decl String:msgBuffer[sizeof(g_tag) + MAX_NAME_LENGTH + 53];
+			Format(msgBuffer, sizeof(msgBuffer), "%s Player \"%s\" killed you with %i health remaining.", g_tag, attackerName, g_health[attacker]);
+			
+			PrintToConsole(victim, msgBuffer);
+		}
 	}
+	
+	return Plugin_Handled;
+}
+
+public Action:Event_PlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if ( GetConVarInt(g_hKillVersobity) < 2 ) // Kill verbosity cvar doesn't require any health info - do nothing
+		return Plugin_Continue;
+	
+	new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
+	
+	new damage;
+	new health;
+	
+	if ( !IsPlayerAlive(victim) ) // todo: is this called too fast for IsPlayerAlive to be reliable?
+		health = 0;
+	else
+		health = GetClientOfUserId(GetEventInt(event, "health"));
+	
+	damage = g_health[victim] - health;
+	
+	g_health[victim] = health;
+	g_damageDealt[attacker][victim] = damage;
+	
+	return Plugin_Handled;
 }
 
 public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	for (new i = 1; i <= MaxClients; i++)
+	{
 		g_isSpawned[i] = false;
-
+		g_health[i] = 100;
+		
+		for (new j = 1; j <= MaxClients; j++)
+		{
+			g_damageDealt[i][j] = 0;
+		}
+	}
+	
 	if (!g_isLive)
 		return Plugin_Continue;
 	
