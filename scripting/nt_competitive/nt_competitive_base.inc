@@ -29,11 +29,8 @@ new g_roundCount;
 new g_spamTimerCount;
 new g_unpauseTimer = 10;
 new g_usedTimeouts[sizeof(g_teamName)];
-new g_killVerbosity;
 new g_playersAlive[sizeof(g_teamName)];
 new g_timeSinceUnpausedForRejoin;
-new g_limitLiveTeams;
-new g_limitTeams;
 new g_winner;
 
 new Float:g_fRoundTime;
@@ -49,7 +46,6 @@ new bool:g_isSpawned[MAXPLAYERS+1];
 new bool:g_isTeamReadyForUnPause[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
-new bool:g_shouldClientsRecord;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -93,7 +89,7 @@ void CheckIfEveryoneIsReady()
 	if (players < playersReady)
 		LogError("More players ready than there are players total.");
 	
-	if ( players < GetConVarInt(g_hMatchSize) && g_limitTeams ) // Everyone connected is ready, but there are less people than expected
+	if ( players < GetConVarInt(g_hMatchSize) && GetConVarBool(g_hLimitTeams) ) // Everyone connected is ready, but there are less people than expected
 	{
 		g_isExpectingOverride = true;
 		PrintToChatAll("%s Waiting for %i more players to join.", g_tag, (GetConVarInt(g_hMatchSize) - players));
@@ -102,7 +98,7 @@ void CheckIfEveryoneIsReady()
 		return;
 	}
 	
-	else if ( players > GetConVarInt(g_hMatchSize) && g_limitTeams ) // Everyone connected is ready, but there are more people than expected
+	else if ( players > GetConVarInt(g_hMatchSize) && GetConVarBool(g_hLimitTeams) ) // Everyone connected is ready, but there are more people than expected
 	{
 		g_isExpectingOverride = true;
 		PrintToChatAll("%s There are %i more players than expected.", g_tag, (players - GetConVarInt(g_hMatchSize)));
@@ -148,15 +144,15 @@ public Action:Command_ReadyList(client, args)
 
 public Action:Command_IgnoreTeams(client, args)
 {
-	if (g_limitLiveTeams)
+	if ( GetConVarBool(g_hLimitLiveTeams) )
 	{
-		SetConVarInt(g_hLimitLiveTeams, 0);
+		SetConVarBool(g_hLimitLiveTeams, false);
 		ReplyToCommand(client, "Now ignoring team change protection.");
 	}
 	
 	else
 	{
-		SetConVarInt(g_hLimitLiveTeams, 1);
+		SetConVarBool(g_hLimitLiveTeams, true);
 		ReplyToCommand(client, "Enforcing teams.");
 	}
 	
@@ -165,7 +161,7 @@ public Action:Command_IgnoreTeams(client, args)
 
 void ToggleRecording()
 {
-	if (!g_shouldClientsRecord)
+	if ( GetConVarBool(g_hClientRecording) == false )
 		return;
 	
 	if (g_isLive) // Start recording
@@ -1010,12 +1006,12 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	// Reset global bools
 	new bool:correctBool = false; // Value to check variables against
 	
-	if (g_isExpectingOverride != correctBool || g_isExpectingUnPauseTimer != correctBool || g_isLive != correctBool || g_isPaused != correctBool || g_isSourceTVRecording != correctBool || g_shouldPause != correctBool || g_shouldClientsRecord != correctBool)
+	if (g_isExpectingOverride != correctBool || g_isExpectingUnPauseTimer != correctBool || g_isLive != correctBool || g_isPaused != correctBool || g_isSourceTVRecording != correctBool || g_shouldPause != correctBool )
 	{
 		/*
 		LogError("Global booleans not properly reset. \
-		g_isExpectingOverride = %i. g_isExpectingUnPauseTimer = %i. g_isLive = %i. g_isPaused = %i. g_isSourceTVRecording = %i. g_shouldPause = %i. g_shouldClientsRecord = %i. g_isUnpausedForClientRejoin = %i. \
-		These should all be %i. %s", g_isExpectingOverride, g_isExpectingUnPauseTimer, g_isLive, g_isPaused, g_isSourceTVRecording, g_shouldPause, g_shouldClientsRecord, g_isUnpausedForClientRejoin, correctBool, errorMsgExplanatoryEnding);
+		g_isExpectingOverride = %i. g_isExpectingUnPauseTimer = %i. g_isLive = %i. g_isPaused = %i. g_isSourceTVRecording = %i. g_shouldPause = %i. g_isUnpausedForClientRejoin = %i. \
+		These should all be %i. %s", g_isExpectingOverride, g_isExpectingUnPauseTimer, g_isLive, g_isPaused, g_isSourceTVRecording, g_shouldPause, g_isUnpausedForClientRejoin, correctBool, errorMsgExplanatoryEnding);
 		*/
 		g_isExpectingOverride		= correctBool;
 		g_isExpectingUnPauseTimer	= correctBool;
@@ -1023,7 +1019,6 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 		g_isPaused					= correctBool;
 		g_isSourceTVRecording		= correctBool;
 		g_shouldPause				= correctBool;
-		g_shouldClientsRecord		= correctBool;
 	}
 	
 	for (i = 0; i <= MaxClients; i++)
