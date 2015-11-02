@@ -6,7 +6,7 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 
 public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if (g_killVerbosity == 1) // Print remaining playercount of both teams to everyone's console
+	if ( GetConVarBool(g_hKillVersobity) == true ) // Print remaining playercount of both teams to everyone's console
 	{
 		UpdatePlayersAlive();
 		
@@ -14,7 +14,7 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 		new victimTeam = GetClientTeam(victim);
 		g_playersAlive[victimTeam]--; // This hook is fired too soon for UpdatePlayersAlive() to consider the victim dead, so we manually subtract 1 here
 		
-		new String:msgBuffer[sizeof(g_tag) + ( sizeof(g_teamName[]) * 2 ) + 24];
+		decl String:msgBuffer[sizeof(g_tag) + ( sizeof(g_teamName[]) * 2 ) + 24];
 		Format(msgBuffer, sizeof(msgBuffer), "%s %s (%i) -- vs -- %s (%i)", g_tag, g_teamName[TEAM_JINRAI], g_playersAlive[TEAM_JINRAI], g_teamName[TEAM_NSF], g_playersAlive[TEAM_NSF]);
 		
 		PrintToConsoleAll(msgBuffer);
@@ -38,21 +38,22 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	ResetPlayersAlive(); // Reset global count of living players. Used for kill feeds etc
 	
+	decl String:msgBuffer[256];
+	
 	if (g_roundCount == 1)
 	{
-		new String:tournamentName[128];
+		decl String:tournamentName[128];
 		GetConVarString(g_hCompetitionName, tournamentName, sizeof(tournamentName));
 		
 		if (strlen(tournamentName) > 0)
 			LogCompetitive(tournamentName); // Log tournament name, if any
 		
-		new String:msgBuffer[256];
 		Format(msgBuffer, sizeof(msgBuffer), "Competitive match started: %s vs %s", g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
 		
 		LogCompetitive(msgBuffer);
 	}
 	
-	new String:roundBuffer[64];
+	decl String:roundBuffer[64];
 	Format(roundBuffer, sizeof(roundBuffer), "***** Round %i *****", g_roundCount);
 	LogCompetitive(roundBuffer);
 	
@@ -76,7 +77,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			PrintToServer("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore, g_nsfScore, roundLimit, g_roundCount);
 		#endif
 		
-		new String:msgBuffer[256];
 		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
 		
 		PrintToChatAll(msgBuffer);
@@ -93,7 +93,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			PrintToServer("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore, g_jinraiScore, roundLimit, g_roundCount);
 		#endif
 		
-		new String:msgBuffer[256];
 		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore, g_jinraiScore);
 		
 		PrintToChatAll(msgBuffer);
@@ -105,7 +104,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	// Tie, we ran out of rounds to play
 	else if ((g_roundCount - 1) == roundLimit)
 	{
-		new String:msgBuffer[256];
 		Format(msgBuffer, sizeof(msgBuffer), "%s MATCH TIED %i - %i", g_tag, g_nsfScore, g_jinraiScore);
 		
 		PrintToChatAll(msgBuffer);
@@ -137,24 +135,33 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 }
 
 public Action:Command_JoinTeam(client, args)
-{	
-	if (!g_isLive || !g_limitLiveTeams)
-		return Plugin_Continue;
-	
-	new String:clientName[MAX_NAME_LENGTH];
+{
+	decl String:clientName[MAX_NAME_LENGTH];
 	GetClientName(client, clientName, sizeof(clientName));
+
+	if (!g_isLive || !GetConVarBool(g_hLimitTeams) )
+	{
+		if (g_isReady[client])
+		{
+			g_isReady[client] = false;
+			PrintToChatAll("%s Player %s is NOT READY.", g_tag, clientName);
+		}
+		
+		return Plugin_Continue;
+	}
 	
 	new String:steamID[MAX_STEAMID_LENGTH];
 	if (!GetClientAuthId(client, AuthId_Steam2, steamID, sizeof(steamID)))
 		LogError("Failed fetching auth string for %s (client %i)", clientName, client);
 	
-	new String:team[10];
+	decl String:team[10];
 	GetCmdArg(1, team, sizeof(team));
 	new iTeam = StringToInt(team);
 	
+	decl String:msgBuffer[512];
+	
 	if (g_assignedTeamWhenLive[client] == TEAM_UNASSIGNED) // Team not explicitly restricted for this player, let them join (substitutes after going live etc)
 	{
-		new String:msgBuffer[512];
 		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
 		LogCompetitive(msgBuffer);
 		
@@ -163,7 +170,6 @@ public Action:Command_JoinTeam(client, args)
 	
 	else if (iTeam == g_assignedTeamWhenLive[client]) // Player attempts to join their correct team, let them
 	{
-		new String:msgBuffer[512];
 		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
 		LogCompetitive(msgBuffer);
 		
@@ -183,7 +189,6 @@ public Action:Command_JoinTeam(client, args)
 			strcopy(tempTeamName, sizeof(tempTeamName), "as spectator");
 	}
 	
-	new String:msgBuffer[256];
 	Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> attempted to join team %s instead of their assigned team %s. Blocked.", clientName, steamID, g_teamName[iTeam], g_teamName[g_assignedTeamWhenLive[client]]);
 	LogCompetitive(msgBuffer);
 	
@@ -193,21 +198,6 @@ public Action:Command_JoinTeam(client, args)
 	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
 	
 	return Plugin_Stop;
-}
-
-public Event_LimitTeams(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	g_limitTeams = StringToInt(newVal);
-}
-
-public Event_LimitLiveTeams(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	g_limitLiveTeams = StringToInt(newVal);
-}
-
-public Event_KillVerbosity(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	g_killVerbosity = StringToInt(newVal);
 }
 
 public Event_CommsBehaviour(Handle:cvar, const String:oldVal[], const String:newVal[])
@@ -227,27 +217,18 @@ public Event_LogMode(Handle:cvar, const String:oldVal[], const String:newVal[])
 
 public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	if (StringToInt(newVal)) // If nonzero, we have a restart. So we reset the variable.
+	if (StringToInt(newVal)) // If nonzero, we have a restart
 	{
-		g_roundCount = 0;
+		g_roundCount = 0; // Reset round count
 		
 		if (g_isLive)
 			LogCompetitive("Match restarted.");
 	}
 }
 
-public Event_ClientRecording(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	if (StringToInt(newVal))
-		g_shouldClientsRecord = true;
-	
-	else
-		g_shouldClientsRecord = false;
-}
-
 public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	new String:nsfName[sizeof(g_teamName[])];
+	decl String:nsfName[sizeof(g_teamName[])];
 	GetConVarString(g_hNSFName, nsfName, sizeof(nsfName));
 	
 	if (StrEqual(newVal, "NSF", false)) // Make sure we don't use the other team's default name
@@ -283,7 +264,7 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 		
 		if (g_isLive)
 		{
-			new String:msgBuffer[256];
+			decl String:msgBuffer[256];
 			Format(msgBuffer, sizeof(msgBuffer), "Jinrai changed team name to: %s", newVal);
 			
 			LogCompetitive(msgBuffer);
@@ -297,7 +278,7 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 
 public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	new String:jinraiName[sizeof(g_teamName[])];
+	decl String:jinraiName[sizeof(g_teamName[])];
 	GetConVarString(g_hJinraiName, jinraiName, sizeof(jinraiName));
 	
 	if (StrEqual(newVal, "Jinrai", false)) // Make sure we don't use the other team's default name
@@ -333,7 +314,7 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 		
 		if (g_isLive)
 		{
-			new String:msgBuffer[256];
+			decl String:msgBuffer[256];
 			Format(msgBuffer, sizeof(msgBuffer), "NSF changed team name to: %s", newVal);
 			
 			LogCompetitive(msgBuffer);

@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.6.3"
+#define PLUGIN_VERSION "0.3.6.5"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -34,6 +34,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	CreateNative("Competitive_IsPaused",		Competitive_IsPaused);
 	CreateNative("Competitive_GetTeamScore",	Competitive_GetTeamScore);
 	CreateNative("Competitive_GetWinner",		Competitive_GetWinner);
+	
 	return APLRes_Success;
 }
 
@@ -98,10 +99,6 @@ public OnPluginStart()
 	HookConVarChange(g_hNSFName,						Event_TeamNameNSF);
 	HookConVarChange(g_hCommsBehaviour,					Event_CommsBehaviour);
 	HookConVarChange(g_hLogMode,						Event_LogMode);
-	HookConVarChange(g_hKillVersobity,					Event_KillVerbosity);
-	HookConVarChange(g_hClientRecording,				Event_ClientRecording);
-	HookConVarChange(g_hLimitLiveTeams,					Event_LimitLiveTeams);
-	HookConVarChange(g_hLimitTeams,						Event_LimitTeams);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
@@ -112,7 +109,7 @@ public OnPluginStart()
 		InitDirectory(sourceTVPath);
 	
 	// Initialize logs path
-	new String:loggingPath[PLATFORM_MAX_PATH];
+	decl String:loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
@@ -138,18 +135,14 @@ public OnMapStart()
 
 public OnConfigsExecuted()
 {
-	g_isAlltalkByDefault					= GetConVarBool(g_hAlltalk);
-	g_shouldClientsRecord					= GetConVarBool(g_hClientRecording);
-	g_killVerbosity							= GetConVarInt(g_hKillVersobity);
-	g_limitLiveTeams						= GetConVarInt(g_hLimitLiveTeams);
-	g_limitTeams							= GetConVarInt(g_hLimitTeams);
+	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
 }
 
 public OnClientAuthorized(client, const String:authID[])
 {
 	if (g_isLive)
 	{
-		if (Client_IsValid(client) && IsFakeClient(client))
+		if ( Client_IsValid(client) && IsFakeClient(client) )
 		{
 			g_assignedTeamWhenLive[client] = -1; // This is a bot, let them join whichever team they like
 			return;
@@ -166,7 +159,7 @@ public OnClientAuthorized(client, const String:authID[])
 				PrintToServer("Contents: %s", g_livePlayers[i]);
 			#endif
 			
-			if (StrEqual(authID, g_livePlayers[i]))
+			if ( StrEqual(authID, g_livePlayers[i]) )
 			{
 				isPlayerCompeting = true;
 				earlierUserid = i;
@@ -190,12 +183,14 @@ public OnClientAuthorized(client, const String:authID[])
 
 public bool OnClientConnect(client)
 {
-	new String:clientName[MAX_NAME_LENGTH];
+	decl String:clientName[MAX_NAME_LENGTH];
 	GetClientName(client, clientName, sizeof(clientName));
 	
 	if (g_isPaused)
 	{
-		PrintToServer("pause join detected!");
+		#if DEBUG
+			PrintToServer("[COMP] Pause join detected!");
+		#endif
 		
 		PrintToChatAll("%s Player \"%s\" is attempting to join.", g_tag, clientName);
 		PrintToChatAll("The server needs to be unpaused for joining to finish.");
@@ -237,6 +232,9 @@ public Action:Command_ForceLive(client, args)
 
 public Action:Command_Pause(client, args)
 {
+	if (!Client_IsValid(client) || client == 0)
+		return Plugin_Stop;
+	
 	if (!g_isLive)
 	{
 		ReplyToCommand(client, "%s Game is not live.", g_tag);
@@ -322,11 +320,17 @@ public Action:Command_Pause(client, args)
 			else if (GetConVarInt(g_hMaxTimeouts) > 1)
 				DrawPanelItem(panel, "Team has already used all their %i timeouts.", GetConVarInt(g_hMaxTimeouts));
 			
-			else
+			else // Some sort of error happened, we presume time-outs are not allowed
 			{
-				new String:cvarValue[128];
-				GetConVarString(g_hMaxTimeouts, cvarValue, sizeof(cvarValue));
-				LogError("sm_competitive_max_timeouts has invalid value: %s", cvarValue);
+				DrawPanelItem(panel, "Time-outs are not allowed."); 
+				
+				decl String:cvarValue[128];
+				GetConVarString( g_hMaxTimeouts, cvarValue, sizeof(cvarValue) );
+				
+				new tempFixValue = 0;
+				SetConVarInt( g_hMaxTimeouts, tempFixValue );
+				
+				LogError("sm_competitive_max_timeouts had invalid value: %s. Value has been changed to: %i", cvarValue, tempFixValue);
 			}
 		}
 		
@@ -346,7 +350,7 @@ public Action:Command_Pause(client, args)
 	return Plugin_Handled;
 }
 
-public Action:PauseRequest(client, reason)
+void PauseRequest(client, reason)
 {
 	new team = GetClientTeam(client);
 	g_pausingTeam = team;
@@ -373,18 +377,20 @@ public Action:PauseRequest(client, reason)
 	}
 }
 
-public Action:CancelPauseRequest(client)
+void CancelPauseRequest(client)
 {
+	// We check for client & team validity in Command_Pause already before calling this
 	g_shouldPause = false;
 	
 	new team = GetClientTeam(client);
 	PrintToChatAll("%s %s has cancelled their pause request for the next freezetime.", g_tag, g_teamName[team]);
 }
 
-public Action:UnPauseRequest(client)
+void UnPauseRequest(client)
 {
+	// We check for client & team validity in Command_Pause already before calling this
 	new team = GetClientTeam(client);
-	new otherTeam = GetOtherTeam(team); // We check for non playable teams already in Command_Pause before calling this
+	new otherTeam = GetOtherTeam(team);
 	
 	g_isTeamReadyForUnPause[team] = true;
 	PrintToChatAll("%s %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
@@ -495,6 +501,13 @@ public Action:Command_UnOverrideStart(client, args)
 
 public Action:Command_Ready(client, args)
 {
+	new team = GetClientTeam(client);
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+		ReplyToCommand(client, "%s You are not in a team.", g_tag);
+		return Plugin_Stop;
+	}
+	
 	if (g_isLive)
 	{
 		ReplyToCommand(client, "%s Game is live, cannot change ready state!", g_tag);
@@ -509,7 +522,7 @@ public Action:Command_Ready(client, args)
 	
 	g_isReady[client] = true;
 	
-	new String:clientName[MAX_NAME_LENGTH];
+	decl String:clientName[MAX_NAME_LENGTH];
 	GetClientName(client, clientName, sizeof(clientName));
 	PrintToChatAll("%s Player %s is READY.", g_tag, clientName);
 	
@@ -520,6 +533,13 @@ public Action:Command_Ready(client, args)
 
 public Action:Command_UnReady(client, args)
 {
+	new team = GetClientTeam(client);
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+		ReplyToCommand(client, "%s You are not in a team.", g_tag);
+		return Plugin_Stop;
+	}
+	
 	if (g_isLive)
 	{
 		ReplyToCommand(client, "%s Game is live, cannot change ready state!", g_tag);
@@ -534,41 +554,38 @@ public Action:Command_UnReady(client, args)
 	
 	g_isReady[client] = false;
 	
-	new String:clientName[MAX_NAME_LENGTH];
+	decl String:clientName[MAX_NAME_LENGTH];
 	GetClientName(client, clientName, sizeof(clientName));
 	PrintToChatAll("%s Player %s is NOT READY.", g_tag, clientName);
 	
-	if (g_isExpectingOverride)
+	if (g_isExpectingOverride && g_isWantingOverride[team])
 	{
-		new team = GetClientTeam(client);
-		
-		if (g_isWantingOverride[team])
-		{
-			g_isWantingOverride[team] = false;
-			PrintToChatAll("Cancelled %s's force start vote.", g_teamName[team]);
-		}
+		g_isWantingOverride[team] = false;
+		PrintToChatAll("Cancelled %s's force start vote.", g_teamName[team]);
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action:Command_LoggingTest(client, args)
-{
-	if (args != 1)
+#if DEBUG
+	public Action:Command_LoggingTest(client, args)
 	{
-		ReplyToCommand(client, "Expected 1 argument.");
+		if (args != 1)
+		{
+			ReplyToCommand(client, "Expected 1 argument.");
+			
+			return Plugin_Stop;
+		}
 		
-		return Plugin_Stop;
+		new String:message[128];
+		GetCmdArg(1, message, sizeof(message));
+		LogCompetitive(message);
+		
+		ReplyToCommand(client, "Debug log message sent.");
+		
+		return Plugin_Handled;
 	}
-	
-	new String:message[128];
-	GetCmdArg(1, message, sizeof(message));
-	LogCompetitive(message);
-	
-	ReplyToCommand(client, "Debug log message sent.");
-	
-	return Plugin_Handled;
-}
+#endif
 
 public Competitive_IsLive(Handle:plugin, numParams)
 {
