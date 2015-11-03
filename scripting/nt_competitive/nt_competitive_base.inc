@@ -17,6 +17,7 @@ new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 //new String:g_soundLive[] = "buttons/button17.wav";
 new String:g_kvPath[PLATFORM_MAX_PATH];
+new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
 new g_jinraiScore;
@@ -48,6 +49,7 @@ new bool:g_isSpawned[MAXPLAYERS+1];
 new bool:g_isTeamReadyForUnPause[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
+new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -68,6 +70,7 @@ new Handle:g_hKillVersobity;
 new Handle:g_hClientRecording;
 new Handle:g_hLimitLiveTeams;
 new Handle:g_hLimitTeams;
+new Handle:g_hVerbosityDelay;
 
 void CheckIfEveryoneIsReady()
 {	
@@ -1039,7 +1042,7 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	
 	for (i = 0; i < sizeof(g_teamName); i++)
 	{
-		if (g_isTeamReadyForUnPause[i] != correctBool || g_isWantingOverride[i] != correctBool)
+		if (g_isTeamReadyForUnPause[i] != correctBool || g_isWantingOverride[i] != correctBool || g_shouldShowKillInfo[i] != correctBool)
 		{
 			/*
 			LogError("Global booleans not properly reset. \
@@ -1048,6 +1051,16 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 			*/
 			g_isTeamReadyForUnPause[i]	= correctBool;
 			g_isWantingOverride[i]		= correctBool;
+			g_shouldShowKillInfo[i]		= correctBool;
 		}
 	}
+}
+
+void ShowKillInfoNextRound(client, const String:message[])
+{
+	if ( !Client_IsValid(client) )
+		return;
+	
+	strcopy(g_killInfoBuffer[client], sizeof(g_killInfoBuffer), message);
+	g_shouldShowKillInfo[client] = true;
 }

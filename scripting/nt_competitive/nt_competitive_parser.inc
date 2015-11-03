@@ -35,7 +35,10 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 			decl String:msgBuffer[sizeof(g_tag) + MAX_NAME_LENGTH + 53];
 			Format(msgBuffer, sizeof(msgBuffer), "%s Player \"%s\" killed you. Damage dealt: %i", g_tag, attackerName, g_damageDealt[victim][attacker]);
 			
-			PrintToConsole(victim, msgBuffer);
+			if ( GetConVarBool(g_hVerbosityDelay) )
+				ShowKillInfoNextRound(victim, msgBuffer);
+			else
+				PrintToConsole(victim, msgBuffer);
 		}
 		
 		case 3: // Only show the victim their killer's remaining health
@@ -43,7 +46,10 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 			decl String:msgBuffer[sizeof(g_tag) + MAX_NAME_LENGTH + 53];
 			Format(msgBuffer, sizeof(msgBuffer), "%s Player \"%s\" killed you with %i health remaining.", g_tag, attackerName, g_health[attacker]);
 			
-			PrintToConsole(victim, msgBuffer);
+			if ( GetConVarBool(g_hVerbosityDelay) )
+				ShowKillInfoNextRound(victim, msgBuffer);
+			else
+				PrintToConsole(victim, msgBuffer);
 		}
 	}
 	
@@ -85,6 +91,11 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		{
 			g_damageDealt[i][j] = 0;
 		}
+		
+		if ( GetConVarBool(g_hVerbosityDelay) && g_shouldShowKillInfo[i] ) // We want to display last round's kill info
+			PrintToConsole(i, g_killInfoBuffer[i]);
+		
+		g_shouldShowKillInfo[i] = false;
 	}
 	
 	if (!g_isLive)
