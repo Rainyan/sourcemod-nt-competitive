@@ -1,3 +1,9 @@
+// Double-include prevention
+#if defined _base_included_
+	#endinput
+#endif
+#define _base_included_
+
 #define MENU_TIME 20 // How long to display panel menus for, in seconds
 
 #define REASON_TECHNICAL 0

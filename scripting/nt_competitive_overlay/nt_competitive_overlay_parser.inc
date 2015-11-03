@@ -1,3 +1,9 @@
+// Double-include prevention
+#if defined _overlay_parser_included_
+	#endinput
+#endif
+#define _overlay_parser_included_
+
 public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new winner = Competitive_GetWinner();

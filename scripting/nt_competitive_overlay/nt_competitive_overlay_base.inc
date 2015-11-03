@@ -1,3 +1,9 @@
+// Double-include prevention
+#if defined _overlay_base_included_
+	#endinput
+#endif
+#define _overlay_base_included_
+
 /*
 	0: Jinrai name,
 	1: NSF name,
