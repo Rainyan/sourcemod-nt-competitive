@@ -125,6 +125,9 @@ public OnPluginStart()
 	if (!DirExists(g_kvPath))
 		InitDirectory(g_kvPath);
 	
+	g_liveTimer_OriginalValue = g_liveTimer;
+	g_unpauseTimer_OriginalValue = g_unpauseTimer;
+	
 	AutoExecConfig(true);
 }
 
@@ -142,45 +145,43 @@ public OnConfigsExecuted()
 
 public OnClientAuthorized(client, const String:authID[])
 {
-	if (g_isLive)
+	if (!g_isLive)
+		return;
+	
+	if ( Client_IsValid(client) && IsFakeClient(client) )
 	{
-		if ( Client_IsValid(client) && IsFakeClient(client) )
-		{
-			g_assignedTeamWhenLive[client] = -1; // This is a bot, let them join whichever team they like
-			return;
-		}
-		
-		// ** Check for competitor status below **
-		new bool:isPlayerCompeting;
-		new earlierUserid;
-		
-		for (new i = 0; i < sizeof(g_livePlayers); i++)
-		{
-			#if DEBUG > 1
-				PrintToServer("Checking array index %i, array size %i", i, sizeof(g_livePlayers));
-				PrintToServer("Contents: %s", g_livePlayers[i]);
-			#endif
-			
-			if ( StrEqual(authID, g_livePlayers[i]) )
-			{
-				isPlayerCompeting = true;
-				earlierUserid = i;
-				break;
-			}
-		}
-		
-		if (!isPlayerCompeting)
-			g_assignedTeamWhenLive[client] = TEAM_SPECTATOR;
-		
-		else
-			g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
-		
-		#if DEBUG
-			PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
-		#endif
+		g_assignedTeamWhenLive[client] = -1; // This is a bot, let them join whichever team they like
+		return;
 	}
 	
-	return;
+	// ** Check for competitor status below **
+	new bool:isPlayerCompeting;
+	new earlierUserid;
+	
+	for (new i = 0; i < sizeof(g_livePlayers); i++)
+	{
+		#if DEBUG > 1
+			PrintToServer("Checking array index %i, array size %i", i, sizeof(g_livePlayers));
+			PrintToServer("Contents: %s", g_livePlayers[i]);
+		#endif
+		
+		if ( StrEqual(authID, g_livePlayers[i]) )
+		{
+			isPlayerCompeting = true;
+			earlierUserid = i;
+			break;
+		}
+	}
+	
+	if (!isPlayerCompeting)
+		g_assignedTeamWhenLive[client] = TEAM_SPECTATOR;
+	
+	else
+		g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
+	
+	#if DEBUG
+		PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
+	#endif
 }
 
 public bool OnClientConnect(client)
@@ -219,8 +220,35 @@ public Action:Command_ForceLive(client, args)
 {
 	if (!g_isLive)
 	{
-		PrintToChatAll("Match manually started by an admin.");
-		LiveCountDown();
+		// There's no live countdown happening, it's safe to make one
+		if (!g_isLiveCountdown)
+		{
+			PrintToChatAll("Match manually started by an admin.");
+			LiveCountDown();
+		}
+		
+		// There already is a live countdown! Cancel it.
+		else
+		{
+			// Kill the live countdown timer
+			if (g_hTimer_LiveCountdown != INVALID_HANDLE)
+			{
+				KillTimer(g_hTimer_LiveCountdown);
+				g_hTimer_LiveCountdown = INVALID_HANDLE;
+			}
+			
+			// Kill the actual live toggle timer
+			if (g_hTimer_GoLive != INVALID_HANDLE)
+			{
+				KillTimer(g_hTimer_GoLive);
+				g_hTimer_GoLive = INVALID_HANDLE;
+			}
+			
+			g_isLiveCountdown = false; // We are no longer in a live countdown
+			g_liveTimer = g_liveTimer_OriginalValue; // Reset live countdown timer to its original value
+			
+			PrintToChatAll("Live countdown stopped by admin.");			
+		}
 	}
 	
 	else

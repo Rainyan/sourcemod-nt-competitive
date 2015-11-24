@@ -21,13 +21,14 @@ new String:g_teamName[][64] = {
 new String:g_livePlayers[MAXPLAYERS+1][MAX_STEAMID_LENGTH]; // Array for storing SteamIDs to allow disconnected players rejoining when live
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
-//new String:g_soundLive[] = "buttons/button17.wav";
+new String:g_soundLive[] = "buttons/button17.wav";
 new String:g_kvPath[PLATFORM_MAX_PATH];
 new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
 new g_jinraiScore;
 new g_liveTimer = 5;
+new g_liveTimer_OriginalValue;
 new g_loggingEnabled;
 new g_nsfScore;
 new g_pausingReason;
@@ -35,6 +36,7 @@ new g_pausingTeam;
 new g_roundCount;
 new g_spamTimerCount;
 new g_unpauseTimer = 10;
+new g_unpauseTimer_OriginalValue;
 new g_usedTimeouts[sizeof(g_teamName)];
 new g_playersAlive[sizeof(g_teamName)];
 new g_winner;
@@ -55,6 +57,7 @@ new bool:g_isTeamReadyForUnPause[sizeof(g_teamName)]; // Unassigned, spec, jinra
 new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
+new bool:g_isLiveCountdown;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -76,6 +79,9 @@ new Handle:g_hClientRecording;
 new Handle:g_hLimitLiveTeams;
 new Handle:g_hLimitTeams;
 new Handle:g_hVerbosityDelay;
+
+new Handle:g_hTimer_LiveCountdown = INVALID_HANDLE;
+new Handle:g_hTimer_GoLive = INVALID_HANDLE;
 
 void CheckIfEveryoneIsReady()
 {	
@@ -239,8 +245,22 @@ void ToggleRecording()
 
 void LiveCountDown()
 {
-	CreateTimer(1.0, Timer_Live_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
-	CreateTimer((float(g_liveTimer) + 1.0), Timer_GoLive);
+	if (g_isLive)
+	{
+		LogError("Attempted LiveCountDown while game is already marked live!");
+		return;
+	}
+	
+	if (g_isLiveCountdown)
+	{
+		LogError("Attempted LiveCountDown while one is already happening!");
+		return;
+	}
+	
+	g_isLiveCountdown = true;
+	
+	g_hTimer_LiveCountdown = CreateTimer(1.0, Timer_Live_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	g_hTimer_GoLive = CreateTimer((float(g_liveTimer) + 1.0), Timer_GoLive);
 }
 
 public Action:Timer_GoLive(Handle:timer)
@@ -250,9 +270,11 @@ public Action:Timer_GoLive(Handle:timer)
 
 void ToggleLive()
 {
-	if (!g_isLive)
+	g_isLive = !g_isLive;
+	
+	if (g_isLive)
 	{
-		g_isLive = true; // Flip live bool
+		g_isLiveCountdown = false;
 		g_winner = 0; // Reset winner (overlay module queries this value)
 		
 		#if DEBUG
@@ -271,7 +293,9 @@ void ToggleLive()
 				new String:clientName[MAX_NAME_LENGTH];
 				GetClientName(i, clientName, sizeof(clientName));
 				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
-				PrintToServer("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
+				#if DEBUG
+					PrintToServer("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
+				#endif
 				
 				g_isLive = false;
 				
@@ -325,18 +349,20 @@ void ToggleLive()
 		ToggleRecording();
 		
 		// Announce game start, possible tournament name, and teams
-		new String:competitionName[32];
+		decl String:competitionName[32];
 		GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
 		
+		// If competition name hasn't been specified
 		if (strlen(competitionName) < 1)
 			strcopy(competitionName, sizeof(competitionName), "Competitive Neotokyo");
 		
-		new String:liveTitle[sizeof(g_tag) + sizeof(competitionName) + sizeof(g_teamName[]) * 2 + 6];
-		
+		decl String:liveTitle[sizeof(g_tag) + sizeof(competitionName) + sizeof(g_teamName[]) * 2 + 6];
 		Format(liveTitle, sizeof(liveTitle), "%s %s: %s - %s", g_tag, competitionName, g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
 		
 		PrintToChatAll(liveTitle);
 		
+		/* Keyvalus test, this isn't implemented at the moment.
+		/
 		#if DEBUG
 			// Create match keyvalues (to-do: load previous game after cancel/servercrash/etc)
 			// We could later use md5 (smlib) hash for id inside kv meta
@@ -348,24 +374,24 @@ void ToggleLive()
 			KvSetSectionName(kv, "testing");
 			KvSetNum(kv, "anotherVal", 5);
 			
-			new String:timestamp[15];
+			decl String:timestamp[15];
 			FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
 			
-			new String:kvFilePath[PLATFORM_MAX_PATH] = "matchDebug.kv";
+			decl String:kvFilePath[PLATFORM_MAX_PATH] = "matchDebug.kv";
 			Format(kvFilePath, sizeof(kvFilePath), "%s/%s_%s", g_kvPath, timestamp, kvFilePath);
 			
 			KeyValuesToFile(kv, kvFilePath);
 			CloseHandle(kv);
 		#endif
 		// End kv debug
+		*/
 		
 		SpamTimer();
 	}
 	
+	// Stop live
 	else
 	{
-		g_isLive = false;
-		
 		if (g_isPaused)
 			TogglePause();
 		
@@ -661,17 +687,19 @@ public Action:Timer_Live_SecondsCountdown(Handle:timer)
 		PrintToChatAll("%s Match starting in: %i", g_tag, g_liveTimer);
 		g_liveTimer--;
 		
+		PlayLiveBeep();
+		
 		return Plugin_Continue;
 	}
 	
-	g_liveTimer = 5; // Reset variable. Countdown from this many seconds
+	g_liveTimer = g_liveTimer_OriginalValue; // Reset the timer to its original value
 	
 	return Plugin_Stop;
 }
 
 public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 {
-	if (!g_isLive || !g_isPaused) // Pause has properly ended or the match is not live anymore
+	if (!g_isLive || !g_isPaused) // Pause has properly ended or the match is not live anymore (which implies the pause was properly ended already)
 		return Plugin_Stop;
 	
 	if (g_unpauseTimer > 0)
@@ -683,7 +711,7 @@ public Action:Timer_Unpause_SecondsCountdown(Handle:timer)
 		return Plugin_Continue;
 	}
 	
-	g_unpauseTimer = 10; // Countdown from this many seconds
+	g_unpauseTimer = g_unpauseTimer_OriginalValue; // Reset the timer to its original value
 	
 	return Plugin_Stop;
 }
@@ -728,19 +756,19 @@ void ToggleSourceTV()
 			return;
 		}
 		
-		new String:demoPath[PLATFORM_MAX_PATH];
-		new String:timestamp[16];
-		new String:mapName[32];
-		
+		decl String:demoPath[PLATFORM_MAX_PATH];
 		GetConVarString(g_hSourceTVPath, demoPath, sizeof(demoPath));
-		GetCurrentMap(mapName, sizeof(mapName));
 		
+		decl String:timestamp[16];
 		FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
 		
-		new String:competitionName[32];
+		decl String:mapName[32];
+		GetCurrentMap(mapName, sizeof(mapName));
+		
+		decl String:competitionName[32];
 		GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
 		
-		new String:replayName[sizeof(mapName)+sizeof(timestamp)+sizeof(competitionName)+2];
+		decl String:replayName[sizeof(mapName)+sizeof(timestamp)+sizeof(competitionName)+2];
 		
 		if (strlen(competitionName) > 0)
 			Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, mapName);
@@ -772,7 +800,7 @@ void ToggleSourceTV()
 	}
 }
 
-/* This doesn't work when the game is paused. Come up with some alternative?
+// This doesn't work when the game is paused. Come up with some alternative?
 void PlayLiveBeep()
 {
 	new Float:volume = 0.5; // Volume between 0.0 - 1.0
@@ -780,14 +808,16 @@ void PlayLiveBeep()
 	PrecacheSound(g_soundLive);
 	EmitSoundToAll(g_soundLive, _, _, _, _, volume);
 }
-*/
+
 
 bool:IsSourceTVBotConnected()
 {
 	// Get the SourceTV bot's name cvar, and figure out if bot is connected
 	new Handle:hBotName = FindConVar("tv_name");
-	new String:botName[MAX_NAME_LENGTH];
+	
+	decl String:botName[MAX_NAME_LENGTH];
 	GetConVarString(hBotName, botName, sizeof(botName));
+	
 	CloseHandle(hBotName);
 	
 	#if DEBUG > 1
@@ -799,7 +829,7 @@ bool:IsSourceTVBotConnected()
 		if (!Client_IsValid(i) || !IsFakeClient(i)) // We are looking for a valid fake client (bot)
 			continue;
 		
-		new String:clientName[MAX_NAME_LENGTH];
+		decl String:clientName[MAX_NAME_LENGTH];
 		GetClientName(i, clientName, sizeof(clientName));
 		
 		#if DEBUG > 1
@@ -869,7 +899,7 @@ void LogCompetitive(const String:message[])
 	if (!g_loggingEnabled)
 		return;
 	
-	new String:loggingPath[PLATFORM_MAX_PATH];
+	decl String:loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	
 	new String:debugFile[] = "logfile.log"; // Static debug file for logging. We later want to use keyvalues using match IDs etc
