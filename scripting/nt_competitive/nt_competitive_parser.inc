@@ -1,3 +1,9 @@
+// Double-include prevention
+#if defined _parser_included_
+	#endinput
+#endif
+#define _parser_included_
+
 public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));

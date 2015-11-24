@@ -1,3 +1,9 @@
+// Double-include prevention
+#if defined _panel_included_
+	#endinput
+#endif
+#define _panel_included_
+
 public PanelHandler_Pause(Handle:menu, MenuAction:action, client, choice)
 {
 	if (action != MenuAction_Select)
