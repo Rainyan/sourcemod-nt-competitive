@@ -3,7 +3,7 @@ sourcemod-nt-competitive
 
 SourceMod plugin for competitive Neotokyo. WIP.
 
-The main module should already work.
+The main module should already work.<br>
 The overlay and matchmaking modules are experimental and may not work properly.
 
 Features:
