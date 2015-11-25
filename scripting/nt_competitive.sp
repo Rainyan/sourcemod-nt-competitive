@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.6.8"
+#define PLUGIN_VERSION "0.3.6.9"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -88,6 +88,7 @@ public OnPluginStart()
 	g_hClientRecording					= CreateConVar("sm_competitive_record_clients",						"0",					"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
 	g_hLimitLiveTeams					= CreateConVar("sm_limit_live_teams",								"1",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
 	g_hLimitTeams						= CreateConVar("sm_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
+	g_hPauseMode						= CreateConVar("sm_competitive_pause_mode",				"2",					"Pausing mode. Default: 2. 0 = no pausing allowed, 1 = use Source engine pause feature, 2 = stop round timer", _, true, 0.0, true, 2.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -127,6 +128,8 @@ public OnPluginStart()
 	
 	g_liveTimer_OriginalValue = g_liveTimer;
 	g_unpauseTimer_OriginalValue = g_unpauseTimer;
+	
+	CheckGamedataFiles();
 	
 	AutoExecConfig(true);
 }
@@ -382,6 +385,14 @@ public Action:Command_Pause(client, args)
 
 void PauseRequest(client, reason)
 {
+	// Gamedata is outdated, fall back to normal pausemode as stop clock mode would cause an error
+	if (g_isGamedataOutdated && ( GetConVarInt(g_hPauseMode) == PAUSEMODE_STOP_CLOCK) )
+	{
+		SetConVarInt(g_hPauseMode, PAUSEMODE_NORMAL);
+		PrintToAdmins("Admins: Server gamedata is outdated. Falling back to default pause mode to avoid errors.", true, true);
+		PrintToAdmins("See SM error logs for more info.");
+	}
+	
 	new team = GetClientTeam(client);
 	g_pausingTeam = team;
 	g_pausingReason = reason;

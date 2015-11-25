@@ -58,6 +58,7 @@ new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, n
 new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
+new bool:g_isGamedataOutdated;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -79,19 +80,20 @@ new Handle:g_hClientRecording;
 new Handle:g_hLimitLiveTeams;
 new Handle:g_hLimitTeams;
 new Handle:g_hVerbosityDelay;
+new Handle:g_hPauseMode;
 
 new Handle:g_hTimer_LiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimer_GoLive = INVALID_HANDLE;
 
+enum {
+	PAUSEMODE_FORBIDDEN = 0,
+	PAUSEMODE_NORMAL,
+	PAUSEMODE_STOP_CLOCK
+};
+
 void CheckIfEveryoneIsReady()
 {	
-	new players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
-	
-	if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as a player
-	{
-		players--;
-	}
-	
+	new players = GetPlayerCount();
 	new playersReady = GetPlayersReady();
 	
 	#if DEBUG
@@ -103,7 +105,7 @@ void CheckIfEveryoneIsReady()
 		return;
 	
 	if (players < playersReady)
-		LogError("More players ready than there are players total.");
+		LogError("More players (%i) ready than there are players total (%i).", playersReady, players);
 	
 	if ( players < GetConVarInt(g_hMatchSize) && GetConVarBool(g_hLimitTeams) ) // Everyone connected is ready, but there are less people than expected
 	{
@@ -422,55 +424,82 @@ void NeoRestartThis()
 
 void TogglePause()
 {
-	if (!g_isPaused)
+	// No pausing allowed. Todo: Do this check in !pause instead, and just error check here instead
+	if ( GetConVarInt(g_hPauseMode) == PAUSEMODE_FORBIDDEN )
+		return;
+	
+	g_isPaused = !g_isPaused;
+	
+	switch ( GetConVarInt(g_hPauseMode) )
 	{
-		if (!g_isLive)
+		// Normal Source engine pausing
+		case PAUSEMODE_NORMAL:
 		{
-			LogError("Attempted to pause while match isn't live.");
-			return;
+			// Pause
+			if (g_isPaused)
+			{
+				if (!g_isLive)
+				{
+					LogError("Attempted to pause while match isn't live.");
+					return;
+				}
+				
+				if (g_pausingReason == REASON_TIMEOUT)
+					g_usedTimeouts[g_pausingTeam]++;
+				
+				g_isExpectingUnPauseTimer = true;
+				
+				PrintToChatAll("%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
+				PrintToChatAll("%s Use !pause when ready.", g_tag);
+				
+				#if DEBUG > 1
+					PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
+				#endif
+				
+				CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
+				
+				if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
+					CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
+				
+				CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
+			}
+			
+			// Unpause
+			else
+			{
+				// Close any open unpause timer, countdown timer, and half countdown timer handles below
+				if (!g_isExpectingUnPauseTimer)
+					LogError("Unpause timer executed unexpectedly.");
+				
+				g_isPaused = false;
+				g_isExpectingUnPauseTimer = false;
+				
+				if (g_isLive) // Only announce the unpause if a match is still going
+				{
+					SpamTimer();
+				}
+			}
+			
+			SetConVarBool(g_hPausable, true);
+	
+			CreateTimer(0.5, Timer_TogglePauseLoop);
 		}
 		
-		if (g_pausingReason == REASON_TIMEOUT)
-			g_usedTimeouts[g_pausingTeam]++;
-		
-		g_isPaused = true;
-		g_isExpectingUnPauseTimer = true;
-		
-		PrintToChatAll("%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
-		PrintToChatAll("%s Use !pause when ready.", g_tag);
-		
-		#if DEBUG > 1
-			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
-		#endif
-		
-		CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
-		
-		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
-			CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
-		
-		CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
-	}
-	
-	else
-	{
-		// Close any open unpause timer, countdown timer, and half countdown timer handles below
-		if (!g_isExpectingUnPauseTimer)
-			LogError("Unpause timer executed unexpectedly.");
-		
-		g_isPaused = false;
-		g_isExpectingUnPauseTimer = false;
-		
-		if (g_isLive) // Only announce the unpause if a match is still going
+		// Stop game's round timer instead of a regular pause. This should be less glitchy overall.
+		case PAUSEMODE_STOP_CLOCK:
 		{
-			SpamTimer();
+			if (g_isGamedataOutdated) // Neotokyo gamedata seems outdated, GameRules_SetPropFloat probably wouldn't work. Todo: Notify about this problem within !pause
+				return;
+			
+			// Todo: Go back to normal rounds on unpause (neo_round_timelimit).
+			// Save player XP/deaths/rank so they can be recovered when unpausing.
+			// Do a "double restart" so spawn zone remains what it was before pausing.
+			GameRules_SetPropFloat("m_fRoundTimeLeft", 0.0);
 		}
 	}
-	
-	SetConVarBool(g_hPausable, true);
-	
-	CreateTimer(0.5, Timer_TogglePauseLoop);
 }
 
+#if DEBUG
 public Action:Command_UnpauseOther(client, args) // Pretend the other team made an unpause request. Debug command.
 {
 	if (client == 0)
@@ -532,6 +561,7 @@ public Action:Command_OverrideStartOther(client, args) // Pretend the other team
 	
 	return Plugin_Handled;
 }
+#endif
 
 public Action:Timer_TogglePauseLoop(Handle:timer)
 {
@@ -849,13 +879,39 @@ bool:IsSourceTVBotConnected()
 	return false;
 }
 
+// Return players in Jinrai + NSF total
+int GetPlayerCount()
+{
+	new players;
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || IsFakeClient(i) )
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team != TEAM_JINRAI && team != TEAM_NSF)
+			continue;
+		
+		players++;
+	}
+	
+	return players;
+}
+
 int GetPlayersReady()
 {
 	new playersReady;
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !g_isReady[i]) // Fake clients are never ready, so we don't need to explicitly check for them
+		if ( !Client_IsValid(i) || !g_isReady[i] || IsFakeClient(i) )
+			continue;
+			
+		new team = GetClientTeam(i);
+		
+		if (team != TEAM_JINRAI && team != TEAM_NSF)
 			continue;
 		
 		playersReady++;
@@ -1048,4 +1104,63 @@ void ShowKillInfoNextRound(client, const String:message[])
 	
 	strcopy(g_killInfoBuffer[client], sizeof(g_killInfoBuffer), message);
 	g_shouldShowKillInfo[client] = true;
+}
+
+// Make sure Neotokyo gamedata file is up to date, as some of the plugin features require it.
+void CheckGamedataFiles()
+{
+	decl String:gamedataUrl[] = "https://github.com/alliedmodders/sourcemod/tree/master/gamedata"; // URL for the latest NT gamedata version
+	
+	decl String:filePath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, filePath, sizeof(filePath), "gamedata/sdktools.games/game.neotokyo.txt"); // Gamedata file path
+	
+	// Do a filesize based check.
+	// This should be fairly safe as the NT gamedata is updated extremely rarely.
+	new fileSize					= FileSize(filePath, false);		// Filesize of the currently running server gamedata version
+	new correctFileSize		= 1933;								// Filesize of the correct gamedata version (10 Oct 2015)
+	new oldFileSize_2014	= 1179;								// Old version filesize (23 Dec 2014)
+	new oldFileSize_2009	= 1075;								// Old version filesize (15 Dec 2009)
+	
+	// File not found
+	if (fileSize == -1)
+	{
+		LogError("Neotokyo gamedata file %s could not be found! sm_competitive_pause_mode 2 is unavailable because of this. See %s for the latest gamedata version.", filePath, gamedataUrl);
+		g_isGamedataOutdated = true;
+	}
+	// Filesize mismatch
+	else if (fileSize != correctFileSize)
+	{
+		// Old file version
+		if (fileSize == oldFileSize_2014 || fileSize == oldFileSize_2009)
+		{
+			LogError("Neotokyo gamedata file %s has mismatching filesize %i bytes (expected %i bytes), it's most likely outdated. \"sm_competitive_pause_mode 2\" is unavailable because of this. See %s for the latest gamedata version.", filePath, fileSize, correctFileSize, gamedataUrl);
+			g_isGamedataOutdated = true;
+		}
+		// Unknown file version. Notify server, but don't treat as error.
+		else
+		{
+			PrintToServer("%s Note: Neotokyo gamedata file %s has a nonstandard filesize %i bytes (expected %i bytes), has it been customized? \"sm_competitive_pause_mode 2\" may throw an error if the file is outdated.", filePath, fileSize, correctFileSize);
+			g_isGamedataOutdated = false;
+		}
+	}
+	// Filesize matches
+	else
+	{
+		g_isGamedataOutdated = false;
+	}
+}
+
+void PrintToAdmins(const String:message[], bool toChat = true, bool toConsole = false)
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+			continue;
+		
+		if (toChat)
+			PrintToChat(i, message);
+		
+		if (toConsole)
+			PrintToConsole(i, message);
+	}
 }
