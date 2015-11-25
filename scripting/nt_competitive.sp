@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.6.9"
+#define PLUGIN_VERSION "0.3.7.0"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -221,11 +221,24 @@ public Action:Command_RefereeMenu(client, args)
 	DrawPanelItem(panel, "Change round (does not work yet)");
 	
 	if (g_isLiveCountdown)
+	{
 		DrawPanelItem(panel, "Cancel live countdown");
+	}
 	else if (!g_isLive)
+	{
 		DrawPanelItem(panel, "Force live");
+	}
 	else
-		DrawPanelItem(panel, "Force end match");
+	{
+		if (!g_confirmLiveEnd)
+		{
+			DrawPanelItem(panel, "Force end match");
+		}
+		else
+		{
+			DrawPanelItem(panel, "Force end match (are you sure?)");
+		}
+	}
 	
 	DrawPanelItem(panel, "Load previous match (does not work yet)");
 	DrawPanelItem(panel, "Exit");
@@ -282,8 +295,20 @@ public Action:Command_ForceLive(client, args)
 	
 	else
 	{
-		PrintToChatAll("Match manually ended by an admin.");
-		ToggleLive();
+		if (!g_confirmLiveEnd)
+		{
+			PrintToChat(client, "%s Stopping a competitive match, are you sure?", g_tag);
+			PrintToChat(client, "Please repeat the command to confirm.");
+			g_confirmLiveEnd = true;
+			
+			CreateTimer(10.0, Timer_CancelLiveEndConfirmation); // Flip the bool back if force end isn't confirmed in 10 seconds
+		}
+		else
+		{
+			PrintToChatAll("Match manually ended by an admin.");
+			g_confirmLiveEnd = false;
+			ToggleLive();
+		}
 	}
 	
 	return Plugin_Handled;

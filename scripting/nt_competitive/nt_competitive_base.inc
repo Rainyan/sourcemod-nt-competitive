@@ -60,6 +60,7 @@ new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
 new bool:g_isEditingCvar[MAXPLAYERS+1];
+new bool:g_confirmLiveEnd;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -277,6 +278,11 @@ void LiveCountDown()
 public Action:Timer_GoLive(Handle:timer)
 {
 	ToggleLive();
+}
+
+public Action:Timer_CancelLiveEndConfirmation(Handle:timer)
+{
+	g_confirmLiveEnd = false;
 }
 
 void ToggleLive()
@@ -1037,6 +1043,7 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	g_isPaused					= correctBool;
 	g_isSourceTVRecording		= correctBool;
 	g_shouldPause				= correctBool;
+	g_confirmLiveEnd			= correctBool;
 	
 	for (i = 0; i <= MaxClients; i++)
 	{
