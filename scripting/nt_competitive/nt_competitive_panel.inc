@@ -69,7 +69,7 @@ public PanelHandler_UnPause(Handle:menu, MenuAction:action, client, choice)
 		
 		case 2: // Exit menu
 		{
-			PrecacheSound(g_menuSoundOk);
+			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
@@ -91,8 +91,110 @@ public PanelHandler_CancelPause(Handle:menu, MenuAction:action, client, choice)
 		
 		case 2: // Exit menu
 		{
-			PrecacheSound(g_menuSoundOk);
+			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
+		}
+	}
+}
+
+public PanelHandler_RefereeMenu_Main(Handle:menu, MenuAction:action, client, choice)
+{
+	if (action != MenuAction_Select)
+		return;
+	
+	switch (choice)
+	{
+		case 1: // Game information
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			RefereeMenu_GameInfo(client);
+		}
+		
+		case 2: // Penalties
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			RefereeMenu_Penalties(client);
+		}
+		
+		case 3: // Change round
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			RefereeMenu_ChangeRound(client);
+		}
+		
+		case 4: // Force toggle live
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			Command_ForceLive(client, 1); // Toggle live
+			Command_RefereeMenu(client, 1); // Return to the referee menu
+		}
+		
+		case 5: // Load previous match
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			RefereeMenu_LoadMatch(client);
+		}
+		
+		case 6: // Exit menu
+		{
+			PrecacheSound(g_menuSoundCancel);
+			EmitSoundToClient(client, g_menuSoundCancel);
+		}
+	}
+}
+
+public PanelHandler_RefereeMenu_GameInfo(Handle:menu, MenuAction:action, client, choice)
+{
+	if (action != MenuAction_Select)
+		return;
+	
+	switch (choice)
+	{
+		case 1: // Edit competition name
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			ChatCvarEdit(client, g_hCompetitionName);
+		}
+		
+		case 2: // Edit Jinrai name
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			ChatCvarEdit(client, g_hJinraiName);
+		}
+		
+		case 3: // Edit NSF name
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			ChatCvarEdit(client, g_hNSFName);
+		}
+		
+		case 4: // Edit max round count
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			ChatCvarEdit(client, g_hRoundLimit);
+		}
+		
+		case 5: // Edit max time-out pause count for teams
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			ChatCvarEdit(client, g_hMaxTimeouts);
+		}
+		
+		case 6: // Exit menu
+		{
+			PrecacheSound(g_menuSoundCancel);
+			EmitSoundToClient(client, g_menuSoundCancel);
+			Command_RefereeMenu(client, 1);
 		}
 	}
 }

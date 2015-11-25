@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.6.8"
+#define PLUGIN_VERSION "0.3.6.9"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -55,6 +55,9 @@ public OnPluginStart()
 	RegConsoleCmd("sm_readylist",	Command_ReadyList,			"List everyone who has or hasn't readied up.");
 	
 	RegConsoleCmd("jointeam",		Command_JoinTeam); // There's no pick team event for NT, so we do this instead
+	
+	RegAdminCmd("sm_ref",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel.");
+	RegAdminCmd("sm_referee",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel.");
 	
 	#if DEBUG
 		RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
@@ -206,6 +209,32 @@ public bool OnClientConnect(client)
 public OnClientDisconnect(client)
 {
 	g_isReady[client] = false;
+}
+
+public Action:Command_RefereeMenu(client, args)
+{
+	new Handle:panel = CreatePanel();
+	SetPanelTitle(panel, "Comp Admin Menu");
+	
+	DrawPanelItem(panel, "Game information");
+	DrawPanelItem(panel, "Penalties (does not work yet)");
+	DrawPanelItem(panel, "Change round (does not work yet)");
+	
+	if (g_isLiveCountdown)
+		DrawPanelItem(panel, "Cancel live countdown");
+	else if (!g_isLive)
+		DrawPanelItem(panel, "Force live");
+	else
+		DrawPanelItem(panel, "Force end match");
+	
+	DrawPanelItem(panel, "Load previous match (does not work yet)");
+	DrawPanelItem(panel, "Exit");
+	
+	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME);
+	
+	CloseHandle(panel);
+	
+	return Plugin_Handled;
 }
 
 public Action:Command_ResetPauseBool(client, args)

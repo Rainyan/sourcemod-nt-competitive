@@ -435,3 +435,62 @@ public Action:Hook_Fade(UserMsg:msg_id, Handle:bf, const players[], playersNum, 
 	
 	return Plugin_Continue;
 }
+
+public Action:SayCallback(client, const String:command[], argc)
+{
+	// This player is not editing a cvar via chat, let the chat message through normally.
+	if (!g_isEditingCvar[client])
+		return Plugin_Continue;
+	
+	new Handle:cvar = FindConVar(g_convarBeingEdited);
+	if (cvar == INVALID_HANDLE)
+	{
+		LogError("Attempted to edit an invalid cvar handle.");
+		PrintToChat(client, "%s Error editing the value. See error logs.", g_tag);
+		
+		RemoveCommandListener(SayCallback, "say");
+		RemoveCommandListener(SayCallback, "say_team");
+		
+		g_isEditingCvar[client] = false;
+		
+		RefereeMenu_GameInfo(client);
+		
+		return Plugin_Stop;
+	}
+	
+	decl String:message[256];
+	GetCmdArgString( message, sizeof(message) );
+	
+	StripQuotes(message);
+	TrimString(message);
+	
+	// Player wishes to cancel editing cvar via chat hook
+	if ( StrEqual(message, "cancel") )
+	{
+		PrintToChat(client, "%s Cancelled editing the value.", g_tag);
+	}
+	// Player wishes to empty a text var
+	// Todo: Run a default values config instead, so this works for all types of cvars without fancy tricks
+	else if ( StrEqual(message, "default") || strlen(message) < 1 || StrEqual(message, " ") )
+	{	
+		SetConVarString(cvar, "");
+		PrintToChat(client, "%s Reset the value back to defaults.", g_tag);
+	}
+	// Player entered a valid chat message, changing cvar value accordingly
+	else
+	{
+		SetConVarString(cvar, message);
+		PrintToChat(client, "%s Set the value of \"%s\" to \"%s\"", g_tag, g_convarBeingEdited, message);
+	}
+	
+	RemoveCommandListener(SayCallback, "say");
+	RemoveCommandListener(SayCallback, "say_team");
+	
+	CloseHandle(cvar);
+	
+	g_isEditingCvar[client] = false;
+	
+	RefereeMenu_GameInfo(client);
+	
+	return Plugin_Handled;
+}
