@@ -11,11 +11,13 @@ Features:
   - Handle dis/reconnecting players and teams
   - Pausing system.
   - Ready up system.
+  - Panel menus for admins
 
 To-do:
-  - Admin controls
+  - Panel menus for players
+  - Panel menus for casters
   - Log competitive matches (wins, kills, weapons used, etc)
-  - Panel menus for players/admins
+  - Ability to fall back to previous rounds using logs
 
 Compile dependencies:
   - <a target="_blank" href="https://github.com/bcserv/smlib/">SMLIB</a>
