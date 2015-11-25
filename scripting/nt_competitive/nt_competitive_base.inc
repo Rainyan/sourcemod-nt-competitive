@@ -24,6 +24,7 @@ new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new String:g_soundLive[] = "buttons/button17.wav";
 new String:g_kvPath[PLATFORM_MAX_PATH];
 new String:g_killInfoBuffer[MAXPLAYERS+1][512];
+new String:g_convarBeingEdited[128];
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
 new g_jinraiScore;
@@ -58,6 +59,7 @@ new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, n
 new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
+new bool:g_isEditingCvar[MAXPLAYERS+1];
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -82,6 +84,15 @@ new Handle:g_hVerbosityDelay;
 
 new Handle:g_hTimer_LiveCountdown = INVALID_HANDLE;
 new Handle:g_hTimer_GoLive = INVALID_HANDLE;
+
+enum {
+	CVAR_NONE = 0,
+	CVAR_COMPETITION_NAME,
+	CVAR_JINRAI_NAME,
+	CVAR_NSF_NAME,
+	CVAR_MAX_ROUNDS,
+	CVAR_PAUSE_AMOUNT
+};
 
 void CheckIfEveryoneIsReady()
 {	
@@ -1048,4 +1059,133 @@ void ShowKillInfoNextRound(client, const String:message[])
 	
 	strcopy(g_killInfoBuffer[client], sizeof(g_killInfoBuffer), message);
 	g_shouldShowKillInfo[client] = true;
+}
+
+void RefereeMenu_GameInfo(client)
+{
+	if ( !Client_IsValid(client) )
+		return;
+	
+	new Handle:panel = CreatePanel();
+	
+	SetPanelTitle(panel, "Game Information");
+	DrawPanelText(panel, " ");
+	
+	// Show the live status
+	if (g_isLiveCountdown)
+		DrawPanelText(panel, "Live: COUNTDOWN...");
+	else if (g_isLive)
+		DrawPanelText(panel, "Live: LIVE");
+	else
+		DrawPanelText(panel, "Live: NOT LIVE");
+	
+	// Show the current competition name
+	decl String:competitionName_Cvar[64];
+	GetConVarString( g_hCompetitionName, competitionName_Cvar, sizeof(competitionName_Cvar) );
+	
+	if (strlen(competitionName_Cvar) < 1) // If no competition name set, use the generic "Competitive Neotokyo" name instead
+		strcopy(competitionName_Cvar, sizeof(competitionName_Cvar), "Competitive Neotokyo");
+	
+	decl String:competitionName[128];
+	Format( competitionName, sizeof(competitionName), "Competition name: %s", competitionName_Cvar );
+	DrawPanelItem(panel, competitionName);
+	
+	// Show the current Jinrai name
+	decl String:jinraiName_Cvar[64];
+	GetConVarString( g_hJinraiName, jinraiName_Cvar, sizeof(jinraiName_Cvar) );
+	
+	if (strlen(jinraiName_Cvar) < 1) // Use default Jinrai name "Jinrai" if none is set
+		strcopy(jinraiName_Cvar, sizeof(jinraiName_Cvar), "Jinrai");
+	
+	decl String:jinraiName[128];
+	Format(jinraiName, sizeof(jinraiName), "Jinrai name: %s", jinraiName_Cvar);
+	DrawPanelItem(panel, jinraiName);
+	
+	// Show the current NSF name
+	decl String:nsfName_Cvar[64];
+	GetConVarString( g_hNSFName, nsfName_Cvar, sizeof(nsfName_Cvar) );
+	
+	if (strlen(nsfName_Cvar) < 1) // Use default NSF name "NSF" if none is set
+		strcopy(nsfName_Cvar, sizeof(nsfName_Cvar), "NSF");
+	
+	decl String:nsfName[128];
+	Format(nsfName, sizeof(nsfName), "NSF name: %s", nsfName_Cvar);
+	DrawPanelItem(panel, nsfName);
+	
+	// Show how many rounds are played
+	decl String:boRounds[128];
+	Format( boRounds, sizeof(boRounds), "Best of %i rounds", GetConVarInt(g_hRoundLimit) );
+	DrawPanelItem(panel, boRounds);
+	
+	// Show how many (time-out) pauses are allowed per team per map
+	decl String:pauseAmount[128];
+	Format( pauseAmount, sizeof(pauseAmount), "Pausing: %i time-outs allowed per team per map.", GetConVarInt(g_hMaxTimeouts) );
+	DrawPanelItem(panel, pauseAmount);
+	
+	// Go back to previous menu
+	DrawPanelItem(panel, "Back");
+	
+	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_GameInfo, MENU_TIME);
+	
+	CloseHandle(panel);
+}
+
+// Todo: add functionality
+void RefereeMenu_Penalties(client)
+{
+	PrintToChat(client, "The goggles, they do nothing!");
+	Command_RefereeMenu(client, 1);
+}
+// Todo: add functionality
+void RefereeMenu_ChangeRound(client)
+{
+	PrintToChat(client, "The goggles, they do nothing!");
+	Command_RefereeMenu(client, 1);
+}
+// Todo: add functionality
+void RefereeMenu_LoadMatch(client)
+{
+	PrintToChat(client, "The goggles, they do nothing!");
+	Command_RefereeMenu(client, 1);
+}
+
+void ChatCvarEdit(client, Handle:cvar)
+{
+	if (cvar == INVALID_HANDLE)
+	{
+		LogError("Attempted to edit an invalid cvar handle.");
+		return;
+	}
+	
+	if ( !Client_IsValid(client) )
+		return;
+	
+	for (new i = 0; i <= MaxClients; i++)
+	{
+		if (g_isEditingCvar[i])
+		{
+			if ( !Client_IsValid(i) )
+			{
+				LogError("Invalid client with g_isEditingCvar bool as true.");
+				PrintToChat(client, "%s Error editing cvar via chat. Check error logs for more info.", g_tag);
+				return;
+			}
+			
+			decl String:clientName[MAX_NAME_LENGTH];
+			GetClientName(i, clientName, sizeof(clientName));
+			
+			PrintToChat(client, "%s \"%s\" is already editing a cvar via chat. Please wait.", g_tag, clientName);
+			return;
+		}
+	}
+	
+	g_isEditingCvar[client] = true;
+	GetConVarName( cvar, g_convarBeingEdited, sizeof(g_convarBeingEdited) );
+	
+	AddCommandListener(SayCallback, "say");
+	AddCommandListener(SayCallback, "say_team");
+	
+	PrintToChat(client, "%s Please enter a new value in the chat.", g_tag);
+	PrintToChat(client, "To cancel this action, type \"cancel\".");
+	PrintToChat(client, "For text values, you can also type \"default\" to revert the changes.");
 }
