@@ -3,6 +3,9 @@ sourcemod-nt-competitive
 
 SourceMod plugin for competitive Neotokyo. WIP.
 
+The main module should already work.
+The overlay and matchmaking modules are experimental and may not work properly.
+
 Features:
   - Automatic demo recording.
   - Automatic SourceTV recording
