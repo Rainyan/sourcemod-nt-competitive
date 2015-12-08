@@ -88,7 +88,8 @@ public Action:Event_PlayerHurt(Handle:event, const String:name[], bool:dontBroad
 
 public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	for (new i = 1; i <= MaxClients; i++)
+	new i;
+	for (i = 1; i <= MaxClients; i++)
 	{
 		g_isSpawned[i] = false;
 		g_health[i] = 100;
@@ -104,15 +105,28 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		g_shouldShowKillInfo[i] = false;
 	}
 	
+	// We're not live, just stop here
 	if (!g_isLive)
 		return Plugin_Continue;
 	
-	g_fRoundTime	= GetGameTime();
+	// We're live but inside a pause, stop here
+	if (g_isLive && g_isPaused)
+		return Plugin_Continue;
 	
+	g_fRoundTime	= GetGameTime();
 	g_roundCount++;
 	
 	g_jinraiScore	= GetTeamScore(TEAM_JINRAI);
 	g_nsfScore		= GetTeamScore(TEAM_NSF);
+	
+	for (i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || IsFakeClient(i) )
+			continue;
+		
+		g_playerDeaths[i][g_roundCount]	= GetEntProp(i, Prop_Data, "m_iDeaths");	// Save everyone's death count for this round
+		g_playerXP[i][g_roundCount]		= GetEntProp(i, Prop_Data, "m_iFrags");	// Save everyone's XP for this round
+	}
 	
 	ResetPlayersAlive(); // Reset global count of living players. Used for kill feeds etc
 	

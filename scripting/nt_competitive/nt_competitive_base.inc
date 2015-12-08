@@ -10,6 +10,7 @@
 #define REASON_TIMEOUT 1
 
 #define MAX_STEAMID_LENGTH 44
+#define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
 
 new String:g_tag[] = "[COMP]";
 new String:g_teamName[][64] = {
@@ -42,6 +43,8 @@ new g_playersAlive[sizeof(g_teamName)];
 new g_winner;
 new g_health[MAXPLAYERS+1];
 new g_damageDealt[MAXPLAYERS+1][MAXPLAYERS+1];
+new g_playerDeaths[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];	// Players' deaths for each round
+new g_playerXP[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];		// Players' XP for each round
 
 new Float:g_fRoundTime;
 
@@ -488,15 +491,44 @@ void TogglePause()
 		// Stop game's round timer instead of a regular pause. This should be less glitchy overall.
 		case PAUSEMODE_STOP_CLOCK:
 		{
-			if (g_isGamedataOutdated) // Neotokyo gamedata seems outdated, GameRules_SetPropFloat probably wouldn't work. Todo: Notify about this problem within !pause
-				return;
+			// Server's Neotokyo gamedata is outdated, GameRules_SetPropFloat probably wouldn't work.
+			// We have to switch pause modes to avoid running into errors.
+			if (g_isGamedataOutdated)
+			{
+				SetConVarInt(g_hPauseMode, PAUSEMODE_NORMAL); // Use the in-engine "normal" pause instead of PAUSEMODE_STOP_CLOCK
+				
+				g_isPaused = !g_isPaused; // Flip the bool again, because...
+				TogglePause(); // ... we're going to call ourselves to land on the right pause mode! There's probably more elegant ways to achieve this, but oh well.
+				return; // Stop here
+			}
 			
-			// Todo: Go back to normal rounds on unpause (neo_round_timelimit).
-			// Save player XP/deaths/rank so they can be recovered when unpausing.
-			// Do a "double restart" so spawn zone remains what it was before pausing.
-			GameRules_SetPropFloat("m_fRoundTimeLeft", 0.0);
+			// TODO: Save player XP/deaths/rank/round number so they can be recovered when unpausing. This should probably be done automatically each live round.
+			// TODO 2: Do a "double restart" so spawn zone remains what it was before pausing.
+			GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Set round time to zero. This instantly ends current round and rings the tie/win music, which works to alert players about upcoming pause.
+			CreateTimer(5.0, Timer_EnterPauseRound); // Wait 5 seconds before initiating pause, so players have time to read chat info about what's going on
+			
+			CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause_New); // Todo: combine to current timer instead of this vague name
 		}
 	}
+}
+
+// Temp separate unpause timer for the fancy pause mode. This should be combined to the same unpause timer eventually.
+public Action:Timer_Unpause_New(Handle:timer)
+{
+	GameRules_SetProp("m_iGameState", 2); // Back to action
+	ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
+	
+	RestorePlayerScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
+}
+
+public Action:Timer_EnterPauseRound(Handle:timer)
+{
+	GameRules_SetProp("m_iGameState", 1); // 1 is round preparation coundown / waiting for players. 2 is round in progress
+	GameRules_SetPropFloat( "m_fRoundTimeLeft", GetConVarFloat(g_hMaxPauseLength) ); // Pause round uses max pause length roundtime
+	
+	PrintToChatAll("GAME IS PAUSED");
+	PrintToChatAll("GAME IS PAUSED");
+	PrintToChatAll("GAME IS PAUSED");
 }
 
 #if DEBUG
@@ -760,6 +792,7 @@ void InitDirectory(const String:sDir[])
 	}
 }
 
+// todo: check for redundant code in this
 void ToggleSourceTV()
 {
 	if (g_isSourceTVRecording)
@@ -817,7 +850,7 @@ void ToggleSourceTV()
 		}
 		replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
 		
-		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
+		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitization
 		strcopy(replayName, sizeof(replayName), replayBuffer);
 		
 		ServerCommand("tv_stoprecord"); // Stop any previous server record
@@ -830,13 +863,14 @@ void ToggleSourceTV()
 	}
 }
 
-// This doesn't work when the game is paused. Come up with some alternative?
+// This won't play a sound if used during an engine pause
 void PlayLiveBeep()
 {
-	new Float:volume = 0.5; // Volume between 0.0 - 1.0
+	new Float:volume	= 0.5;	// Volume between 0.0 - 1.0 (original volume is 1.0)
+	new pitch				= 200;	// Pitch between 0 - 255 (original pitch is 100)
 	
 	PrecacheSound(g_soundLive);
-	EmitSoundToAll(g_soundLive, _, _, _, _, volume);
+	EmitSoundToAll(g_soundLive, _, _, _, _, volume, pitch);
 }
 
 
@@ -932,22 +966,18 @@ int GetDesiredCommsBehaviour()
 }
 
 int GetOtherTeam(team)
-{
-	new otherTeam;
-	
+{	
 	if (team == TEAM_JINRAI)
-		otherTeam = TEAM_NSF;
+		return TEAM_NSF;
 	
 	else if (team == TEAM_NSF)
-		otherTeam = TEAM_JINRAI;
+		return TEAM_JINRAI;
 	
 	else
 	{
 		LogError("Requested other team for invalid team (%i), returning -1 instead.");
-		otherTeam = -1;
+		return -1;
 	}
-	
-	return otherTeam;
 }
 
 void LogCompetitive(const String:message[])
@@ -972,7 +1002,7 @@ void PrintToConsoleAll(const String:message[])
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i))
+		if ( !Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 		
 		PrintToConsole(i, message);
@@ -1162,5 +1192,29 @@ void PrintToAdmins(const String:message[], bool toChat = true, bool toConsole = 
 		
 		if (toConsole)
 			PrintToConsole(i, message);
+	}
+}
+
+void RestorePlayerScore()
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || IsFakeClient(i) )
+			continue;
+		
+		SetEntProp(i, Prop_Send, "m_iDeaths", g_playerDeaths[i][g_roundCount]); // Restore deaths
+		SetEntProp(i, Prop_Send, "m_iFrags", g_playerXP[i][g_roundCount]); // Restore XP
+		
+		// We have to manually restore rank based on XP, so weapons selection won't glitch out
+		if (g_playerXP[i][g_roundCount] < 0)
+			SetEntProp(i, Prop_Send, "m_iRank", 0); // Rankless dog
+		else if (g_playerXP[i][g_roundCount] < 5)
+			SetEntProp(i, Prop_Send, "m_iRank", 1); // Private
+		else if (g_playerXP[i][g_roundCount] < 10)
+			SetEntProp(i, Prop_Send, "m_iRank", 2); // Corporal
+		else if (g_playerXP[i][g_roundCount] < 20)
+			SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
+		else
+			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
 	}
 }
