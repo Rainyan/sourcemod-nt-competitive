@@ -69,7 +69,7 @@ public PanelHandler_UnPause(Handle:menu, MenuAction:action, client, choice)
 		
 		case 2: // Exit menu
 		{
-			PrecacheSound(g_menuSoundOk);
+			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
@@ -91,7 +91,7 @@ public PanelHandler_CancelPause(Handle:menu, MenuAction:action, client, choice)
 		
 		case 2: // Exit menu
 		{
-			PrecacheSound(g_menuSoundOk);
+			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
