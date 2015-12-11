@@ -89,7 +89,7 @@ new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
 new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
-new Handle:g_hTimer_UnPause_Halfway		= INVALID_HANDLE;
+new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
 
 enum {
 	PAUSEMODE_FORBIDDEN = 0,
@@ -434,42 +434,7 @@ void NeoRestartThis()
 }
 
 void TogglePause()
-{
-	// TODO: Make sure this actually works, both with valid and invalid handles!
-	KillTimer_Safe(g_hTimer_UnPause);
-	KillTimer_Safe(g_hTimer_UnPause_Countdown);
-	KillTimer_Safe(g_hTimer_UnPause_Halfway);
-	
-	/*
-	// Kill any previous unpause timer handles
-	if (g_hTimer_UnPause != INVALID_HANDLE)
-	{
-		KillTimer(g_hTimer_UnPause);
-		g_hTimer_UnPause = INVALID_HANDLE;
-		
-		if (g_hTimer_UnPause != INVALID_HANDLE)
-			LogError("Failed killing handle g_hTimer_UnPause");
-	}
-	
-	if (g_hTimer_UnPause_Countdown != INVALID_HANDLE)
-	{
-		KillTimer(g_hTimer_UnPause_Countdown);
-		g_hTimer_UnPause_Countdown = INVALID_HANDLE;
-		
-		if (g_hTimer_UnPause_Countdown != INVALID_HANDLE)
-			LogError("Failed killing handle g_hTimer_UnPause_Countdown");
-	}
-	
-	if (g_hTimer_UnPause_Halfway != INVALID_HANDLE)
-	{
-		KillTimer(g_hTimer_UnPause_Halfway);
-		g_hTimer_UnPause_Halfway = INVALID_HANDLE;
-		
-		if (g_hTimer_UnPause_Halfway != INVALID_HANDLE)
-			LogError("Failed killing handle g_hTimer_UnPause_Halfway");
-	}
-	*/
-	
+{	
 	// No pausing allowed. Todo: Do this check in !pause instead, and just error check here instead
 	if ( GetConVarInt(g_hPauseMode) == PAUSEMODE_FORBIDDEN )
 		return;
@@ -496,16 +461,19 @@ void TogglePause()
 				g_isExpectingUnPauseTimer = true;
 				
 				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
-				PrintToChatAll("%s Use !pause when ready.", g_tag);
+				PrintToChatAll("%s Use !unpause when ready.", g_tag);
 				
 				#if DEBUG > 1
 					PrintToServer( "%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
 				#endif
 				
+				// Close any previous unpause timer handles
+				KillTimers_UnPause();
+				
 				g_hTimer_UnPause = CreateTimer( (1.0 + GetConVarFloat(g_hMaxPauseLength) ), Timer_Unpause ); // Add 1 second to timer for messages to appear in correct order during countdown
 				
 				if ( (GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0 ) // Don't bother with "half of pause time remaining" notice when there's less than 10 secs remaining
-					g_hTimer_UnPause_Halfway = CreateTimer( (GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half );
+					g_hTimer_UnPause_HalfLeft = CreateTimer( (GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half );
 				
 				g_hTimer_UnPause_Countdown = CreateTimer( (GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer) ), Timer_StartTenSecondsLeft );
 			}
@@ -513,16 +481,16 @@ void TogglePause()
 			// Unpause
 			else
 			{
-				// Close any open unpause timer, countdown timer, and half countdown timer handles below
 				if (!g_isExpectingUnPauseTimer)
 					LogError("Unpause timer executed unexpectedly.");
 				
 				g_isExpectingUnPauseTimer = false;
 				
 				if (g_isLive) // Only announce the unpause if a match is still going
-				{
 					SpamTimer();
-				}
+				
+				g_isTeamReadyForUnPause[TEAM_JINRAI] = false;
+				g_isTeamReadyForUnPause[TEAM_NSF] = false;
 			}
 			
 			SetConVarBool(g_hPausable, true);
@@ -546,23 +514,68 @@ void TogglePause()
 			
 			// Pause
 			if (g_isPaused)
-			{
-				// TODO: Save player XP/deaths/rank/round number so they can be recovered when unpausing. This should probably be done automatically each live round.
-				// TODO 2: Do a "double restart" so spawn zone remains what it was before pausing.
-				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Set round time to zero. This instantly ends current round and rings the tie/win music, which works to alert players about upcoming pause.
-				CreateTimer(5.0, Timer_EnterPauseRound); // Wait 5 seconds before initiating pause, so players have time to read chat info about what's going on
+			{	
+				g_isExpectingUnPauseTimer = true;
 				
-				g_hTimer_UnPause = CreateTimer( (1.0 + GetConVarFloat(g_hMaxPauseLength) ), Timer_Unpause );
+				// TODO: Do a "double restart" so spawn zone remains what it was before pausing.
+				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Set round time to zero. This instantly ends current round and rings the tie/win music, which works to alert players about upcoming pause.
+				
+				new Float:transitionTime = 5.0;
+				
+				// Wait slightly before initiating pause, so players have time to read chat info about what's going on
+				CreateTimer(transitionTime, Timer_EnterPauseRound); 
+				
+				// Close any previous unpause timer handles
+				KillTimers_UnPause();
+				
+				// Create the unpause timer
+				g_hTimer_UnPause = CreateTimer( (transitionTime + GetConVarFloat(g_hMaxPauseLength) ), Timer_Unpause );
+				
+				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
+				PrintToChatAll("%s Use !unpause when ready.", g_tag);
 			}
+			
 			// Unpause
 			else
-			{
+			{	
+				if (!g_isExpectingUnPauseTimer)
+					LogError("Unpause timer executed unexpectedly.");
+				
+				g_isExpectingUnPauseTimer = false;
+				
 				GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL); // Back to action
 				ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
 				
 				RestorePlayerScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
+				
+				g_isTeamReadyForUnPause[TEAM_JINRAI] = false;
+				g_isTeamReadyForUnPause[TEAM_NSF] = false;
+				
+				if (g_isLive) // Only announce the unpause if a match is still going
+					SpamTimer();
 			}
 		}
+	}
+}
+
+void KillTimers_UnPause()
+{
+	if (g_hTimer_UnPause != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_UnPause);
+		g_hTimer_UnPause = INVALID_HANDLE;
+	}
+	
+	if (g_hTimer_UnPause_Countdown != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_UnPause_Countdown);
+		g_hTimer_UnPause_Countdown = INVALID_HANDLE;
+	}
+	
+	if (g_hTimer_UnPause_HalfLeft != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_UnPause_HalfLeft);
+		g_hTimer_UnPause_HalfLeft = INVALID_HANDLE;
 	}
 }
 
@@ -758,10 +771,15 @@ void SpamTimer()
 
 public Action:Timer_Unpause(Handle:timer)
 {
-	PrintToChatAll("%s Maximum pause time has ended!", g_tag);
-	TogglePause();
+	if (g_isPaused)
+	{
+		PrintToChatAll("%s Maximum pause time has ended!", g_tag);
+		TogglePause();
+	}
 	
-	return Plugin_Stop;
+	g_hTimer_UnPause = INVALID_HANDLE;
+	
+	return Plugin_Handled;
 }
 
 public Action:Timer_UnpauseNotice_Half(Handle:timer)
@@ -773,14 +791,19 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 		return Plugin_Continue;
 	}
 	
-	return Plugin_Stop;
+	g_hTimer_UnPause_HalfLeft = INVALID_HANDLE;
+	
+	return Plugin_Handled;
 }
 
 public Action:Timer_StartTenSecondsLeft(Handle:timer)
 {
-	CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	if (g_isPaused)
+		CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 	
-	return Plugin_Stop;
+	g_hTimer_UnPause_Countdown = INVALID_HANDLE;
+	
+	return Plugin_Handled;
 }
 
 public Action:Timer_Live_SecondsCountdown(Handle:timer)
@@ -908,7 +931,7 @@ void ToggleSourceTV()
 void PlayLiveBeep()
 {
 	new Float:volume	= 0.5;	// Volume between 0.0 - 1.0 (original volume is 1.0)
-	new pitch				= 200;	// Pitch between 0 - 255 (original pitch is 100)
+	new pitch				= 175;	// Pitch between 0 - 255 (original pitch is 100)
 	
 	PrecacheSound(g_soundLive);
 	EmitSoundToAll(g_soundLive, _, _, _, _, volume, pitch);
@@ -1247,8 +1270,8 @@ void RestorePlayerScore()
 		if ( !Client_IsValid(i) || IsFakeClient(i) )
 			continue;
 		
-		SetEntProp(i, Prop_Send, "m_iDeaths", g_playerDeaths[i][g_roundNumber]); // Restore deaths
-		SetEntProp(i, Prop_Send, "m_iFrags", g_playerXP[i][g_roundNumber]); // Restore XP
+		SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][g_roundNumber]); // Restore deaths
+		SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][g_roundNumber]); // Restore XP
 		
 		// We have to manually restore rank based on XP, so weapons selection won't glitch out
 		if (g_playerXP[i][g_roundNumber] < 0)
@@ -1261,18 +1284,5 @@ void RestorePlayerScore()
 			SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
 		else
 			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
-	}
-}
-
-void KillTimer_Safe(Handle:timer)
-{
-	// Kill an open timer handle, and log error on failure
-	if (timer != INVALID_HANDLE)
-	{
-		KillTimer(timer);
-		timer = INVALID_HANDLE;
-		
-		if (timer != INVALID_HANDLE)
-			LogError("Failed to close timer handle %s", timer);
 	}
 }
