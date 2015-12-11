@@ -517,7 +517,6 @@ void TogglePause()
 			{	
 				g_isExpectingUnPauseTimer = true;
 				
-				// TODO: Do a "double restart" so spawn zone remains what it was before pausing.
 				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Set round time to zero. This instantly ends current round and rings the tie/win music, which works to alert players about upcoming pause.
 				
 				new Float:transitionTime = 5.0;
@@ -544,7 +543,9 @@ void TogglePause()
 				g_isExpectingUnPauseTimer = false;
 				
 				GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL); // Back to action
+				
 				ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
+				CreateTimer(1.0, Timer_NeoRestartThis); // Second restart so we continue from the same spawns as before pausing. Need a slight delay between these two.
 				
 				RestorePlayerScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
 				
@@ -556,6 +557,11 @@ void TogglePause()
 			}
 		}
 	}
+}
+
+public Action:Timer_NeoRestartThis(Handle:timer)
+{
+	ServerCommand("neo_restart_this 1");
 }
 
 void KillTimers_UnPause()
