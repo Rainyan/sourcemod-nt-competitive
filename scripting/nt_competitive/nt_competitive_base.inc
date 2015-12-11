@@ -85,8 +85,11 @@ new Handle:g_hLimitTeams;
 new Handle:g_hVerbosityDelay;
 new Handle:g_hPauseMode;
 
-new Handle:g_hTimer_LiveCountdown = INVALID_HANDLE;
-new Handle:g_hTimer_GoLive = INVALID_HANDLE;
+new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
+new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
+new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
+new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
+new Handle:g_hTimer_UnPause_Halfway		= INVALID_HANDLE;
 
 enum {
 	PAUSEMODE_FORBIDDEN = 0,
@@ -427,11 +430,46 @@ void NeoRestartThis()
 
 void TogglePause()
 {
+	// TODO: Make sure this actually works, both with valid and invalid handles!
+	KillTimer_Safe(g_hTimer_UnPause);
+	KillTimer_Safe(g_hTimer_UnPause_Countdown);
+	KillTimer_Safe(g_hTimer_UnPause_Halfway);
+	
+	/*
+	// Kill any previous unpause timer handles
+	if (g_hTimer_UnPause != INVALID_HANDLE)
+	{
+		KillTimer(g_hTimer_UnPause);
+		g_hTimer_UnPause = INVALID_HANDLE;
+		
+		if (g_hTimer_UnPause != INVALID_HANDLE)
+			LogError("Failed killing handle g_hTimer_UnPause");
+	}
+	
+	if (g_hTimer_UnPause_Countdown != INVALID_HANDLE)
+	{
+		KillTimer(g_hTimer_UnPause_Countdown);
+		g_hTimer_UnPause_Countdown = INVALID_HANDLE;
+		
+		if (g_hTimer_UnPause_Countdown != INVALID_HANDLE)
+			LogError("Failed killing handle g_hTimer_UnPause_Countdown");
+	}
+	
+	if (g_hTimer_UnPause_Halfway != INVALID_HANDLE)
+	{
+		KillTimer(g_hTimer_UnPause_Halfway);
+		g_hTimer_UnPause_Halfway = INVALID_HANDLE;
+		
+		if (g_hTimer_UnPause_Halfway != INVALID_HANDLE)
+			LogError("Failed killing handle g_hTimer_UnPause_Halfway");
+	}
+	*/
+	
 	// No pausing allowed. Todo: Do this check in !pause instead, and just error check here instead
 	if ( GetConVarInt(g_hPauseMode) == PAUSEMODE_FORBIDDEN )
 		return;
 	
-	g_isPaused = !g_isPaused;
+	g_isPaused = !g_isPaused; // Flip pause bool
 	
 	switch ( GetConVarInt(g_hPauseMode) )
 	{
@@ -459,12 +497,12 @@ void TogglePause()
 					PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
 				#endif
 				
-				CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
+				g_hTimer_UnPause = CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
 				
-				if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
-					CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
+				if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice when there's less than 10 secs remaining
+					g_hTimer_UnPause_Halfway = CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
 				
-				CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
+				g_hTimer_UnPause_Countdown = CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
 			}
 			
 			// Unpause
@@ -474,7 +512,6 @@ void TogglePause()
 				if (!g_isExpectingUnPauseTimer)
 					LogError("Unpause timer executed unexpectedly.");
 				
-				g_isPaused = false;
 				g_isExpectingUnPauseTimer = false;
 				
 				if (g_isLive) // Only announce the unpause if a match is still going
@@ -490,7 +527,7 @@ void TogglePause()
 		
 		// Stop game's round timer instead of a regular pause. This should be less glitchy overall.
 		case PAUSEMODE_STOP_CLOCK:
-		{
+		{	
 			// Server's Neotokyo gamedata is outdated, GameRules_SetPropFloat probably wouldn't work.
 			// We have to switch pause modes to avoid running into errors.
 			if (g_isGamedataOutdated)
@@ -502,23 +539,26 @@ void TogglePause()
 				return; // Stop here
 			}
 			
-			// TODO: Save player XP/deaths/rank/round number so they can be recovered when unpausing. This should probably be done automatically each live round.
-			// TODO 2: Do a "double restart" so spawn zone remains what it was before pausing.
-			GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Set round time to zero. This instantly ends current round and rings the tie/win music, which works to alert players about upcoming pause.
-			CreateTimer(5.0, Timer_EnterPauseRound); // Wait 5 seconds before initiating pause, so players have time to read chat info about what's going on
-			
-			CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause_New); // Todo: combine to current timer instead of this vague name
+			// Pause
+			if (g_isPaused)
+			{
+				// TODO: Save player XP/deaths/rank/round number so they can be recovered when unpausing. This should probably be done automatically each live round.
+				// TODO 2: Do a "double restart" so spawn zone remains what it was before pausing.
+				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Set round time to zero. This instantly ends current round and rings the tie/win music, which works to alert players about upcoming pause.
+				CreateTimer(5.0, Timer_EnterPauseRound); // Wait 5 seconds before initiating pause, so players have time to read chat info about what's going on
+				
+				g_hTimer_UnPause = CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause);
+			}
+			// Unpause
+			else
+			{
+				GameRules_SetProp("m_iGameState", 2); // Back to action
+				ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
+				
+				RestorePlayerScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
+			}
 		}
 	}
-}
-
-// Temp separate unpause timer for the fancy pause mode. This should be combined to the same unpause timer eventually.
-public Action:Timer_Unpause_New(Handle:timer)
-{
-	GameRules_SetProp("m_iGameState", 2); // Back to action
-	ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
-	
-	RestorePlayerScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
 }
 
 public Action:Timer_EnterPauseRound(Handle:timer)
@@ -712,15 +752,10 @@ void SpamTimer()
 
 public Action:Timer_Unpause(Handle:timer)
 {
-	if (g_isPaused)
-	{
-		PrintToChatAll("%s Maximum pause time has ended!", g_tag);
-		TogglePause();
-		
-		return Plugin_Stop;
-	}
+	PrintToChatAll("%s Maximum pause time has ended!", g_tag);
+	TogglePause();
 	
-	return Plugin_Continue;
+	return Plugin_Stop;
 }
 
 public Action:Timer_UnpauseNotice_Half(Handle:timer)
@@ -1139,7 +1174,7 @@ void ShowKillInfoNextRound(client, const String:message[])
 // Make sure Neotokyo gamedata file is up to date, as some of the plugin features require it.
 void CheckGamedataFiles()
 {
-	decl String:gamedataUrl[] = "https://github.com/alliedmodders/sourcemod/tree/master/gamedata"; // URL for the latest NT gamedata version
+	new String:gamedataUrl[] = "https://github.com/alliedmodders/sourcemod/tree/master/gamedata"; // URL for the latest NT gamedata version
 	
 	decl String:filePath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, filePath, sizeof(filePath), "gamedata/sdktools.games/game.neotokyo.txt"); // Gamedata file path
@@ -1166,7 +1201,7 @@ void CheckGamedataFiles()
 			LogError("Neotokyo gamedata file %s has mismatching filesize %i bytes (expected %i bytes), it's most likely outdated. \"sm_competitive_pause_mode 2\" is unavailable because of this. See %s for the latest gamedata version.", filePath, fileSize, correctFileSize, gamedataUrl);
 			g_isGamedataOutdated = true;
 		}
-		// Unknown file version. Notify server, but don't treat as error.
+		// Unknown file version. Notify server, but don't treat as an error.
 		else
 		{
 			PrintToServer("%s Note: Neotokyo gamedata file %s has a nonstandard filesize %i bytes (expected %i bytes), has it been customized? \"sm_competitive_pause_mode 2\" may throw an error if the file is outdated.", filePath, fileSize, correctFileSize);
@@ -1216,5 +1251,18 @@ void RestorePlayerScore()
 			SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
 		else
 			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
+	}
+}
+
+void KillTimer_Safe(Handle:timer)
+{
+	// Kill an open timer handle, and log error on failure
+	if (timer != INVALID_HANDLE)
+	{
+		KillTimer(timer);
+		timer = INVALID_HANDLE;
+		
+		if (timer != INVALID_HANDLE)
+			LogError("Failed to close timer handle %s", timer);
 	}
 }
