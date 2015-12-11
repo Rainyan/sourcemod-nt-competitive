@@ -27,14 +27,14 @@ new String:g_kvPath[PLATFORM_MAX_PATH];
 new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
-new g_jinraiScore;
+new g_jinraiScore[MAX_ROUNDS_PLAYED];
 new g_liveTimer = 5;
 new g_liveTimer_OriginalValue;
 new g_loggingEnabled;
-new g_nsfScore;
+new g_nsfScore[MAX_ROUNDS_PLAYED];
 new g_pausingReason;
 new g_pausingTeam;
-new g_roundCount;
+new g_roundNumber;
 new g_spamTimerCount;
 new g_unpauseTimer = 10;
 new g_unpauseTimer_OriginalValue;
@@ -1117,9 +1117,13 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	// Reset global integers
 	new correctInt = 0; // Desired value
 	
-	g_jinraiScore					= correctInt;
-	g_nsfScore						= correctInt;
-	g_roundCount					= correctInt;
+	g_roundNumber = correctInt;
+	
+	for (i = 0; i < MAX_ROUNDS_PLAYED; i++)
+	{
+		g_jinraiScore[i]	= correctInt;
+		g_nsfScore[i]		= correctInt;
+	}
 	
 	for (i = 0; i < sizeof(g_usedTimeouts); i++)
 	{
@@ -1243,17 +1247,17 @@ void RestorePlayerScore()
 		if ( !Client_IsValid(i) || IsFakeClient(i) )
 			continue;
 		
-		SetEntProp(i, Prop_Send, "m_iDeaths", g_playerDeaths[i][g_roundCount]); // Restore deaths
-		SetEntProp(i, Prop_Send, "m_iFrags", g_playerXP[i][g_roundCount]); // Restore XP
+		SetEntProp(i, Prop_Send, "m_iDeaths", g_playerDeaths[i][g_roundNumber]); // Restore deaths
+		SetEntProp(i, Prop_Send, "m_iFrags", g_playerXP[i][g_roundNumber]); // Restore XP
 		
 		// We have to manually restore rank based on XP, so weapons selection won't glitch out
-		if (g_playerXP[i][g_roundCount] < 0)
+		if (g_playerXP[i][g_roundNumber] < 0)
 			SetEntProp(i, Prop_Send, "m_iRank", 0); // Rankless dog
-		else if (g_playerXP[i][g_roundCount] < 5)
+		else if (g_playerXP[i][g_roundNumber] < 5)
 			SetEntProp(i, Prop_Send, "m_iRank", 1); // Private
-		else if (g_playerXP[i][g_roundCount] < 10)
+		else if (g_playerXP[i][g_roundNumber] < 10)
 			SetEntProp(i, Prop_Send, "m_iRank", 2); // Corporal
-		else if (g_playerXP[i][g_roundCount] < 20)
+		else if (g_playerXP[i][g_roundNumber] < 20)
 			SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
 		else
 			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant

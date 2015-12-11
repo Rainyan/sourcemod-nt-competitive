@@ -136,7 +136,7 @@ public OnPluginStart()
 
 public OnMapStart()
 {
-	g_roundCount = 0;
+	g_roundNumber = 0;
 	
 	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
@@ -652,10 +652,10 @@ public Competitive_GetTeamScore(Handle:plugin, numParams)
 	new team = GetNativeCell(1);
 	
 	if (team == TEAM_JINRAI)
-		return g_jinraiScore;
+		return g_jinraiScore[g_roundNumber];
 	
 	else if (team == TEAM_NSF)
-		return g_nsfScore;
+		return g_nsfScore[g_roundNumber];
 	
 	return -1;
 }
