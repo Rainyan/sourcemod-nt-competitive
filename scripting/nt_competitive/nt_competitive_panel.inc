@@ -92,6 +92,7 @@ public PanelHandler_CancelPause(Handle:menu, MenuAction:action, client, choice)
 		case 2: // Exit menu
 		{
 			PrecacheSound(g_menuSoundCancel);
+<<<<<<< HEAD
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
@@ -193,6 +194,8 @@ public PanelHandler_RefereeMenu_GameInfo(Handle:menu, MenuAction:action, client,
 		case 6: // Exit menu
 		{
 			PrecacheSound(g_menuSoundCancel);
+=======
+>>>>>>> pausing
 			EmitSoundToClient(client, g_menuSoundCancel);
 			Command_RefereeMenu(client, 1);
 		}

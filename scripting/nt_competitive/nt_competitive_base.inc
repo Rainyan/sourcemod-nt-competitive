@@ -10,6 +10,7 @@
 #define REASON_TIMEOUT 1
 
 #define MAX_STEAMID_LENGTH 44
+#define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
 
 new String:g_tag[] = "[COMP]";
 new String:g_teamName[][64] = {
@@ -27,14 +28,13 @@ new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 new String:g_convarBeingEdited[128];
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
-new g_jinraiScore;
+new g_jinraiScore[MAX_ROUNDS_PLAYED];
 new g_liveTimer = 5;
 new g_liveTimer_OriginalValue;
 new g_loggingEnabled;
-new g_nsfScore;
-new g_pausingReason;
+new g_nsfScore[MAX_ROUNDS_PLAYED];
 new g_pausingTeam;
-new g_roundCount;
+new g_roundNumber;
 new g_spamTimerCount;
 new g_unpauseTimer = 10;
 new g_unpauseTimer_OriginalValue;
@@ -43,6 +43,8 @@ new g_playersAlive[sizeof(g_teamName)];
 new g_winner;
 new g_health[MAXPLAYERS+1];
 new g_damageDealt[MAXPLAYERS+1][MAXPLAYERS+1];
+new g_playerDeaths[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];	// Players' deaths for each round
+new g_playerXP[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];		// Players' XP for each round
 
 new Float:g_fRoundTime;
 
@@ -59,8 +61,13 @@ new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, n
 new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
+<<<<<<< HEAD
 new bool:g_isEditingCvar[MAXPLAYERS+1];
 new bool:g_confirmLiveEnd;
+=======
+new bool:g_isGamedataOutdated;
+new bool:g_isCurrentlyUnPausing;
+>>>>>>> pausing
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -82,9 +89,24 @@ new Handle:g_hClientRecording;
 new Handle:g_hLimitLiveTeams;
 new Handle:g_hLimitTeams;
 new Handle:g_hVerbosityDelay;
+new Handle:g_hPauseMode;
 
-new Handle:g_hTimer_LiveCountdown = INVALID_HANDLE;
-new Handle:g_hTimer_GoLive = INVALID_HANDLE;
+new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
+new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
+new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
+new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
+new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
+
+enum {
+	PAUSEMODE_FORBIDDEN = 0,
+	PAUSEMODE_NORMAL,
+	PAUSEMODE_STOP_CLOCK
+};
+
+enum {
+	GAMESTYLE_WARMUP = 1,
+	GAMESTYLE_NORMAL
+};
 
 enum {
 	CVAR_NONE = 0,
@@ -97,13 +119,7 @@ enum {
 
 void CheckIfEveryoneIsReady()
 {	
-	new players = Client_GetCount(true, true); // countInGameOnly, countFakeClients
-	
-	if (IsSourceTVBotConnected()) // We don't want to consider SourceTV as a player
-	{
-		players--;
-	}
-	
+	new players = GetPlayerCount();
 	new playersReady = GetPlayersReady();
 	
 	#if DEBUG
@@ -115,7 +131,7 @@ void CheckIfEveryoneIsReady()
 		return;
 	
 	if (players < playersReady)
-		LogError("More players ready than there are players total.");
+		LogError("More players (%i) ready than there are players total (%i).", playersReady, players);
 	
 	if ( players < GetConVarInt(g_hMatchSize) && GetConVarBool(g_hLimitTeams) ) // Everyone connected is ready, but there are less people than expected
 	{
@@ -438,56 +454,164 @@ void NeoRestartThis()
 }
 
 void TogglePause()
-{
-	if (!g_isPaused)
+{	
+	// No pausing allowed. Todo: Do this check in !pause instead, and just error check here instead
+	if ( GetConVarInt(g_hPauseMode) == PAUSEMODE_FORBIDDEN )
+		return;
+	
+	g_isPaused = !g_isPaused; // Flip pause bool
+	
+	switch ( GetConVarInt(g_hPauseMode) )
 	{
-		if (!g_isLive)
+		// Normal Source engine pausing
+		case PAUSEMODE_NORMAL:
 		{
-			LogError("Attempted to pause while match isn't live.");
-			return;
+			// Pause
+			if (g_isPaused)
+			{
+				if (!g_isLive)
+				{
+					LogError("Attempted to pause while match isn't live.");
+					return;
+				}
+				
+				g_isExpectingUnPauseTimer = true;
+				
+				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
+				PrintToChatAll("%s Use !unpause when ready.", g_tag);
+				
+				#if DEBUG > 1
+					PrintToServer( "%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
+				#endif
+				
+				// Close any previous unpause timer handles
+				KillTimers_UnPause();
+				
+				g_hTimer_UnPause = CreateTimer( (1.0 + GetConVarFloat(g_hMaxPauseLength) ), Timer_Unpause ); // Add 1 second to timer for messages to appear in correct order during countdown
+				
+				if ( (GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0 ) // Don't bother with "half of pause time remaining" notice when there's less than 10 secs remaining
+					g_hTimer_UnPause_HalfLeft = CreateTimer( (GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half );
+				
+				g_hTimer_UnPause_Countdown = CreateTimer( (GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer) ), Timer_StartTenSecondsLeft );
+			}
+			
+			// Unpause
+			else
+			{
+				if (!g_isExpectingUnPauseTimer)
+					LogError("Unpause timer executed unexpectedly.");
+				
+				g_isExpectingUnPauseTimer = false;
+				
+				if (g_isLive) // Only announce the unpause if a match is still going
+					SpamTimer();
+				
+				g_isTeamReadyForUnPause[TEAM_JINRAI] = false;
+				g_isTeamReadyForUnPause[TEAM_NSF] = false;
+			}
+			
+			SetConVarBool(g_hPausable, true);
+	
+			CreateTimer(0.5, Timer_TogglePauseLoop);
 		}
 		
-		if (g_pausingReason == REASON_TIMEOUT)
-			g_usedTimeouts[g_pausingTeam]++;
-		
-		g_isPaused = true;
-		g_isExpectingUnPauseTimer = true;
-		
-		PrintToChatAll("%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
-		PrintToChatAll("%s Use !pause when ready.", g_tag);
-		
-		#if DEBUG > 1
-			PrintToServer("%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength));
-		#endif
-		
-		CreateTimer((1.0 + GetConVarFloat(g_hMaxPauseLength)), Timer_Unpause); // Add 1 second to timer for messages to appear in correct order during countdown
-		
-		if ((GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0) // Don't bother with "half of pause time remaining" notice there's less than 10 secs remaining
-			CreateTimer((GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half);
-		
-		CreateTimer((GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer)), Timer_StartTenSecondsLeft);
-	}
-	
-	else
-	{
-		// Close any open unpause timer, countdown timer, and half countdown timer handles below
-		if (!g_isExpectingUnPauseTimer)
-			LogError("Unpause timer executed unexpectedly.");
-		
-		g_isPaused = false;
-		g_isExpectingUnPauseTimer = false;
-		
-		if (g_isLive) // Only announce the unpause if a match is still going
-		{
-			SpamTimer();
+		// Stop game's round timer instead of a regular pause. This should be less glitchy overall.
+		case PAUSEMODE_STOP_CLOCK:
+		{	
+			// Server's Neotokyo gamedata is outdated, GameRules_SetPropFloat probably wouldn't work.
+			// We have to switch pause modes to avoid running into errors.
+			if (g_isGamedataOutdated)
+			{
+				SetConVarInt(g_hPauseMode, PAUSEMODE_NORMAL); // Use the in-engine "normal" pause instead of PAUSEMODE_STOP_CLOCK
+				
+				g_isPaused = !g_isPaused; // Flip the bool again, because...
+				TogglePause(); // ... we're going to call ourselves to land on the right pause mode! There's probably more elegant ways to achieve this, but oh well.
+				return; // Stop here
+			}
+			
+			// Pause
+			if (g_isPaused)
+			{	
+				g_isExpectingUnPauseTimer = true;
+				
+				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Set round time to zero. This instantly ends current round and rings the tie/win music, which works to alert players about upcoming pause.
+				
+				new Float:transitionTime = 5.0;
+				
+				// Wait slightly before initiating pause, so players have time to read chat info about what's going on
+				CreateTimer(transitionTime, Timer_EnterPauseRound); 
+				
+				// Close any previous unpause timer handles
+				KillTimers_UnPause();
+				
+				// Create the unpause timer
+				g_hTimer_UnPause = CreateTimer( (transitionTime + GetConVarFloat(g_hMaxPauseLength) ), Timer_Unpause );
+				
+				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
+				PrintToChatAll("%s Use !unpause when ready.", g_tag);
+			}
+			
+			// Unpause
+			else
+			{	
+				if (!g_isExpectingUnPauseTimer)
+					LogError("Unpause timer executed unexpectedly.");
+				
+				g_isExpectingUnPauseTimer = false;
+				g_isCurrentlyUnPausing = true;
+				
+				GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL); // Back to action
+				
+				UnPause_RestoreScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
+				
+				g_isTeamReadyForUnPause[TEAM_JINRAI] = false;
+				g_isTeamReadyForUnPause[TEAM_NSF] = false;
+				
+				if (g_isLive) // Only announce the unpause if a match is still going
+					SpamTimer();
+			}
 		}
 	}
-	
-	SetConVarBool(g_hPausable, true);
-	
-	CreateTimer(0.5, Timer_TogglePauseLoop);
 }
 
+public Action:Timer_NeoRestartThis(Handle:timer)
+{
+	ServerCommand("neo_restart_this 1");
+}
+
+void KillTimers_UnPause()
+{
+	if (g_hTimer_UnPause != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_UnPause);
+		g_hTimer_UnPause = INVALID_HANDLE;
+	}
+	
+	if (g_hTimer_UnPause_Countdown != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_UnPause_Countdown);
+		g_hTimer_UnPause_Countdown = INVALID_HANDLE;
+	}
+	
+	if (g_hTimer_UnPause_HalfLeft != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_UnPause_HalfLeft);
+		g_hTimer_UnPause_HalfLeft = INVALID_HANDLE;
+	}
+}
+
+public Action:Timer_EnterPauseRound(Handle:timer)
+{
+	GameRules_SetProp("m_iGameState", GAMESTYLE_WARMUP);
+	GameRules_SetPropFloat( "m_fRoundTimeLeft", GetConVarFloat(g_hMaxPauseLength) ); // Pause round uses max pause length roundtime
+	
+	for (new i = 0; i < 3; i++)
+	{
+		PrintToChatAll("GAME IS PAUSED");
+	}
+}
+
+#if DEBUG
 public Action:Command_UnpauseOther(client, args) // Pretend the other team made an unpause request. Debug command.
 {
 	if (client == 0)
@@ -549,6 +673,7 @@ public Action:Command_OverrideStartOther(client, args) // Pretend the other team
 	
 	return Plugin_Handled;
 }
+#endif
 
 public Action:Timer_TogglePauseLoop(Handle:timer)
 {
@@ -671,11 +796,11 @@ public Action:Timer_Unpause(Handle:timer)
 	{
 		PrintToChatAll("%s Maximum pause time has ended!", g_tag);
 		TogglePause();
-		
-		return Plugin_Stop;
 	}
 	
-	return Plugin_Continue;
+	g_hTimer_UnPause = INVALID_HANDLE;
+	
+	return Plugin_Handled;
 }
 
 public Action:Timer_UnpauseNotice_Half(Handle:timer)
@@ -687,14 +812,19 @@ public Action:Timer_UnpauseNotice_Half(Handle:timer)
 		return Plugin_Continue;
 	}
 	
-	return Plugin_Stop;
+	g_hTimer_UnPause_HalfLeft = INVALID_HANDLE;
+	
+	return Plugin_Handled;
 }
 
 public Action:Timer_StartTenSecondsLeft(Handle:timer)
 {
-	CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+	if (g_isPaused)
+		CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
 	
-	return Plugin_Stop;
+	g_hTimer_UnPause_Countdown = INVALID_HANDLE;
+	
+	return Plugin_Handled;
 }
 
 public Action:Timer_Live_SecondsCountdown(Handle:timer)
@@ -747,6 +877,7 @@ void InitDirectory(const String:sDir[])
 	}
 }
 
+// todo: check for redundant code in this
 void ToggleSourceTV()
 {
 	if (g_isSourceTVRecording)
@@ -804,7 +935,7 @@ void ToggleSourceTV()
 		}
 		replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
 		
-		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitazion
+		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitization
 		strcopy(replayName, sizeof(replayName), replayBuffer);
 		
 		ServerCommand("tv_stoprecord"); // Stop any previous server record
@@ -817,13 +948,14 @@ void ToggleSourceTV()
 	}
 }
 
-// This doesn't work when the game is paused. Come up with some alternative?
+// This won't play a sound if used during an engine pause
 void PlayLiveBeep()
 {
-	new Float:volume = 0.5; // Volume between 0.0 - 1.0
+	new Float:volume	= 0.5;	// Volume between 0.0 - 1.0 (original volume is 1.0)
+	new pitch				= 175;	// Pitch between 0 - 255 (original pitch is 100)
 	
 	PrecacheSound(g_soundLive);
-	EmitSoundToAll(g_soundLive, _, _, _, _, volume);
+	EmitSoundToAll(g_soundLive, _, _, _, _, volume, pitch);
 }
 
 
@@ -866,13 +998,39 @@ bool:IsSourceTVBotConnected()
 	return false;
 }
 
+// Return players in Jinrai + NSF total
+int GetPlayerCount()
+{
+	new players;
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || IsFakeClient(i) )
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team != TEAM_JINRAI && team != TEAM_NSF)
+			continue;
+		
+		players++;
+	}
+	
+	return players;
+}
+
 int GetPlayersReady()
 {
 	new playersReady;
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !g_isReady[i]) // Fake clients are never ready, so we don't need to explicitly check for them
+		if ( !Client_IsValid(i) || !g_isReady[i] || IsFakeClient(i) )
+			continue;
+			
+		new team = GetClientTeam(i);
+		
+		if (team != TEAM_JINRAI && team != TEAM_NSF)
 			continue;
 		
 		playersReady++;
@@ -893,22 +1051,18 @@ int GetDesiredCommsBehaviour()
 }
 
 int GetOtherTeam(team)
-{
-	new otherTeam;
-	
+{	
 	if (team == TEAM_JINRAI)
-		otherTeam = TEAM_NSF;
+		return TEAM_NSF;
 	
 	else if (team == TEAM_NSF)
-		otherTeam = TEAM_JINRAI;
+		return TEAM_JINRAI;
 	
 	else
 	{
 		LogError("Requested other team for invalid team (%i), returning -1 instead.");
-		otherTeam = -1;
+		return -1;
 	}
-	
-	return otherTeam;
 }
 
 void LogCompetitive(const String:message[])
@@ -933,7 +1087,7 @@ void PrintToConsoleAll(const String:message[])
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i))
+		if ( !Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 		
 		PrintToConsole(i, message);
@@ -1007,9 +1161,13 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	// Reset global integers
 	new correctInt = 0; // Desired value
 	
-	g_jinraiScore					= correctInt;
-	g_nsfScore						= correctInt;
-	g_roundCount					= correctInt;
+	g_roundNumber = correctInt;
+	
+	for (i = 0; i < MAX_ROUNDS_PLAYED; i++)
+	{
+		g_jinraiScore[i]	= correctInt;
+		g_nsfScore[i]		= correctInt;
+	}
 	
 	for (i = 0; i < sizeof(g_usedTimeouts); i++)
 	{
@@ -1068,6 +1226,7 @@ void ShowKillInfoNextRound(client, const String:message[])
 	g_shouldShowKillInfo[client] = true;
 }
 
+<<<<<<< HEAD
 void RefereeMenu_GameInfo(client)
 {
 	if ( !Client_IsValid(client) )
@@ -1195,4 +1354,93 @@ void ChatCvarEdit(client, Handle:cvar)
 	PrintToChat(client, "%s Please enter a new value in the chat.", g_tag);
 	PrintToChat(client, "To cancel this action, type \"cancel\".");
 	PrintToChat(client, "For text values, you can also type \"default\" to revert the changes.");
+=======
+// Make sure Neotokyo gamedata file is up to date, as some of the plugin features require it.
+void CheckGamedataFiles()
+{
+	new String:gamedataUrl[] = "https://github.com/alliedmodders/sourcemod/tree/master/gamedata"; // URL for the latest NT gamedata version
+	
+	decl String:filePath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, filePath, sizeof(filePath), "gamedata/sdktools.games/game.neotokyo.txt"); // Gamedata file path
+	
+	// Do a filesize based check.
+	// This should be fairly safe as the NT gamedata is updated extremely rarely.
+	new fileSize					= FileSize(filePath, false);		// Filesize of the currently running server gamedata version
+	new correctFileSize		= 1933;								// Filesize of the correct gamedata version (10 Oct 2015)
+	new oldFileSize_2014	= 1179;								// Old version filesize (23 Dec 2014)
+	new oldFileSize_2009	= 1075;								// Old version filesize (15 Dec 2009)
+	
+	// File not found
+	if (fileSize == -1)
+	{
+		LogError("Neotokyo gamedata file %s could not be found! sm_competitive_pause_mode 2 is unavailable because of this. See %s for the latest gamedata version.", filePath, gamedataUrl);
+		g_isGamedataOutdated = true;
+	}
+	// Filesize mismatch
+	else if (fileSize != correctFileSize)
+	{
+		// Old file version
+		if (fileSize == oldFileSize_2014 || fileSize == oldFileSize_2009)
+		{
+			LogError("Neotokyo gamedata file %s has mismatching filesize %i bytes (expected %i bytes), it's most likely outdated. \"sm_competitive_pause_mode 2\" is unavailable because of this. See %s for the latest gamedata version.", filePath, fileSize, correctFileSize, gamedataUrl);
+			g_isGamedataOutdated = true;
+		}
+		// Unknown file version. Notify server, but don't treat as an error.
+		else
+		{
+			PrintToServer("%s Note: Neotokyo gamedata file %s has a nonstandard filesize %i bytes (expected %i bytes), has it been customized? \"sm_competitive_pause_mode 2\" may throw an error if the file is outdated.", filePath, fileSize, correctFileSize);
+			g_isGamedataOutdated = false;
+		}
+	}
+	// Filesize matches
+	else
+	{
+		g_isGamedataOutdated = false;
+	}
+}
+
+void PrintToAdmins(const String:message[], bool toChat = true, bool toConsole = false)
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+			continue;
+		
+		if (toChat)
+			PrintToChat(i, message);
+		
+		if (toConsole)
+			PrintToConsole(i, message);
+	}
+}
+
+void UnPause_RestoreScore()
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || IsFakeClient(i) )
+			continue;
+		
+		SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][g_roundNumber]); // Restore deaths
+		SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][g_roundNumber]); // Restore XP
+		
+		// We have to manually restore rank based on XP, so weapons selection won't glitch out
+		if (g_playerXP[i][g_roundNumber] < 0)
+			SetEntProp(i, Prop_Send, "m_iRank", 0); // Rankless dog
+		else if (g_playerXP[i][g_roundNumber] < 5)
+			SetEntProp(i, Prop_Send, "m_iRank", 1); // Private
+		else if (g_playerXP[i][g_roundNumber] < 10)
+			SetEntProp(i, Prop_Send, "m_iRank", 2); // Corporal
+		else if (g_playerXP[i][g_roundNumber] < 20)
+			SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
+		else
+			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
+	}
+	
+	// We've recovered our points. Now it's safe to continue.
+	g_isCurrentlyUnPausing = false;
+	
+	ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
+	CreateTimer(1.0, Timer_NeoRestartThis); // Second restart so we continue from the same spawns as before pausing. Need a slight delay between these two.
+>>>>>>> pausing
 }
