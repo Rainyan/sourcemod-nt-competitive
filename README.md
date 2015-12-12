@@ -15,12 +15,12 @@ Features:
   - Pausing system.
   - Ready up system.
   - Panel menus for admins
+  - Ability to fall back to previous rounds
 
 To-do:
   - Panel menus for players
   - Panel menus for casters
   - Log competitive matches (wins, kills, weapons used, etc)
-  - Ability to fall back to previous rounds using logs
 
 Compile dependencies:
   - <a target="_blank" href="https://github.com/bcserv/smlib/">SMLIB</a>
