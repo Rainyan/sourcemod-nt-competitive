@@ -194,7 +194,7 @@ public bool OnClientConnect(client)
 	decl String:clientName[MAX_NAME_LENGTH];
 	GetClientName(client, clientName, sizeof(clientName));
 	
-	if (g_isPaused)
+	if ( g_isPaused && GetConVarInt(g_hPauseMode) == PAUSEMODE_NORMAL )
 	{
 		#if DEBUG
 			PrintToServer("[COMP] Pause join detected!");
