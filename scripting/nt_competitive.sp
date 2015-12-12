@@ -395,7 +395,6 @@ void PauseRequest(client, reason)
 	
 	new team = GetClientTeam(client);
 	g_pausingTeam = team;
-	g_pausingReason = reason;
 	
 	switch (reason)
 	{
@@ -403,7 +402,10 @@ void PauseRequest(client, reason)
 			PrintToChatAll("%s Team %s wants to pause for a technical issue.", g_tag, g_teamName[team]);
 		
 		case REASON_TIMEOUT:
+		{
+			g_usedTimeouts[g_pausingTeam]++;
 			PrintToChatAll("%s Team %s wants a time-out.", g_tag, g_teamName[team]);
+		}
 	}
 	
 	new Float:currentTime = GetGameTime();
