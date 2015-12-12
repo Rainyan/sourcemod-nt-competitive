@@ -61,13 +61,10 @@ new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, n
 new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
-<<<<<<< HEAD
 new bool:g_isEditingCvar[MAXPLAYERS+1];
 new bool:g_confirmLiveEnd;
-=======
 new bool:g_isGamedataOutdated;
 new bool:g_isCurrentlyUnPausing;
->>>>>>> pausing
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -1226,7 +1223,6 @@ void ShowKillInfoNextRound(client, const String:message[])
 	g_shouldShowKillInfo[client] = true;
 }
 
-<<<<<<< HEAD
 void RefereeMenu_GameInfo(client)
 {
 	if ( !Client_IsValid(client) )
@@ -1354,7 +1350,8 @@ void ChatCvarEdit(client, Handle:cvar)
 	PrintToChat(client, "%s Please enter a new value in the chat.", g_tag);
 	PrintToChat(client, "To cancel this action, type \"cancel\".");
 	PrintToChat(client, "For text values, you can also type \"default\" to revert the changes.");
-=======
+}
+
 // Make sure Neotokyo gamedata file is up to date, as some of the plugin features require it.
 void CheckGamedataFiles()
 {
@@ -1442,5 +1439,4 @@ void UnPause_RestoreScore()
 	
 	ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
 	CreateTimer(1.0, Timer_NeoRestartThis); // Second restart so we continue from the same spawns as before pausing. Need a slight delay between these two.
->>>>>>> pausing
 }
