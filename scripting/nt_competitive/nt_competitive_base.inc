@@ -801,7 +801,7 @@ public Action:Timer_DisablePause(Handle:timer)
 public Action:Timer_SpamLive(Handle:timer)
 {
 	// Print the LIVE message X times, then kill the repeat timer calling this
-	new spamLiveTimes = 5;
+	new spamLiveTimes = 3;
 	g_spamTimerCount++;
 	
 	if (g_spamTimerCount == 1) // Don't spam "LIVE" during the first increment. This has to do with chat message ordering (round number msgs) during match start, in Event_RoundStart.
