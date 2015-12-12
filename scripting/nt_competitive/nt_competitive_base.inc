@@ -32,7 +32,6 @@ new g_liveTimer = 5;
 new g_liveTimer_OriginalValue;
 new g_loggingEnabled;
 new g_nsfScore[MAX_ROUNDS_PLAYED];
-new g_pausingReason;
 new g_pausingTeam;
 new g_roundNumber;
 new g_spamTimerCount;
@@ -62,6 +61,7 @@ new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
 new bool:g_isGamedataOutdated;
+new bool:g_isCurrentlyUnPausing;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -455,9 +455,6 @@ void TogglePause()
 					return;
 				}
 				
-				if (g_pausingReason == REASON_TIMEOUT)
-					g_usedTimeouts[g_pausingTeam]++;
-				
 				g_isExpectingUnPauseTimer = true;
 				
 				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
@@ -541,13 +538,11 @@ void TogglePause()
 					LogError("Unpause timer executed unexpectedly.");
 				
 				g_isExpectingUnPauseTimer = false;
+				g_isCurrentlyUnPausing = true;
 				
 				GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL); // Back to action
 				
-				ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
-				CreateTimer(1.0, Timer_NeoRestartThis); // Second restart so we continue from the same spawns as before pausing. Need a slight delay between these two.
-				
-				RestorePlayerScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
+				UnPause_RestoreScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
 				
 				g_isTeamReadyForUnPause[TEAM_JINRAI] = false;
 				g_isTeamReadyForUnPause[TEAM_NSF] = false;
@@ -1269,7 +1264,7 @@ void PrintToAdmins(const String:message[], bool toChat = true, bool toConsole = 
 	}
 }
 
-void RestorePlayerScore()
+void UnPause_RestoreScore()
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -1291,4 +1286,10 @@ void RestorePlayerScore()
 		else
 			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
 	}
+	
+	// We've recovered our points. Now it's safe to continue.
+	g_isCurrentlyUnPausing = false;
+	
+	ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
+	CreateTimer(1.0, Timer_NeoRestartThis); // Second restart so we continue from the same spawns as before pausing. Need a slight delay between these two.
 }

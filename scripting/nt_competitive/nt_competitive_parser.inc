@@ -105,12 +105,16 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		g_shouldShowKillInfo[i] = false;
 	}
 	
-	// We're not live, just stop here
-	if (!g_isLive)
+	// Game is not live. Stop here.
+	if (!g_isLive || g_isPaused)
 		return Plugin_Continue;
 	
-	// We're live but inside a pause, stop here
-	if (g_isLive && g_isPaused)
+	// Game is paused. Stop here.
+	if (g_isPaused)
+		return Plugin_Continue;
+	
+	// Game is currently being unpaused (points being recovered etc). Stop here.
+	if (g_isCurrentlyUnPausing)
 		return Plugin_Continue;
 	
 	g_fRoundTime	= GetGameTime();
