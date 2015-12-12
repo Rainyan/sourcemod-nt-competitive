@@ -294,6 +294,12 @@ void LiveCountDown()
 
 public Action:Timer_GoLive(Handle:timer)
 {
+	EmptyScore(); // Make sure everyone starts private so we avoid the no weapon spawn bug
+	CreateTimer(0.1, Timer_ToggleLive); // A slight delay so the score reset above takes effect in time
+}
+
+public Action:Timer_ToggleLive(Handle:timer)
+{
 	ToggleLive();
 }
 
@@ -1477,5 +1483,18 @@ void UnPause_RestoreScore()
 			SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
 		else
 			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
+	}
+}
+
+void EmptyScore()
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || IsFakeClient(i) )
+			continue;
+		
+		SetEntProp(i, Prop_Data, "m_iDeaths", 0); // 0 deaths
+		SetEntProp(i, Prop_Data, "m_iFrags", 0); // 0 kills
+		SetEntProp(i, Prop_Send, "m_iRank", 1); // Private rank
 	}
 }
