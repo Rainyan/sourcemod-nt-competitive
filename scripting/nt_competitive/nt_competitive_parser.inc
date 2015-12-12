@@ -106,7 +106,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	}
 	
 	// Game is not live. Stop here.
-	if (!g_isLive || g_isPaused)
+	if (!g_isLive)
 		return Plugin_Continue;
 	
 	// Game is paused. Stop here.
@@ -115,10 +115,20 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	// Game is currently being unpaused (points being recovered etc). Stop here.
 	if (g_isCurrentlyUnPausing)
-		return Plugin_Continue;
+	{	
+		UnPause_RestoreScore();
+		SpamTimer();
+		
+		g_isCurrentlyUnPausing = false; // We have finished restoring score and announcing match live again
+	}
+	
+	// Increment round number unless we just came back from a pause
+	else
+	{
+		g_roundNumber++;
+	}
 	
 	g_fRoundTime	= GetGameTime();
-	g_roundNumber++;
 	
 	g_jinraiScore[g_roundNumber]	= GetTeamScore(TEAM_JINRAI);
 	g_nsfScore[g_roundNumber]	= GetTeamScore(TEAM_NSF);
@@ -130,6 +140,10 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		
 		g_playerDeaths[i][g_roundNumber]	= GetEntProp(i, Prop_Data, "m_iDeaths");	// Save everyone's death count for this round
 		g_playerXP[i][g_roundNumber]		= GetEntProp(i, Prop_Data, "m_iFrags");	// Save everyone's XP for this round
+		
+#if DEBUG > 1
+		PrintToServer("Client %i has %i XP and %i deaths for round %i.", i, g_playerXP[i][g_roundNumber], g_playerDeaths[i][g_roundNumber], g_roundNumber);
+#endif
 	}
 	
 	ResetPlayersAlive(); // Reset global count of living players. Used for kill feeds etc
@@ -156,6 +170,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	if (g_shouldPause)
 	{
 		g_shouldPause = false;
+		
 		new Float:pauseTime = 5.0;
 		CreateTimer(pauseTime, Timer_TogglePause);
 		PrintToChatAll("%s Pausing the game...", g_tag);

@@ -6,9 +6,6 @@
 
 #define MENU_TIME 20 // How long to display panel menus for, in seconds
 
-#define REASON_TECHNICAL 0
-#define REASON_TIMEOUT 1
-
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
 
@@ -95,9 +92,12 @@ new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
 
 enum {
-	PAUSEMODE_FORBIDDEN = 0,
-	PAUSEMODE_NORMAL,
-	PAUSEMODE_STOP_CLOCK
+	CVAR_NONE = 0,
+	CVAR_COMPETITION_NAME,
+	CVAR_JINRAI_NAME,
+	CVAR_NSF_NAME,
+	CVAR_MAX_ROUNDS,
+	CVAR_PAUSE_AMOUNT
 };
 
 enum {
@@ -106,12 +106,14 @@ enum {
 };
 
 enum {
-	CVAR_NONE = 0,
-	CVAR_COMPETITION_NAME,
-	CVAR_JINRAI_NAME,
-	CVAR_NSF_NAME,
-	CVAR_MAX_ROUNDS,
-	CVAR_PAUSE_AMOUNT
+	PAUSEMODE_FORBIDDEN = 0,
+	PAUSEMODE_NORMAL,
+	PAUSEMODE_STOP_CLOCK
+};
+
+enum {
+	REASON_TECHNICAL = 0,
+	REASON_TIMEOUT
 };
 
 void CheckIfEveryoneIsReady()
@@ -350,22 +352,25 @@ void ToggleLive()
 				g_assignedTeamWhenLive[i] = team;
 			}
 			
-			#if DEBUG > 1
+#if DEBUG > 1
 				if (strlen(steamID) > 0)
 				{
 					PrintToServer("Found SteamID: %s", steamID);
 					PrintToServer("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
 					foundPlayers++;
 				}
-			#endif
+#endif
 		}
 		
-		#if DEBUG
+#if DEBUG
 			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
-		#endif
+#endif
 		
+#if DEBUG == 0
+		// This should only occur in debug test cases
 		if (foundPlayers < 2)
 			LogError("Less than 2 players found!");
+#endif
 		
 		// Set convars for competitive
 		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
@@ -557,15 +562,13 @@ void TogglePause()
 				g_isExpectingUnPauseTimer = false;
 				g_isCurrentlyUnPausing = true;
 				
+				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the pause round
 				GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL); // Back to action
 				
 				UnPause_RestoreScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
 				
 				g_isTeamReadyForUnPause[TEAM_JINRAI] = false;
 				g_isTeamReadyForUnPause[TEAM_NSF] = false;
-				
-				if (g_isLive) // Only announce the unpause if a match is still going
-					SpamTimer();
 			}
 		}
 	}
@@ -1413,6 +1416,10 @@ void PrintToAdmins(const String:message[], bool toChat = true, bool toConsole = 
 
 void UnPause_RestoreScore()
 {
+#if DEBUG > 1
+	PrintToServer("Restoring score after unpause. Round number: %i", g_roundNumber);
+#endif
+	
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if ( !Client_IsValid(i) || IsFakeClient(i) )
@@ -1421,10 +1428,14 @@ void UnPause_RestoreScore()
 		SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][g_roundNumber]); // Restore deaths
 		SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][g_roundNumber]); // Restore XP
 		
+#if DEBUG > 1
+		PrintToServer("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][g_roundNumber], g_playerDeaths[i][g_roundNumber], g_roundNumber);
+#endif
+		
 		// We have to manually restore rank based on XP, so weapons selection won't glitch out
 		if (g_playerXP[i][g_roundNumber] < 0)
 			SetEntProp(i, Prop_Send, "m_iRank", 0); // Rankless dog
-		else if (g_playerXP[i][g_roundNumber] < 5)
+		else if (g_playerXP[i][g_roundNumber] < 4)
 			SetEntProp(i, Prop_Send, "m_iRank", 1); // Private
 		else if (g_playerXP[i][g_roundNumber] < 10)
 			SetEntProp(i, Prop_Send, "m_iRank", 2); // Corporal
@@ -1433,10 +1444,4 @@ void UnPause_RestoreScore()
 		else
 			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
 	}
-	
-	// We've recovered our points. Now it's safe to continue.
-	g_isCurrentlyUnPausing = false;
-	
-	ServerCommand("neo_restart_this 1"); // Do a manual reset so we're guaranteed a proper freezetime to resume playing
-	CreateTimer(1.0, Timer_NeoRestartThis); // Second restart so we continue from the same spawns as before pausing. Need a slight delay between these two.
 }
