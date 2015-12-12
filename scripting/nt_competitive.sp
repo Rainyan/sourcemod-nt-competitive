@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.7.0"
+#define PLUGIN_VERSION "0.3.7.1"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -78,7 +78,8 @@ public OnPluginStart()
 	g_hRoundLimit						= CreateConVar("sm_competitive_round_limit",						"15",					"How many rounds are played in a competitive match.", _, true, 1.0);
 	g_hMatchSize						= CreateConVar("sm_competitive_players_total",						"10",					"How many players total are expected to ready up before starting a competitive match.");
 	g_hMaxTimeouts						= CreateConVar("sm_competitive_max_timeouts",						"1",					"How many time-outs are allowed per match per team.", _, true, 0.0);
-	g_hMaxPauseLength					= CreateConVar("sm_competitive_max_pause_length",					"180",					"How long can a competitive time-out last, in seconds.", _, true, 0.0);
+	g_hMaxPauseLength					= CreateConVar("sm_competitive_max_pause_length",					"60",					"How long can a competitive time-out last, in seconds.", _, true, 0.0);
+	g_hMaxPauseLength_Technical		= CreateConVar("sm_competitive_max_pause_length_technical",	"300",				"How long can a pause last when team experiences technical difficulties.", _, true, 0.0);
 	g_hSourceTVEnabled					= CreateConVar("sm_competitive_sourcetv_enabled",					"1",					"Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
 	g_hSourceTVPath						= CreateConVar("sm_competitive_sourcetv_path",						"replays_competitive",	"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
 	g_hJinraiName						= CreateConVar("sm_competitive_jinrai_name",						"Jinrai",				"Jinrai team's name. Will use \"Jinrai\" if left empty.");
@@ -91,6 +92,7 @@ public OnPluginStart()
 	g_hClientRecording					= CreateConVar("sm_competitive_record_clients",						"0",					"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
 	g_hLimitLiveTeams					= CreateConVar("sm_limit_live_teams",								"1",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
 	g_hLimitTeams						= CreateConVar("sm_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
+	g_hPauseMode						= CreateConVar("sm_competitive_pause_mode",				"2",					"Pausing mode. Default: 2. 0 = no pausing allowed, 1 = use Source engine pause feature, 2 = stop round timer", _, true, 0.0, true, 2.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -131,12 +133,14 @@ public OnPluginStart()
 	g_liveTimer_OriginalValue = g_liveTimer;
 	g_unpauseTimer_OriginalValue = g_unpauseTimer;
 	
+	CheckGamedataFiles();
+	
 	AutoExecConfig(true);
 }
 
 public OnMapStart()
 {
-	g_roundCount = 0;
+	g_roundNumber = 0;
 	
 	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
@@ -436,9 +440,17 @@ public Action:Command_Pause(client, args)
 
 void PauseRequest(client, reason)
 {
+	// Gamedata is outdated, fall back to normal pausemode as stop clock mode would cause an error
+	if (g_isGamedataOutdated && ( GetConVarInt(g_hPauseMode) == PAUSEMODE_STOP_CLOCK) )
+	{
+		SetConVarInt(g_hPauseMode, PAUSEMODE_NORMAL);
+		PrintToAdmins("Admins: Server gamedata is outdated. Falling back to default pause mode to avoid errors.", true, true);
+		PrintToAdmins("See SM error logs for more info.");
+	}
+	
 	new team = GetClientTeam(client);
 	g_pausingTeam = team;
-	g_pausingReason = reason;
+	g_pauseReason = reason;
 	
 	switch (reason)
 	{
@@ -446,7 +458,10 @@ void PauseRequest(client, reason)
 			PrintToChatAll("%s Team %s wants to pause for a technical issue.", g_tag, g_teamName[team]);
 		
 		case REASON_TIMEOUT:
+		{
+			g_usedTimeouts[g_pausingTeam]++;
 			PrintToChatAll("%s Team %s wants a time-out.", g_tag, g_teamName[team]);
+		}
 	}
 	
 	new Float:currentTime = GetGameTime();
@@ -467,7 +482,7 @@ void CancelPauseRequest(client)
 	g_shouldPause = false;
 	
 	new team = GetClientTeam(client);
-	PrintToChatAll("%s %s has cancelled their pause request for the next freezetime.", g_tag, g_teamName[team]);
+	PrintToChatAll("%s %s have cancelled their pause request for the next freezetime.", g_tag, g_teamName[team]);
 }
 
 void UnPauseRequest(client)
@@ -477,7 +492,7 @@ void UnPauseRequest(client)
 	new otherTeam = GetOtherTeam(team);
 	
 	g_isTeamReadyForUnPause[team] = true;
-	PrintToChatAll("%s %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
+	PrintToChatAll("%s %s are ready, and want to unpause.", g_tag, g_teamName[team]);
 	
 	if (g_isTeamReadyForUnPause[TEAM_JINRAI] && g_isTeamReadyForUnPause[TEAM_NSF])
 		TogglePause();
@@ -695,10 +710,10 @@ public Competitive_GetTeamScore(Handle:plugin, numParams)
 	new team = GetNativeCell(1);
 	
 	if (team == TEAM_JINRAI)
-		return g_jinraiScore;
+		return g_jinraiScore[g_roundNumber];
 	
 	else if (team == TEAM_NSF)
-		return g_nsfScore;
+		return g_nsfScore[g_roundNumber];
 	
 	return -1;
 }
