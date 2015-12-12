@@ -79,6 +79,7 @@ public OnPluginStart()
 	g_hMatchSize						= CreateConVar("sm_competitive_players_total",						"10",					"How many players total are expected to ready up before starting a competitive match.");
 	g_hMaxTimeouts						= CreateConVar("sm_competitive_max_timeouts",						"1",					"How many time-outs are allowed per match per team.", _, true, 0.0);
 	g_hMaxPauseLength					= CreateConVar("sm_competitive_max_pause_length",					"60",					"How long can a competitive time-out last, in seconds.", _, true, 0.0);
+	g_hMaxPauseLength_Technical		= CreateConVar("sm_competitive_max_pause_length_technical",	"300",				"How long can a pause last when team experiences technical difficulties.", _, true, 0.0);
 	g_hSourceTVEnabled					= CreateConVar("sm_competitive_sourcetv_enabled",					"1",					"Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
 	g_hSourceTVPath						= CreateConVar("sm_competitive_sourcetv_path",						"replays_competitive",	"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
 	g_hJinraiName						= CreateConVar("sm_competitive_jinrai_name",						"Jinrai",				"Jinrai team's name. Will use \"Jinrai\" if left empty.");
@@ -449,6 +450,7 @@ void PauseRequest(client, reason)
 	
 	new team = GetClientTeam(client);
 	g_pausingTeam = team;
+	g_pauseReason = reason;
 	
 	switch (reason)
 	{
@@ -480,7 +482,7 @@ void CancelPauseRequest(client)
 	g_shouldPause = false;
 	
 	new team = GetClientTeam(client);
-	PrintToChatAll("%s %s has cancelled their pause request for the next freezetime.", g_tag, g_teamName[team]);
+	PrintToChatAll("%s %s have cancelled their pause request for the next freezetime.", g_tag, g_teamName[team]);
 }
 
 void UnPauseRequest(client)
@@ -490,7 +492,7 @@ void UnPauseRequest(client)
 	new otherTeam = GetOtherTeam(team);
 	
 	g_isTeamReadyForUnPause[team] = true;
-	PrintToChatAll("%s %s is ready, and wants to unpause.", g_tag, g_teamName[team]);
+	PrintToChatAll("%s %s are ready, and want to unpause.", g_tag, g_teamName[team]);
 	
 	if (g_isTeamReadyForUnPause[TEAM_JINRAI] && g_isTeamReadyForUnPause[TEAM_NSF])
 		TogglePause();

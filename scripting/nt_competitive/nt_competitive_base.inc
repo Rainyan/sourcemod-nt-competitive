@@ -30,6 +30,7 @@ new g_liveTimer = 5;
 new g_liveTimer_OriginalValue;
 new g_loggingEnabled;
 new g_nsfScore[MAX_ROUNDS_PLAYED];
+new g_pauseReason;
 new g_pausingTeam;
 new g_roundNumber;
 new g_spamTimerCount;
@@ -70,6 +71,7 @@ new Handle:g_hForceCamera;
 new Handle:g_hLogMode;
 new Handle:g_hMatchSize;
 new Handle:g_hMaxPauseLength;
+new Handle:g_hMaxPauseLength_Technical;
 new Handle:g_hMaxTimeouts;
 new Handle:g_hNeoRestartThis;
 new Handle:g_hPausable;
@@ -479,22 +481,35 @@ void TogglePause()
 				
 				g_isExpectingUnPauseTimer = true;
 				
-				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
-				PrintToChatAll("%s Use !unpause when ready.", g_tag);
-				
-				#if DEBUG > 1
-					PrintToServer( "%s Pause duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
-				#endif
-				
 				// Close any previous unpause timer handles
 				KillTimers_UnPause();
 				
-				g_hTimer_UnPause = CreateTimer( (1.0 + GetConVarFloat(g_hMaxPauseLength) ), Timer_Unpause ); // Add 1 second to timer for messages to appear in correct order during countdown
+				new Float:fPauseLength;
 				
-				if ( (GetConVarFloat(g_hMaxPauseLength) / 2) > 10.0 ) // Don't bother with "half of pause time remaining" notice when there's less than 10 secs remaining
-					g_hTimer_UnPause_HalfLeft = CreateTimer( (GetConVarFloat(g_hMaxPauseLength) / 2), Timer_UnpauseNotice_Half );
+				// Pause length for technical issues
+				if (g_pauseReason == REASON_TECHNICAL)
+				{
+					fPauseLength = GetConVarFloat(g_hMaxPauseLength_Technical);
+				}
+				// Pause length for tactical time-out
+				else
+				{
+					fPauseLength = GetConVarFloat(g_hMaxPauseLength);
+				}
 				
-				g_hTimer_UnPause_Countdown = CreateTimer( (GetConVarFloat(g_hMaxPauseLength) - float(g_unpauseTimer) ), Timer_StartTenSecondsLeft );
+				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
+				PrintToChatAll("%s Use !unpause when ready.", g_tag);
+				
+				#if DEBUG > 1
+					PrintToServer( "%s Pause max duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
+				#endif
+				
+				g_hTimer_UnPause = CreateTimer( (1.0 + fPauseLength ), Timer_Unpause ); // Add 1 second to timer for messages to appear in correct order during countdown
+						
+				if ( (fPauseLength / 2) > 10.0 ) // Don't bother with "half of pause time remaining" notice when there's less than 10 secs remaining
+					g_hTimer_UnPause_HalfLeft = CreateTimer( (fPauseLength / 2), Timer_UnpauseNotice_Half );
+				
+				g_hTimer_UnPause_Countdown = CreateTimer( (fPauseLength - float(g_unpauseTimer) ), Timer_StartTenSecondsLeft );
 			}
 			
 			// Unpause
@@ -539,6 +554,18 @@ void TogglePause()
 				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Set round time to zero. This instantly ends current round and rings the tie/win music, which works to alert players about upcoming pause.
 				
 				new Float:transitionTime = 5.0;
+				new Float:fPauseLength;
+				
+				// Pause length for technical issues
+				if (g_pauseReason == REASON_TECHNICAL)
+				{
+					fPauseLength = GetConVarFloat(g_hMaxPauseLength_Technical);
+				}
+				// Pause length for tactical time-out
+				else
+				{
+					fPauseLength = GetConVarFloat(g_hMaxPauseLength);
+				}
 				
 				// Wait slightly before initiating pause, so players have time to read chat info about what's going on
 				CreateTimer(transitionTime, Timer_EnterPauseRound); 
@@ -547,15 +574,15 @@ void TogglePause()
 				KillTimers_UnPause();
 				
 				// Create the unpause timer
-				g_hTimer_UnPause = CreateTimer( (transitionTime + GetConVarFloat(g_hMaxPauseLength) ), Timer_Unpause );
+				g_hTimer_UnPause = CreateTimer( (transitionTime + fPauseLength ), Timer_Unpause );
 				
-				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, GetConVarInt(g_hMaxPauseLength) );
+				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
 				PrintToChatAll("%s Use !unpause when ready.", g_tag);
 			}
 			
 			// Unpause
 			else
-			{	
+			{
 				if (!g_isExpectingUnPauseTimer)
 					LogError("Unpause timer executed unexpectedly.");
 				
@@ -603,7 +630,14 @@ void KillTimers_UnPause()
 public Action:Timer_EnterPauseRound(Handle:timer)
 {
 	GameRules_SetProp("m_iGameState", GAMESTYLE_WARMUP);
-	GameRules_SetPropFloat( "m_fRoundTimeLeft", GetConVarFloat(g_hMaxPauseLength) ); // Pause round uses max pause length roundtime
+	
+	new Float:pauseLength;
+	if (g_pauseReason == REASON_TECHNICAL)
+		pauseLength = GetConVarFloat(g_hMaxPauseLength_Technical);
+	else
+		pauseLength = GetConVarFloat(g_hMaxPauseLength);
+	
+	GameRules_SetPropFloat( "m_fRoundTimeLeft", pauseLength ); // Pause round uses max pause length roundtime
 	
 	for (new i = 0; i < 3; i++)
 	{
