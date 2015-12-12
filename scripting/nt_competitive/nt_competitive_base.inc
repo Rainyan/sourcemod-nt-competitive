@@ -43,6 +43,8 @@ new g_health[MAXPLAYERS+1];
 new g_damageDealt[MAXPLAYERS+1][MAXPLAYERS+1];
 new g_playerDeaths[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];	// Players' deaths for each round
 new g_playerXP[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];		// Players' XP for each round
+new g_targetRound;
+new g_furthestPlayedRound;
 
 new Float:g_fRoundTime;
 
@@ -59,10 +61,12 @@ new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, n
 new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
-new bool:g_isEditingCvar[MAXPLAYERS+1];
+new bool:g_isEditingSetting[MAXPLAYERS+1];
 new bool:g_confirmLiveEnd;
 new bool:g_isGamedataOutdated;
 new bool:g_isCurrentlyUnPausing;
+new bool:g_confirmRoundChange;
+new bool:g_isCurrentlyRestoringRound;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -598,7 +602,7 @@ void TogglePause()
 				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the pause round
 				GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL); // Back to action
 				
-				UnPause_RestoreScore(); // Restore everyone's XP, deaths and ranks to the state before pausing
+				RestoreRound(g_roundNumber); // Restore everyone's XP, deaths and ranks to the state before pausing
 				
 				g_isTeamReadyForUnPause[TEAM_JINRAI] = false;
 				g_isTeamReadyForUnPause[TEAM_NSF] = false;
@@ -1202,6 +1206,7 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	new correctInt = 0; // Desired value
 	
 	g_roundNumber = correctInt;
+	g_furthestPlayedRound = correctInt;
 	
 	for (i = 0; i < MAX_ROUNDS_PLAYED; i++)
 	{
@@ -1242,6 +1247,7 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	g_isSourceTVRecording		= correctBool;
 	g_shouldPause				= correctBool;
 	g_confirmLiveEnd			= correctBool;
+	g_confirmRoundChange	= correctBool;
 	
 	for (i = 0; i <= MaxClients; i++)
 	{
@@ -1344,8 +1350,71 @@ void RefereeMenu_Penalties(client)
 // Todo: add functionality
 void RefereeMenu_ChangeRound(client)
 {
-	PrintToChat(client, "The goggles, they do nothing!");
-	Command_RefereeMenu(client, 1);
+	if (!g_isLive)
+	{
+		PrintToChat(client, "Game is not live, cannot change rounds.");
+		Command_RefereeMenu(client, 1);
+		return;
+	}
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+			continue;
+		
+		if (g_isEditingSetting[i])
+		{
+			decl String:clientName[MAX_NAME_LENGTH];
+			GetClientName( i, clientName, sizeof(clientName) );
+			PrintToChat(client, "Admin %s is currently editing a setting. Please wait.", clientName);
+			
+			return;
+		}
+	}
+	
+	g_isEditingSetting[client] = true;
+	
+	new Handle:panel = CreatePanel();
+	
+	SetPanelTitle(panel, "Change current round");
+	DrawPanelText(panel, " ");
+	
+	decl String:currentRound[24];
+	Format(currentRound, sizeof(currentRound), "Current round: %i", g_roundNumber);
+	DrawPanelText(panel, currentRound);
+	
+	decl String:teamScores[24];
+	Format(teamScores, sizeof(teamScores), "Jinrai: %i -- %i :NSF", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
+	DrawPanelText(panel, teamScores);
+	
+	DrawPanelText(panel, " ");
+	
+	decl String:targetRound[24];
+	Format(targetRound, sizeof(targetRound), "Target round: %i", g_targetRound);
+	DrawPanelText(panel, targetRound);
+	
+	decl String:teamScores_target[24];
+	Format(teamScores_target, sizeof(teamScores_target), "Jinrai: %i -- %i :NSF", g_jinraiScore[g_targetRound], g_nsfScore[g_targetRound]);
+	DrawPanelText(panel, teamScores_target);
+	
+	DrawPanelText(panel, " ");
+	
+	DrawPanelItem(panel, "<---"); // Previous round
+	DrawPanelItem(panel, "--->"); // Next round
+	
+	DrawPanelText(panel, " ");
+	
+	// Accept round change
+	if (!g_confirmRoundChange)
+		DrawPanelItem(panel, "Restore round");
+	else
+		DrawPanelItem(panel, "Restore round (confirm)");
+	
+	DrawPanelItem(panel, "Cancel"); // Go back
+	
+	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_ChangeRound, MENU_TIME);
+	
+	CloseHandle(panel);
 }
 // Todo: add functionality
 void RefereeMenu_LoadMatch(client)
@@ -1367,11 +1436,11 @@ void ChatCvarEdit(client, Handle:cvar)
 	
 	for (new i = 0; i <= MaxClients; i++)
 	{
-		if (g_isEditingCvar[i])
+		if (g_isEditingSetting[i])
 		{
 			if ( !Client_IsValid(i) )
 			{
-				LogError("Invalid client with g_isEditingCvar bool as true.");
+				LogError("Invalid client with g_isEditingSetting bool as true.");
 				PrintToChat(client, "%s Error editing cvar via chat. Check error logs for more info.", g_tag);
 				return;
 			}
@@ -1379,12 +1448,12 @@ void ChatCvarEdit(client, Handle:cvar)
 			decl String:clientName[MAX_NAME_LENGTH];
 			GetClientName(i, clientName, sizeof(clientName));
 			
-			PrintToChat(client, "%s \"%s\" is already editing a cvar via chat. Please wait.", g_tag, clientName);
+			PrintToChat(client, "%s \"%s\" is currently editing a game setting. Please wait.", g_tag, clientName);
 			return;
 		}
 	}
 	
-	g_isEditingCvar[client] = true;
+	g_isEditingSetting[client] = true;
 	GetConVarName( cvar, g_convarBeingEdited, sizeof(g_convarBeingEdited) );
 	
 	AddCommandListener(SayCallback, "say");
@@ -1454,36 +1523,104 @@ void PrintToAdmins(const String:message[], bool toChat = true, bool toConsole = 
 	}
 }
 
-void UnPause_RestoreScore()
-{
-#if DEBUG > 1
-	PrintToServer("Restoring score after unpause. Round number: %i", g_roundNumber);
-#endif
+void RestoreRound(roundNumber, isAdminTriggered = false, client = 0)
+{	
+	if (roundNumber > g_furthestPlayedRound || roundNumber <= 0)
+	{
+		LogError("Attempted to restore a nonexistant round %i. Furthest played round is %i.", roundNumber, g_furthestPlayedRound);
+		
+		decl String:error[128];
+		Format(error, sizeof(error), "Failed restoring round %i. Check error logs for details.", roundNumber);
+		PrintToAdmins(error);
+		
+		g_confirmRoundChange = false;
+		return;
+	}
 	
+	if (isAdminTriggered)
+	{
+		if ( client == 0 || !Client_IsValid(client) || !Client_IsAdmin(client) )
+		{
+			LogError("Invalid client index %i for admin trigger", client);
+			
+			g_confirmRoundChange = false;
+			return;
+		}
+		
+		if (g_isPaused)
+		{
+			PrintToChat(client, "This command cannot be used while paused.");
+			PrintToChat(client, "Please unpause the game first.");
+			return;
+		}
+		
+		if (!g_confirmRoundChange)
+		{
+			PrintToChat(client, "Restoring match from round %i, are you sure? Please press again to confirm.", roundNumber);
+			
+			g_confirmRoundChange = true;
+			RefereeMenu_ChangeRound(client);
+			
+			CreateTimer(10.0, Timer_ConfirmRoundChange);
+			return;
+		}
+	}
+	
+	g_roundNumber = roundNumber; // Change round number
+	SetTeamScore(TEAM_JINRAI, g_jinraiScore[roundNumber]); // Set Jinrai score
+	SetTeamScore(TEAM_NSF, g_nsfScore[roundNumber]); // Set NFS score
+	
+	// Set players' XP, deaths, ranks
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if ( !Client_IsValid(i) || IsFakeClient(i) )
 			continue;
 		
-		SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][g_roundNumber]); // Restore deaths
-		SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][g_roundNumber]); // Restore XP
+		SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][roundNumber]); // Restore deaths
+		SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][roundNumber]); // Restore XP
 		
 #if DEBUG > 1
-		PrintToServer("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][g_roundNumber], g_playerDeaths[i][g_roundNumber], g_roundNumber);
+		PrintToServer("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][roundNumber], g_playerDeaths[i][roundNumber], roundNumber);
 #endif
 		
 		// We have to manually restore rank based on XP, so weapons selection won't glitch out
-		if (g_playerXP[i][g_roundNumber] < 0)
+		if (g_playerXP[i][roundNumber] < 0)
 			SetEntProp(i, Prop_Send, "m_iRank", 0); // Rankless dog
-		else if (g_playerXP[i][g_roundNumber] < 4)
+		else if (g_playerXP[i][roundNumber] < 4)
 			SetEntProp(i, Prop_Send, "m_iRank", 1); // Private
-		else if (g_playerXP[i][g_roundNumber] < 10)
+		else if (g_playerXP[i][roundNumber] < 10)
 			SetEntProp(i, Prop_Send, "m_iRank", 2); // Corporal
-		else if (g_playerXP[i][g_roundNumber] < 20)
+		else if (g_playerXP[i][roundNumber] < 20)
 			SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
 		else
 			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
 	}
+	
+	if (isAdminTriggered)
+	{
+		g_confirmRoundChange = false;
+		Command_RefereeMenu(client, 1);
+		
+		GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the round
+		
+		new Handle:endRoundTime = FindConVar("mp_chattime");
+		CreateTimer( (GetConVarFloat(endRoundTime) + 5.1), Timer_RestoreRound, roundNumber);
+		CloseHandle(endRoundTime);
+		
+		g_isCurrentlyRestoringRound = true;
+		
+		PrintToChatAll("%s Round changed by admin.", g_tag);
+	}
+}
+
+public Action:Timer_RestoreRound(Handle:timer, any:roundNumber)
+{
+	RestoreRound(roundNumber);
+}
+
+public Action:Timer_ConfirmRoundChange(Handle:timer)
+{
+	g_confirmRoundChange = false;
 }
 
 void EmptyScore()

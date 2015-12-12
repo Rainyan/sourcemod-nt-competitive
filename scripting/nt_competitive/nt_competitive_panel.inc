@@ -118,7 +118,7 @@ public PanelHandler_RefereeMenu_Main(Handle:menu, MenuAction:action, client, cho
 			RefereeMenu_Penalties(client);
 		}
 		
-		case 3: // Change round
+		case 3: // Rollback / change round
 		{
 			PrecacheSound(g_menuSoundOk);
 			EmitSoundToClient(client, g_menuSoundOk);
@@ -144,6 +144,51 @@ public PanelHandler_RefereeMenu_Main(Handle:menu, MenuAction:action, client, cho
 		{
 			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
+		}
+	}
+}
+
+public PanelHandler_RefereeMenu_ChangeRound(Handle:menu, MenuAction:action, client, choice)
+{
+	g_isEditingSetting[client] = false; // We're done editing the setting when this gets called
+	
+	if (action != MenuAction_Select)
+		return;
+	
+	switch (choice)
+	{
+		case 1: // Previous round
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			
+			if (g_targetRound > 1 && g_targetRound >= g_furthestPlayedRound)
+				g_targetRound--;
+			
+			RefereeMenu_ChangeRound(client);
+		}
+		
+		case 2: // Next round
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			
+			if (g_targetRound < g_furthestPlayedRound)
+				g_targetRound++;
+			
+			RefereeMenu_ChangeRound(client);
+		}
+		
+		case 3: // Accept changes
+		{
+			RestoreRound(g_targetRound, true, client); // round, isAdminTriggered, client
+		}
+		
+		case 4: // Exit menu
+		{
+			PrecacheSound(g_menuSoundCancel);
+			EmitSoundToClient(client, g_menuSoundCancel);
+			Command_RefereeMenu(client, 1);
 		}
 	}
 }

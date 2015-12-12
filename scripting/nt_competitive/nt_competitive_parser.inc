@@ -116,16 +116,28 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	// Game is currently being unpaused (points being recovered etc). Stop here.
 	if (g_isCurrentlyUnPausing)
 	{	
-		UnPause_RestoreScore();
+		RestoreRound(g_roundNumber);
 		SpamTimer();
 		
 		g_isCurrentlyUnPausing = false; // We have finished restoring score and announcing match live again
 	}
 	
 	// Increment round number unless we just came back from a pause
-	else
+	else if (!g_isCurrentlyRestoringRound)
 	{
 		g_roundNumber++;
+		g_targetRound				= g_roundNumber;
+		g_furthestPlayedRound	= g_roundNumber;
+	}
+	
+	// Round is being edited, stop here.
+	else if (g_isCurrentlyRestoringRound)
+	{
+		g_isCurrentlyRestoringRound = false;
+		
+		PrintToChatAll( "%s Round %i/%i", g_tag, g_roundNumber, GetConVarInt(g_hRoundLimit) );
+		
+		return Plugin_Continue;
 	}
 	
 	g_fRoundTime	= GetGameTime();
@@ -472,7 +484,7 @@ public Action:Hook_Fade(UserMsg:msg_id, Handle:bf, const players[], playersNum, 
 public Action:SayCallback(client, const String:command[], argc)
 {
 	// This player is not editing a cvar via chat, let the chat message through normally.
-	if (!g_isEditingCvar[client])
+	if (!g_isEditingSetting[client])
 		return Plugin_Continue;
 	
 	new Handle:cvar = FindConVar(g_convarBeingEdited);
@@ -484,7 +496,7 @@ public Action:SayCallback(client, const String:command[], argc)
 		RemoveCommandListener(SayCallback, "say");
 		RemoveCommandListener(SayCallback, "say_team");
 		
-		g_isEditingCvar[client] = false;
+		g_isEditingSetting[client] = false;
 		
 		RefereeMenu_GameInfo(client);
 		
@@ -521,7 +533,7 @@ public Action:SayCallback(client, const String:command[], argc)
 	
 	CloseHandle(cvar);
 	
-	g_isEditingCvar[client] = false;
+	g_isEditingSetting[client] = false;
 	
 	RefereeMenu_GameInfo(client);
 	

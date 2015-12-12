@@ -139,9 +139,7 @@ public OnPluginStart()
 }
 
 public OnMapStart()
-{
-	g_roundNumber = 0;
-	
+{	
 	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
 
@@ -222,7 +220,7 @@ public Action:Command_RefereeMenu(client, args)
 	
 	DrawPanelItem(panel, "Game information");
 	DrawPanelItem(panel, "Penalties (does not work yet)");
-	DrawPanelItem(panel, "Change round (does not work yet)");
+	DrawPanelItem(panel, "Rollback rounds");
 	
 	if (g_isLiveCountdown)
 	{
@@ -269,7 +267,7 @@ public Action:Command_ForceLive(client, args)
 		// There's no live countdown happening, it's safe to make one
 		if (!g_isLiveCountdown)
 		{
-			PrintToChatAll("Match manually started by an admin.");
+			PrintToChatAll("Match manually started by admin.");
 			LiveCountDown();
 		}
 		
@@ -309,7 +307,7 @@ public Action:Command_ForceLive(client, args)
 		}
 		else
 		{
-			PrintToChatAll("Match manually ended by an admin.");
+			PrintToChatAll("Match manually ended by admin.");
 			g_confirmLiveEnd = false;
 			ToggleLive();
 		}
