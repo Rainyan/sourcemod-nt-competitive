@@ -193,6 +193,61 @@ public PanelHandler_RefereeMenu_ChangeRound(Handle:menu, MenuAction:action, clie
 	}
 }
 
+public PanelHandler_PenaltyMenu(Handle:menu, MenuAction:action, client, choice)
+{
+	g_isCurrentlyGivingPenalty[client] = false;
+	
+	if (action != MenuAction_Select)
+		return;
+	
+	switch (choice)
+	{
+		case 1: // Penalize Jinrai
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			PenalizeTeam(client, TEAM_JINRAI);
+		}
+		
+		case 2: // Penalize NSF
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			PenalizeTeam(client, TEAM_NSF);
+		}
+		
+		case 3: // Exit menu
+		{
+			PrecacheSound(g_menuSoundCancel);
+			EmitSoundToClient(client, g_menuSoundCancel);
+			Command_RefereeMenu(client, 1);
+		}
+	}
+}
+
+public PanelHandler_PenalizeTeam(Handle:menu, MenuAction:action, client, choice)
+{
+	if (action != MenuAction_Select)
+		return;
+	
+	switch (choice)
+	{
+		case 1: // Apply team penalty
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			ApplyPenalty(client, g_penalizedTeam);
+		}
+		
+		case 2: // Exit menu
+		{
+			PrecacheSound(g_menuSoundCancel);
+			EmitSoundToClient(client, g_menuSoundCancel);
+			Command_RefereeMenu(client, 1);
+		}
+	}
+}
+
 public PanelHandler_RefereeMenu_GameInfo(Handle:menu, MenuAction:action, client, choice)
 {
 	if (action != MenuAction_Select)
@@ -242,4 +297,49 @@ public PanelHandler_RefereeMenu_GameInfo(Handle:menu, MenuAction:action, client,
 			Command_RefereeMenu(client, 1);
 		}
 	}
+}
+
+Menu BuildClientMenu()
+{
+	Menu menu = new Menu(Menu_Clients);
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || IsFakeClient(i) )
+			continue;
+		
+		new team = GetClientTeam(i);
+		if (team != TEAM_JINRAI && team != TEAM_NSF)
+			continue;
+		
+		decl String:clientName[MAX_NAME_LENGTH];
+		decl String:clientStr[3];
+		IntToString(i, clientStr, sizeof(clientStr));
+		GetClientName( i, clientName, sizeof(clientName) );
+		
+		menu.AddItem(clientStr, clientName);
+	}
+	
+	menu.SetTitle("Client menu");
+	
+	return menu;
+}
+
+public int Menu_Clients(Menu menu, MenuAction action, client, choice)
+{
+	if (action != MenuAction_Select)
+		return;
+	
+	decl String:targetString[32];
+	menu.GetItem( choice, targetString, sizeof(targetString) );
+	
+	new target = StringToInt(targetString);
+	
+	if ( !Client_IsValid(target) )
+	{
+		PrintToChat(client, "This player has left the server.");
+		return;
+	}
+	
+	RefereeMenu_ClientActions(client);
 }

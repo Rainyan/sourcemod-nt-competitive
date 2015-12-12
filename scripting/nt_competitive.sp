@@ -219,7 +219,7 @@ public Action:Command_RefereeMenu(client, args)
 	SetPanelTitle(panel, "Comp Admin Menu");
 	
 	DrawPanelItem(panel, "Game information");
-	DrawPanelItem(panel, "Penalties (does not work yet)");
+	DrawPanelItem(panel, "Team penalties");
 	DrawPanelItem(panel, "Rollback rounds");
 	
 	if (g_isLiveCountdown)

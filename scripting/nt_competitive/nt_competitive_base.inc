@@ -45,6 +45,7 @@ new g_playerDeaths[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];	// Players' deaths for each
 new g_playerXP[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];		// Players' XP for each round
 new g_targetRound;
 new g_furthestPlayedRound;
+new g_penalizedTeam;
 
 new Float:g_fRoundTime;
 
@@ -67,6 +68,8 @@ new bool:g_isGamedataOutdated;
 new bool:g_isCurrentlyUnPausing;
 new bool:g_confirmRoundChange;
 new bool:g_isCurrentlyRestoringRound;
+new bool:g_isCurrentlyEditingClients[MAXPLAYERS+1];
+new bool:g_isCurrentlyGivingPenalty[MAXPLAYERS+1];
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -96,6 +99,8 @@ new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
+
+Menu g_clientMenu = null;
 
 enum {
 	CVAR_NONE = 0,
@@ -1341,13 +1346,86 @@ void RefereeMenu_GameInfo(client)
 	CloseHandle(panel);
 }
 
-// Todo: add functionality
+void RefereeMenu_ClientActions(client)
+{	
+	if (g_isCurrentlyEditingClients[client])
+	{
+		g_isCurrentlyEditingClients[client] = false;
+		LogError("g_isCurrentlyEditingClients was already enabled for client %i before accessing RefereeMenu_ClientActions. This should never happen.", client);
+	}
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+			continue;
+		
+		if (g_isCurrentlyEditingClients[i])
+		{
+			decl String:clientName[MAX_NAME_LENGTH];
+			GetClientName( i, clientName, sizeof(clientName) );
+			PrintToChat(client, "Admin %s is currently using the menu. Please wait.", clientName);
+			
+			return;
+		}
+	}
+	
+	g_isCurrentlyEditingClients[client] = true;
+	
+	if (g_clientMenu != INVALID_HANDLE)
+	{
+		delete(g_clientMenu);
+		g_clientMenu = null;
+	}
+	
+	g_clientMenu = BuildClientMenu();
+	
+	g_clientMenu.Display(client, MENU_TIME_FOREVER);
+}
+
 void RefereeMenu_Penalties(client)
 {
-	PrintToChat(client, "The goggles, they do nothing!");
-	Command_RefereeMenu(client, 1);
+	if (!g_isLive)
+	{
+		PrintToChat(client, "Game is not live, cannot give penalties.");
+		Command_RefereeMenu(client, 1);
+		return;
+	}
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+			continue;
+		
+		if (g_isCurrentlyGivingPenalty[client])
+		{
+			g_isCurrentlyGivingPenalty[client] = false;
+			LogError("g_isCurrentlyGivingPenalty was already enabled for client %i before accessing RefereeMenu_Penalties. This should never happen.", client);
+		}
+		
+		if (g_isCurrentlyGivingPenalty[i])
+		{
+			decl String:clientName[MAX_NAME_LENGTH];
+			GetClientName( i, clientName, sizeof(clientName) );
+			PrintToChat(client, "Admin %s is currently using the penalty menu. Please wait.", clientName);
+			
+			return;
+		}
+	}
+	
+	g_isCurrentlyGivingPenalty[client] = true;
+	
+	new Handle:panel = CreatePanel();
+	
+	SetPanelTitle(panel, "Penalty Menu");
+	
+	DrawPanelItem(panel, "Jinrai");
+	DrawPanelItem(panel, "NSF");
+	
+	SendPanelToClient(panel, client, PanelHandler_PenaltyMenu, MENU_TIME);
+	
+	CloseHandle(panel);
 }
-// Todo: add functionality
+
 void RefereeMenu_ChangeRound(client)
 {
 	if (!g_isLive)
@@ -1355,6 +1433,12 @@ void RefereeMenu_ChangeRound(client)
 		PrintToChat(client, "Game is not live, cannot change rounds.");
 		Command_RefereeMenu(client, 1);
 		return;
+	}
+	
+	if (g_isEditingSetting[client])
+	{
+		g_isEditingSetting[client] = false;
+		LogError("g_isEditingSetting was already enabled for client %i before accessing RefereeMenu_ChangeRound. This should never happen.", client);
 	}
 	
 	for (new i = 1; i <= MaxClients; i++)
@@ -1416,6 +1500,7 @@ void RefereeMenu_ChangeRound(client)
 	
 	CloseHandle(panel);
 }
+
 // Todo: add functionality
 void RefereeMenu_LoadMatch(client)
 {
@@ -1433,6 +1518,12 @@ void ChatCvarEdit(client, Handle:cvar)
 	
 	if ( !Client_IsValid(client) )
 		return;
+	
+	if (g_isEditingSetting[client])
+	{
+		g_isEditingSetting[client] = false;
+		LogError("g_isEditingSetting was already enabled for client %i before accessing ChatCvarEdit. This should never happen.", client);
+	}
 	
 	for (new i = 0; i <= MaxClients; i++)
 	{
@@ -1633,5 +1724,134 @@ void EmptyScore()
 		SetEntProp(i, Prop_Data, "m_iDeaths", 0); // 0 deaths
 		SetEntProp(i, Prop_Data, "m_iFrags", 0); // 0 kills
 		SetEntProp(i, Prop_Send, "m_iRank", 1); // Private rank
+	}
+}
+
+void PenalizeTeam(admin, team)
+{
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+		LogError("Invalid team %i", team);
+		Command_RefereeMenu(admin, 1);
+		return;
+	}
+	
+	g_penalizedTeam = team;
+	
+	new Handle:panel = CreatePanel();
+	
+	SetPanelTitle(panel, "Give team penalty");
+	DrawPanelText(panel, " ");
+	
+	decl String:penaltyDescription[128];
+	Format( penaltyDescription, sizeof(penaltyDescription), "Penalize team %s?", g_teamName[team] );
+	
+	DrawPanelText(panel, penaltyDescription);
+	DrawPanelText(panel, "This will give 1 point to the opposing team.");
+	
+	DrawPanelItem(panel, "Yes, give penalty.");
+	DrawPanelItem(panel, "Cancel");
+	
+	SendPanelToClient(panel, admin, PanelHandler_PenalizeTeam, MENU_TIME);
+	
+	CloseHandle(panel);
+}
+
+void ApplyPenalty(admin, team)
+{
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+		LogError("Invalid team %i", team);
+		Command_RefereeMenu(admin, 1);
+		return;
+	}
+	
+	if (team == TEAM_JINRAI)
+	{
+		g_nsfScore[g_roundNumber]++;
+		SetTeamScore(TEAM_NSF, g_nsfScore[g_roundNumber]);
+	}
+	else
+	{
+		g_jinraiScore[g_roundNumber]++;
+		SetTeamScore(TEAM_JINRAI, g_jinraiScore[g_roundNumber]);
+	}
+	
+	PrintToChatAll("%s Penalty given to team \"%s\" by admin.", g_tag, g_teamName[team]);
+	PrintToChatAll("The opposing team gains +1 point.");
+	
+	PlayLiveBeep(); // Sound notification about the penalty
+	
+	CheckMatchState();
+	
+	Command_RefereeMenu(admin, 1);
+}
+
+void CheckMatchState()
+{
+	new roundLimit = GetConVarInt(g_hRoundLimit);
+	decl String:msgBuffer[256];
+	
+	// ** Announce match state below **
+	// Jinrai wins, NSF can't catch up anymore
+	if (g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) // (g_roundNumber - 1) because we're counting rounds by incrementing inside the event. So first round is 1, not 0.
+	{
+		#if DEBUG > 1
+			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
+			PrintToServer("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
+		#endif
+		
+		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
+		
+		PrintToChatAll(msgBuffer);
+		LogCompetitive(msgBuffer);
+		
+		g_winner = TEAM_JINRAI;
+	}
+	
+	// NSF wins, Jinrai can't catch up anymore
+	else if (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1))
+	{
+		#if DEBUG > 1
+			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
+			PrintToServer("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber], roundLimit, g_roundNumber);
+		#endif
+		
+		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
+		
+		PrintToChatAll(msgBuffer);
+		LogCompetitive(msgBuffer);
+		
+		g_winner = TEAM_NSF;
+	}
+	
+	// Tie, we ran out of rounds to play
+	else if ( (g_roundNumber - 1) == roundLimit )
+	{
+		Format(msgBuffer, sizeof(msgBuffer), "%s MATCH TIED %i - %i", g_tag, g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
+		
+		PrintToChatAll(msgBuffer);
+		LogCompetitive(msgBuffer);
+	}
+	
+	// Match point, one team has almost won
+	else if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) - 1) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - g_roundNumber - 1))
+		PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+	
+	// Just another round, simply announce round number
+	else
+	{
+		// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
+		if (g_spamTimerCount <= 1)
+			PrintToChatAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
+	}
+	// ** Announce match state above **
+	
+	
+	// Check if game ended, and toggle off live mode if appropriate
+	if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || ((g_roundNumber - 1) == roundLimit))
+	{
+		ToggleLive();
+		LogCompetitive("Competitive match ended.");
 	}
 }

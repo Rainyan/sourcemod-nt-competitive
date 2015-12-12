@@ -160,10 +160,9 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	ResetPlayersAlive(); // Reset global count of living players. Used for kill feeds etc
 	
-	decl String:msgBuffer[256];
-	
 	if (g_roundNumber == 1)
 	{
+		decl String:msgBuffer[256];
 		decl String:tournamentName[128];
 		GetConVarString(g_hCompetitionName, tournamentName, sizeof(tournamentName));
 		
@@ -189,70 +188,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		LogCompetitive("Game is PAUSED.");
 	}
 	
-	new roundLimit = GetConVarInt(g_hRoundLimit);
-	
-	// ** Announce match state below **
-	// Jinrai wins, NSF can't catch up anymore
-	if (g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) // (g_roundNumber - 1) because we're counting rounds by incrementing inside the event. So first round is 1, not 0.
-	{
-		#if DEBUG > 1
-			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-			PrintToServer("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
-		#endif
-		
-		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
-		
-		PrintToChatAll(msgBuffer);
-		LogCompetitive(msgBuffer);
-		
-		g_winner = TEAM_JINRAI;
-	}
-	
-	// NSF wins, Jinrai can't catch up anymore
-	else if (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1))
-	{
-		#if DEBUG > 1
-			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-			PrintToServer("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber], roundLimit, g_roundNumber);
-		#endif
-		
-		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-		
-		PrintToChatAll(msgBuffer);
-		LogCompetitive(msgBuffer);
-		
-		g_winner = TEAM_NSF;
-	}
-	
-	// Tie, we ran out of rounds to play
-	else if ( (g_roundNumber - 1) == roundLimit )
-	{
-		Format(msgBuffer, sizeof(msgBuffer), "%s MATCH TIED %i - %i", g_tag, g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-		
-		PrintToChatAll(msgBuffer);
-		LogCompetitive(msgBuffer);
-	}
-	
-	// Match point, one team has almost won
-	else if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) - 1) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - g_roundNumber - 1))
-		PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
-	
-	// Just another round, simply announce round number
-	else
-	{
-		// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
-		if (g_spamTimerCount <= 1)
-			PrintToChatAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
-	}
-	// ** Announce match state above **
-	
-	
-	// Check if game ended, and toggle off live mode if appropriate
-	if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || ((g_roundNumber - 1) == roundLimit))
-	{
-		ToggleLive();
-		LogCompetitive("Competitive match ended.");
-	}
+	CheckMatchState();
 	
 	return Plugin_Handled;
 }
