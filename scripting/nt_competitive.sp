@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.7.2"
+#define PLUGIN_VERSION "0.3.7.3"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -43,21 +43,21 @@ public OnPluginStart()
 	RegConsoleCmd("sm_ready",		Command_Ready,				"Mark yourself as ready for a competitive match.");
 	
 	RegConsoleCmd("sm_unready",		Command_UnReady,			"Mark yourself as not ready for a competitive match.");
-	RegConsoleCmd("sm_notready",	Command_UnReady,			"Mark yourself as not ready for a competitive match.");
+	RegConsoleCmd("sm_notready",	Command_UnReady,			"Mark yourself as not ready for a competitive match. Alternative for sm_unready.");
 	
 	RegConsoleCmd("sm_start",		Command_OverrideStart,		"Force a competitive match start when using an unexpected setup.");
 	RegConsoleCmd("sm_unstart",		Command_UnOverrideStart,	"Cancel sm_start.");
 	
 	RegConsoleCmd("sm_pause",		Command_Pause,				"Request a pause or timeout in a competitive match.");
 	RegConsoleCmd("sm_unpause",		Command_Pause,				"Request a pause or timeout in a competitive match.");
-	RegConsoleCmd("sm_timeout",		Command_Pause,				"Request a pause or timeout in a competitive match.");
+	RegConsoleCmd("sm_timeout",		Command_Pause,				"Request a pause or timeout in a competitive match. Alternative for sm_pause.");
 	
 	RegConsoleCmd("sm_readylist",	Command_ReadyList,			"List everyone who has or hasn't readied up.");
 	
 	RegConsoleCmd("jointeam",		Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 	
-	RegAdminCmd("sm_ref",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel.");
 	RegAdminCmd("sm_referee",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel.");
+	RegAdminCmd("sm_ref",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel. Alternative for sm_referee.");
 	
 	#if DEBUG
 		RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
@@ -93,6 +93,7 @@ public OnPluginStart()
 	g_hLimitLiveTeams					= CreateConVar("sm_limit_live_teams",								"1",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
 	g_hLimitTeams						= CreateConVar("sm_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
 	g_hPauseMode						= CreateConVar("sm_competitive_pause_mode",				"2",					"Pausing mode. Default: 2. 0 = no pausing allowed, 1 = use Source engine pause feature, 2 = stop round timer", _, true, 0.0, true, 2.0);
+	g_hCollectiveReady					= CreateConVar("sm_competitive_readymode_collective",	"0",					"Can a team collectively ready up by anyone of the players. Can be useful for more organized events. Default: 0.", _, true, 0.0, true, 1.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -611,17 +612,57 @@ public Action:Command_Ready(client, args)
 		return Plugin_Continue;
 	}
 	
-	if (g_isReady[client])
+	switch ( GetConVarBool(g_hCollectiveReady) )
 	{
-		ReplyToCommand(client, "%s You are already marked as ready. Use !unready to revert this.", g_tag);
-		return Plugin_Continue;
+		case 0: // Individual readying
+		{
+			if (g_isReady[client])
+			{
+				ReplyToCommand(client, "%s You are already marked as ready. Use !unready to revert this.", g_tag);
+				return Plugin_Continue;
+			}
+			
+			g_isReady[client] = true;
+			
+			decl String:clientName[MAX_NAME_LENGTH];
+			GetClientName(client, clientName, sizeof(clientName));
+			PrintToChatAll("%s Player %s is READY.", g_tag, clientName);
+		}
+		
+		case 1: // Collective readying
+		{
+			new teamPlayers;
+			new teamPlayersReady;
+			
+			for (new i = 1; i <= MaxClients; i++)
+			{
+				if ( !Client_IsValid(i) )
+					continue;
+				
+				if ( team != GetClientTeam(i) )
+					continue;
+				
+				teamPlayers++;
+				
+				if (g_isReady[i])
+					teamPlayersReady++;
+				else
+					g_isReady[i] = true;
+			}
+			
+			if (teamPlayers == teamPlayersReady)
+			{
+				ReplyToCommand(client, "%s Your team is already marked as ready. Use !unready to revert this.", g_tag);
+				return Plugin_Handled;
+			}
+			
+			else if (teamPlayers < teamPlayersReady)
+				LogError("Found more team members (%i) for team %i than there are members ready (%i).", teamPlayers, team, teamPlayersReady);
+			
+			else
+				PrintToChatAll("%s Team %s is READY.", g_tag, g_teamName[team]);
+		}
 	}
-	
-	g_isReady[client] = true;
-	
-	decl String:clientName[MAX_NAME_LENGTH];
-	GetClientName(client, clientName, sizeof(clientName));
-	PrintToChatAll("%s Player %s is READY.", g_tag, clientName);
 	
 	CheckIfEveryoneIsReady();
 	
@@ -643,22 +684,44 @@ public Action:Command_UnReady(client, args)
 		return Plugin_Continue;
 	}
 	
-	if (!g_isReady[client])
+	switch ( GetConVarBool(g_hCollectiveReady) )
 	{
-		ReplyToCommand(client, "%s You are already marked not ready. Use !ready when ready.", g_tag);
-		return Plugin_Continue;
-	}
-	
-	g_isReady[client] = false;
-	
-	decl String:clientName[MAX_NAME_LENGTH];
-	GetClientName(client, clientName, sizeof(clientName));
-	PrintToChatAll("%s Player %s is NOT READY.", g_tag, clientName);
-	
-	if (g_isExpectingOverride && g_isWantingOverride[team])
-	{
-		g_isWantingOverride[team] = false;
-		PrintToChatAll("Cancelled %s's force start vote.", g_teamName[team]);
+		case 0: // Individual readying
+		{
+			if (!g_isReady[client])
+			{
+				ReplyToCommand(client, "%s You are already marked not ready. Use !ready when ready.", g_tag);
+				return Plugin_Continue;
+			}
+			
+			g_isReady[client] = false;
+			
+			decl String:clientName[MAX_NAME_LENGTH];
+			GetClientName(client, clientName, sizeof(clientName));
+			PrintToChatAll("%s Player %s is NOT READY.", g_tag, clientName);
+			
+			if (g_isExpectingOverride && g_isWantingOverride[team])
+			{
+				g_isWantingOverride[team] = false;
+				PrintToChatAll("Cancelled %s's force start vote.", g_teamName[team]);
+			}
+		}
+		
+		case 1: // Collective readying
+		{
+			for (new i = 1; i <= MaxClients; i++)
+			{
+				if ( !Client_IsValid(i) )
+					continue;
+				
+				if ( team != GetClientTeam(i) )
+					continue;
+				
+				g_isReady[i] = false;
+			}
+			
+			PrintToChatAll("%s Team %s is NOT READY.", g_tag, g_teamName[team]);
+		}
 	}
 	
 	return Plugin_Handled;
