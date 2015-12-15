@@ -140,6 +140,13 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		return Plugin_Continue;
 	}
 	
+	if ( !GetConVarBool(g_hPreventZanshiStrats) )
+	{
+		new lastRoundCapper = Ghostcap_CapInfo();
+		
+		PrintToServer("Last round's capping team: %s", g_teamName[lastRoundCapper]);
+	}
+	
 	g_fRoundTime	= GetGameTime();
 	
 	g_jinraiScore[g_roundNumber]	= GetTeamScore(TEAM_JINRAI);
