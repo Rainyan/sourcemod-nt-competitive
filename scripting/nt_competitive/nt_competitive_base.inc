@@ -70,6 +70,7 @@ new bool:g_confirmRoundChange;
 new bool:g_isCurrentlyRestoringRound;
 new bool:g_isCurrentlyEditingClients[MAXPLAYERS+1];
 new bool:g_isCurrentlyGivingPenalty[MAXPLAYERS+1];
+new bool:g_survivedLastRound[MAXPLAYERS+1];
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -95,6 +96,8 @@ new Handle:g_hVerbosityDelay;
 new Handle:g_hPauseMode;
 new Handle:g_hCollectiveReady;
 new Handle:g_hPreventZanshiStrats;
+new Handle:g_hRoundTime;
+new Handle:g_hRoundEndTime;
 
 new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
 new Handle:g_hTimer_GoLive						= INVALID_HANDLE;

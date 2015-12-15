@@ -8,19 +8,28 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	g_isSpawned[client] = true;
+	g_survivedLastRound[client] = true; // This will be checked on next round event, thus the variable name
 }
 
 public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
-{
+{	
+	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
+	
+	// Did the death happen after round time ran out?
+	new Float:roundTimeSecs = GetConVarFloat(g_hRoundTime) * 60 - GetConVarFloat(g_hRoundEndTime);
+	new Float:currentTime = GetGameTime();
+	
+	if (currentTime - g_fRoundTime < roundTimeSecs)
+		g_survivedLastRound[victim] = false;
+	
 	if ( GetConVarInt(g_hKillVersobity) == 0 ) // Do nothing
 		return Plugin_Continue;
+	
+	new victimTeam = GetClientTeam(victim);
 	
 	new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 	decl String:attackerName[MAX_NAME_LENGTH];
 	GetClientName( attacker, attackerName, sizeof(attackerName) );
-	
-	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
-	new victimTeam = GetClientTeam(victim);
 	
 	switch ( GetConVarInt(g_hKillVersobity) )
 	{
@@ -74,9 +83,16 @@ public Action:Event_PlayerHurt(Handle:event, const String:name[], bool:dontBroad
 	new health;
 	
 	if ( !IsPlayerAlive(victim) ) // todo: is this called too fast for IsPlayerAlive to be reliable?
+	{
 		health = 0;
+	}
 	else
+	{
 		health = GetClientOfUserId(GetEventInt(event, "health"));
+		
+		if (!g_survivedLastRound[victim])
+			LogError("g_survivedLastRound has player %i incorrectly marked as dead (health remaining: %i)", victim, health);
+	}
 	
 	damage = g_health[victim] - health;
 	
@@ -140,11 +156,37 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		return Plugin_Continue;
 	}
 	
-	if ( !GetConVarBool(g_hPreventZanshiStrats) )
+	// Should we disallow wins by timeout?
+	if ( g_roundNumber > 1 && GetConVarBool(g_hPreventZanshiStrats) )
 	{
 		new lastRoundCapper = Ghostcap_CapInfo();
+		new survivors[sizeof(g_teamName)];
 		
-		PrintToServer("Last round's capping team: %s", g_teamName[lastRoundCapper]);
+		// Nobody captured the ghost last round
+		if (lastRoundCapper != TEAM_JINRAI && lastRoundCapper != TEAM_NSF)
+		{	
+			// Get amount of survivors on both teams
+			for (i = 1; i <= MaxClients; i++)
+			{
+				if ( !Client_IsValid(i) )
+					continue;
+				
+				new team = GetClientTeam(i);
+				if (team != TEAM_JINRAI && team != TEAM_NSF)
+					continue;
+				
+				if (g_survivedLastRound[i])
+					survivors[team]++;
+			}
+			
+			// Both teams had players still alive when the time ran out
+			if (survivors[TEAM_JINRAI] > 0 && survivors[TEAM_NSF] > 0)
+			{	
+				// Roll back team scores to previous round's state
+				g_jinraiScore[g_roundNumber] = g_jinraiScore[g_roundNumber - 1];
+				g_nsfScore[g_roundNumber] = g_nsfScore[g_roundNumber - 1];
+			}
+		}
 	}
 	
 	g_fRoundTime	= GetGameTime();

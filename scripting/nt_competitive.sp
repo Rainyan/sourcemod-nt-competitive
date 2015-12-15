@@ -101,6 +101,8 @@ public OnPluginStart()
 	g_hForceCamera		= FindConVar("mp_forcecamera");
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
 	g_hPausable			= FindConVar("sv_pausable");
+	g_hRoundTime		= FindConVar("neo_round_timelimit");
+	g_hRoundEndTime	= FindConVar("mp_chattime");
 	
 	HookConVarChange(g_hNeoRestartThis,					Event_Restart);
 	HookConVarChange(g_hSourceTVEnabled,				Event_SourceTVEnabled);
