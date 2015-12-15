@@ -16,6 +16,7 @@ Features:
   - Ready up system.
   - Panel menus for admins
   - Ability to fall back to previous rounds
+  - Option to disable timeout round wins
 
 To-do:
   - Panel menus for players
