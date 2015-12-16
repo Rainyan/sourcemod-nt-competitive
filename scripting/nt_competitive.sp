@@ -19,7 +19,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.7.4"
+#define PLUGIN_VERSION "0.3.7.5"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -102,7 +102,6 @@ public OnPluginStart()
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
 	g_hPausable			= FindConVar("sv_pausable");
 	g_hRoundTime		= FindConVar("neo_round_timelimit");
-	g_hRoundEndTime	= FindConVar("mp_chattime");
 	
 	HookConVarChange(g_hNeoRestartThis,					Event_Restart);
 	HookConVarChange(g_hSourceTVEnabled,				Event_SourceTVEnabled);

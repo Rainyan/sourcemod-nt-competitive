@@ -16,7 +16,7 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
 	
 	// Did the death happen after round time ran out?
-	new Float:roundTimeSecs = GetConVarFloat(g_hRoundTime) * 60 - GetConVarFloat(g_hRoundEndTime);
+	new Float:roundTimeSecs = GetConVarFloat(g_hRoundTime) * 60;
 	new Float:currentTime = GetGameTime();
 	
 	if (currentTime - g_fRoundTime < roundTimeSecs)

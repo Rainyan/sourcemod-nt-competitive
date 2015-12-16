@@ -97,7 +97,6 @@ new Handle:g_hPauseMode;
 new Handle:g_hCollectiveReady;
 new Handle:g_hPreventZanshiStrats;
 new Handle:g_hRoundTime;
-new Handle:g_hRoundEndTime;
 
 new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
 new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
