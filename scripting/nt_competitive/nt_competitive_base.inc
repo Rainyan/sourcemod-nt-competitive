@@ -1865,3 +1865,47 @@ void CheckMatchState()
 		LogCompetitive("Competitive match ended.");
 	}
 }
+
+void CheckGhostcapPlugin()
+{
+	// Anti-timeout cvar is disabled, no need to check for ghostcap plugin
+	if ( !GetConVarBool(g_hPreventZanshiStrats) )
+		return;
+	
+	new Handle:ghostcapPlugin = FindConVar("sm_ntghostcapevent_version");
+	new String:g_ghostcapUrl[] = "https://github.com/softashell/nt-sourcemod-plugins/blob/master/scripting/nt_ghostcap.sp";
+	
+	// Look for ghost cap plugin's version variable
+	if (ghostcapPlugin == null)
+	{
+		LogError("Using sm_competitive_nozanshi 1 setting requires Soft as HELL's Ghost cap event plugin, version 1.5.1 or newer: %s", g_ghostcapUrl);
+		SetConVarBool(g_hPreventZanshiStrats, false);
+		return;
+	}
+	
+	// Get the ghost cap plugin version
+	decl String:ghostcapVersion[16];
+	GetConVarString( ghostcapPlugin, ghostcapVersion, sizeof(ghostcapVersion) );
+	CloseHandle(ghostcapPlugin);
+	
+	decl String:ghostcapVersion_Numeric[16];
+	new stringpos;
+	
+	for (new i = 0; i < strlen(ghostcapVersion); i++)
+	{
+		if ( IsCharNumeric(ghostcapVersion[i]) )
+			ghostcapVersion_Numeric[stringpos++] = ghostcapVersion[i];
+	}
+	ghostcapVersion_Numeric[stringpos] = 0; // string terminator
+	
+	if (
+			(strlen(ghostcapVersion_Numeric) >= 3 && StringToInt(ghostcapVersion_Numeric) < 151)	|| // 3+ digit version numbers
+			(strlen(ghostcapVersion_Numeric) == 2 && StringToInt(ghostcapVersion_Numeric) < 16)		|| // 2 digit version numbers
+			(strlen(ghostcapVersion_Numeric) == 1 && StringToInt(ghostcapVersion_Numeric) < 2)		|| // 1 digit version numbers
+			(strlen(ghostcapVersion_Numeric) < 1) // version string has no numbers, treat as error
+		)
+		{
+			LogError("Using sm_competitive_nozanshi 1 setting requires Soft as HELL's Ghost cap event plugin, version 1.5.1 or newer: %s", g_ghostcapUrl);
+			SetConVarBool(g_hPreventZanshiStrats, false);
+		}
+}

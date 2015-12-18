@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.8.1"
+#define PLUGIN_VERSION "0.3.8.2"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -109,6 +109,7 @@ public OnPluginStart()
 	HookConVarChange(g_hNSFName,						Event_TeamNameNSF);
 	HookConVarChange(g_hCommsBehaviour,					Event_CommsBehaviour);
 	HookConVarChange(g_hLogMode,						Event_LogMode);
+	HookConVarChange(g_hPreventZanshiStrats,			Event_ZanshiStrats);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
@@ -139,6 +140,11 @@ public OnPluginStart()
 	CheckGamedataFiles();
 	
 	AutoExecConfig(true);
+}
+
+public OnAllPluginsLoaded()
+{
+	CheckGhostcapPlugin();
 }
 
 public OnMapStart()

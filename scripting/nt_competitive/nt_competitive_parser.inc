@@ -336,6 +336,12 @@ public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 	}
 }
 
+public Event_ZanshiStrats(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	if (StringToInt(newVal))
+		CheckGhostcapPlugin();
+}
+
 public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	decl String:nsfName[sizeof(g_teamName[])];
