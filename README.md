@@ -27,4 +27,10 @@ Compile dependencies:
   - <a target="_blank" href="https://github.com/bcserv/smlib/">SMLIB</a>
   - <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">SourceMod NT include</a>
 
-Requires SourceMod 1.7.0 or later.
+Server requirements:
+  - <a target="_blank" href="http://www.sourcemod.net/downloads.php?branch=stable">SourceMod</a> 1.7.0 or later
+
+Some optional features also require:
+  - Up-to-date <a target="_blank" href="https://github.com/alliedmodders/sourcemod/tree/master/gamedata">Neotokyo gamedata</a>
+  - <a target="_blank" href="https://github.com/softashell/nt-sourcemod-plugins">Ghostcap event plugin</a> 1.5.1 or later
+
