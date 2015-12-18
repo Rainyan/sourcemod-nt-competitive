@@ -46,6 +46,7 @@ new g_playerXP[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];		// Players' XP for each round
 new g_targetRound;
 new g_furthestPlayedRound;
 new g_penalizedTeam;
+new g_ghostCapturingTeam;
 
 new Float:g_fRoundTime;
 
@@ -1716,6 +1717,11 @@ public Action:Timer_RestoreRound(Handle:timer, any:roundNumber)
 public Action:Timer_ConfirmRoundChange(Handle:timer)
 {
 	g_confirmRoundChange = false;
+}
+
+public Action:Timer_ClearGhostCapper(Handle:timer)
+{
+	g_ghostCapturingTeam = TEAM_NONE;
 }
 
 void EmptyScore()

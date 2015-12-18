@@ -121,6 +121,8 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		g_shouldShowKillInfo[i] = false;
 	}
 	
+	CreateTimer(5.0, Timer_ClearGhostCapper);
+	
 	// Game is not live. Stop here.
 	if (!g_isLive)
 		return Plugin_Continue;
@@ -158,13 +160,12 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	// Should we disallow wins by timeout?
 	if ( g_roundNumber > 1 && GetConVarBool(g_hPreventZanshiStrats) )
-	{
-		new lastRoundCapper = Ghostcap_CapInfo();
-		new survivors[sizeof(g_teamName)];
-		
+	{	
 		// Nobody captured the ghost last round
-		if (lastRoundCapper != TEAM_JINRAI && lastRoundCapper != TEAM_NSF)
-		{	
+		if (g_ghostCapturingTeam != TEAM_JINRAI && g_ghostCapturingTeam != TEAM_NSF)
+		{
+			new survivors[sizeof(g_teamName)];
+			
 			// Get amount of survivors on both teams
 			for (i = 1; i <= MaxClients; i++)
 			{
@@ -328,6 +329,7 @@ public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 	if (StringToInt(newVal)) // If nonzero, we have a restart
 	{
 		g_roundNumber = 0; // Reset round count
+		g_ghostCapturingTeam = TEAM_NONE; // Reset last round capper
 		
 		if (g_isLive)
 			LogCompetitive("Match restarted.");

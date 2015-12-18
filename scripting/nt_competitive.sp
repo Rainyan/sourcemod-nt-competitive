@@ -14,12 +14,11 @@
 #include <sdktools>
 #include <smlib>
 #include <neotokyo>
-#include "nt_ghostcap_natives"
 #include "nt_competitive/nt_competitive_base"
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.7.5"
+#define PLUGIN_VERSION "0.3.8.1"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -215,6 +214,24 @@ public bool OnClientConnect(client)
 public OnClientDisconnect(client)
 {
 	g_isReady[client] = false;
+}
+
+public OnGhostCapture(client)
+{
+	if ( !Client_IsValid(client) )
+	{
+		LogError("Returned invalid client %i", client);
+		return;
+	}
+	
+	new team = GetClientTeam(client);
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+		LogError("Returned client %i does not belong to team Jinrai or NSF, returned team id %i", client, team);
+		return;
+	}
+	
+	g_ghostCapturingTeam = team;
 }
 
 public Action:Command_RefereeMenu(client, args)
