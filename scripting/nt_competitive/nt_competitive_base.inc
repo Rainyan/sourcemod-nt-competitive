@@ -1868,6 +1868,8 @@ void CheckMatchState()
 
 void CheckGhostcapPlugin()
 {
+	return;
+	/*
 	// Anti-timeout cvar is disabled, no need to check for ghostcap plugin
 	if ( !GetConVarBool(g_hPreventZanshiStrats) )
 		return;
@@ -1908,4 +1910,5 @@ void CheckGhostcapPlugin()
 			LogError("Using sm_competitive_nozanshi 1 setting requires Soft as HELL's Ghost cap event plugin, version 1.5.1 or newer: %s", g_ghostcapUrl);
 			SetConVarBool(g_hPreventZanshiStrats, false);
 		}
+	*/
 }
