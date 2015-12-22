@@ -4,8 +4,6 @@
 #endif
 #define _base_included_
 
-#define MENU_TIME 20 // How long to display panel menus for, in seconds
-
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
 
@@ -1346,7 +1344,7 @@ void RefereeMenu_GameInfo(client)
 	// Go back to previous menu
 	DrawPanelItem(panel, "Back");
 	
-	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_GameInfo, MENU_TIME);
+	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_GameInfo, MENU_TIME_FOREVER);
 	
 	CloseHandle(panel);
 }
@@ -1426,7 +1424,7 @@ void RefereeMenu_Penalties(client)
 	DrawPanelItem(panel, "Jinrai");
 	DrawPanelItem(panel, "NSF");
 	
-	SendPanelToClient(panel, client, PanelHandler_PenaltyMenu, MENU_TIME);
+	SendPanelToClient(panel, client, PanelHandler_PenaltyMenu, MENU_TIME_FOREVER);
 	
 	CloseHandle(panel);
 }
@@ -1501,7 +1499,7 @@ void RefereeMenu_ChangeRound(client)
 	
 	DrawPanelItem(panel, "Cancel"); // Go back
 	
-	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_ChangeRound, MENU_TIME);
+	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_ChangeRound, MENU_TIME_FOREVER);
 	
 	CloseHandle(panel);
 }
@@ -1762,7 +1760,7 @@ void PenalizeTeam(admin, team)
 	DrawPanelItem(panel, "Yes, give penalty.");
 	DrawPanelItem(panel, "Cancel");
 	
-	SendPanelToClient(panel, admin, PanelHandler_PenalizeTeam, MENU_TIME);
+	SendPanelToClient(panel, admin, PanelHandler_PenalizeTeam, MENU_TIME_FOREVER);
 	
 	CloseHandle(panel);
 }

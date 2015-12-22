@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.8.3"
+#define PLUGIN_VERSION "0.3.8.4"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -272,7 +272,7 @@ public Action:Command_RefereeMenu(client, args)
 	DrawPanelItem(panel, "Load previous match (does not work yet)");
 	DrawPanelItem(panel, "Exit");
 	
-	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME);
+	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME_FOREVER);
 	
 	CloseHandle(panel);
 	
@@ -375,7 +375,7 @@ public Action:Command_Pause(client, args)
 			DrawPanelItem(panel, "Yes, cancel");
 			DrawPanelItem(panel, "Exit");
 			
-			SendPanelToClient(panel, client, PanelHandler_CancelPause, MENU_TIME);
+			SendPanelToClient(panel, client, PanelHandler_CancelPause, MENU_TIME_FOREVER);
 			
 			CloseHandle(panel);
 			
@@ -401,7 +401,7 @@ public Action:Command_Pause(client, args)
 			DrawPanelItem(panel, "Team is ready, request unpause");
 			DrawPanelItem(panel, "Exit");
 			
-			SendPanelToClient(panel, client, PanelHandler_UnPause, MENU_TIME);
+			SendPanelToClient(panel, client, PanelHandler_UnPause, MENU_TIME_FOREVER);
 			
 			CloseHandle(panel);
 			
@@ -456,7 +456,7 @@ public Action:Command_Pause(client, args)
 	DrawPanelItem(panel, "Technical difficulties"); // Team is always allowed to call a pause for technical issues
 	DrawPanelItem(panel, "Exit");
 	
-	SendPanelToClient(panel, client, PanelHandler_Pause, MENU_TIME);
+	SendPanelToClient(panel, client, PanelHandler_Pause, MENU_TIME_FOREVER);
 	
 	CloseHandle(panel);
 	
