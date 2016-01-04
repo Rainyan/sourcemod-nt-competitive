@@ -18,7 +18,6 @@ new String:g_livePlayers[MAXPLAYERS+1][MAX_STEAMID_LENGTH]; // Array for storing
 new String:g_menuSoundOk[] = "buttons/button14.wav";
 new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new String:g_soundLive[] = "buttons/button17.wav";
-new String:g_kvPath[PLATFORM_MAX_PATH];
 new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 new String:g_convarBeingEdited[128];
 
