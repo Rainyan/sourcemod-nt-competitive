@@ -95,6 +95,8 @@ new Handle:g_hPauseMode;
 new Handle:g_hCollectiveReady;
 new Handle:g_hPreventZanshiStrats;
 new Handle:g_hRoundTime;
+new Handle:g_hJinraiScore;
+new Handle:g_hNSFScore;
 
 new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
 new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
@@ -1215,6 +1217,9 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	g_roundNumber = correctInt;
 	g_furthestPlayedRound = correctInt;
 	
+	SetConVarInt(g_hJinraiScore, correctInt);
+	SetConVarInt(g_hNSFScore, correctInt);
+	
 	for (i = 0; i < MAX_ROUNDS_PLAYED; i++)
 	{
 		g_jinraiScore[i]	= correctInt;
@@ -1501,6 +1506,63 @@ void RefereeMenu_ChangeRound(client)
 	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_ChangeRound, MENU_TIME_FOREVER);
 	
 	CloseHandle(panel);
+}
+
+void RefereeMenu_ManualEdit_TeamScore(client)
+{
+	if (!g_isLive)
+	{
+		PrintToChat(client, "Game is not live, can't edit score!");
+		Command_RefereeMenu(client, 1);
+		return;
+	}
+	
+	if (g_isEditingSetting[client])
+	{
+		g_isEditingSetting[client] = false;
+		LogError("g_isEditingSetting was already enabled for client %i before accessing RefereeMenu_ChangeRound. This should never happen.", client);
+	}
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+			continue;
+		
+		if (g_isEditingSetting[i])
+		{
+			decl String:clientName[MAX_NAME_LENGTH];
+			GetClientName( i, clientName, sizeof(clientName) );
+			PrintToChat(client, "Admin %s is currently editing a setting. Please wait.", clientName);
+			
+			return;
+		}
+	}
+	
+	new Handle:panel = CreatePanel();
+	
+	SetPanelTitle(panel, "Manually edit team score");
+	DrawPanelText(panel, " ");
+	
+	decl String:teamScores[24];
+	Format(teamScores, sizeof(teamScores), "Jinrai: %i -- %i :NSF", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
+	DrawPanelText(panel, teamScores);
+	
+	DrawPanelText(panel, " ");
+	
+	DrawPanelItem(panel, "Edit Jinrai score");
+	DrawPanelItem(panel, "Edit NSF score");
+	DrawPanelItem(panel, "Cancel");
+	
+	SendPanelToClient(panel, client, PanelHandler_ManualEdit_TeamScore, MENU_TIME_FOREVER);
+	
+	CloseHandle(panel);
+}
+
+// Todo: add functionality
+void RefereeMenu_ManualEdit_PlayerScore(client)
+{
+	PrintToChat(client, "The goggles, they do nothing!");
+	Command_RefereeMenu(client, 1);
 }
 
 // Todo: add functionality

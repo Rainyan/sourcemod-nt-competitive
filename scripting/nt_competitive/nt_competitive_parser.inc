@@ -309,6 +309,38 @@ public Action:Command_JoinTeam(client, args)
 	return Plugin_Stop;
 }
 
+public Event_JinraiScore(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	if (g_isLive)
+	{
+		if (g_roundNumber > 0)
+		{
+			g_jinraiScore[g_roundNumber] = StringToInt(newVal);
+			SetTeamScore(TEAM_JINRAI, g_jinraiScore[g_roundNumber]);
+		}
+		else
+		{
+			LogError("Tried to edit unexpected round number %i, expected round 1 or larger", g_roundNumber);
+		}
+	}
+}
+
+public Event_NSFScore(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	if (g_isLive)
+	{
+		if (g_roundNumber > 0)
+		{
+			g_nsfScore[g_roundNumber] = StringToInt(newVal);
+			SetTeamScore(TEAM_NSF, g_nsfScore[g_roundNumber]);
+		}
+		else
+		{
+			LogError("Tried to edit unexpected round number %i, expected round 1 or larger", g_roundNumber);
+		}
+	}
+}
+
 public Event_CommsBehaviour(Handle:cvar, const String:oldVal[], const String:newVal[])
 {	
 	if (g_isLive)
@@ -528,7 +560,7 @@ public Action:SayCallback(client, const String:command[], argc)
 	
 	g_isEditingSetting[client] = false;
 	
-	RefereeMenu_GameInfo(client);
+	Command_RefereeMenu(client, 1);
 	
 	return Plugin_Handled;
 }

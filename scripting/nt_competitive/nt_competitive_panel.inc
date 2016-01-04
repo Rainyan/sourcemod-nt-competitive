@@ -133,17 +133,61 @@ public PanelHandler_RefereeMenu_Main(Handle:menu, MenuAction:action, client, cho
 			Command_RefereeMenu(client, 1); // Return to the referee menu
 		}
 		
-		case 5: // Load previous match
+		case 5: // Manually edit team score
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			RefereeMenu_ManualEdit_TeamScore(client);
+		}
+		
+		case 6: // Manually edit player score
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			RefereeMenu_ManualEdit_PlayerScore(client);
+		}
+		
+		case 7: // Load previous match
 		{
 			PrecacheSound(g_menuSoundOk);
 			EmitSoundToClient(client, g_menuSoundOk);
 			RefereeMenu_LoadMatch(client);
 		}
 		
-		case 6: // Exit menu
+		case 8: // Exit menu
 		{
 			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
+		}
+	}
+}
+
+public PanelHandler_ManualEdit_TeamScore(Handle:menu, MenuAction:action, client, choice)
+{	
+	if (action != MenuAction_Select)
+		return;
+	
+	switch (choice)
+	{
+		case 1: // Edit Jinrai score
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			ChatCvarEdit(client, g_hJinraiScore);
+		}
+		
+		case 2: // Edit NSF score
+		{
+			PrecacheSound(g_menuSoundOk);
+			EmitSoundToClient(client, g_menuSoundOk);
+			ChatCvarEdit(client, g_hNSFScore);
+		}
+		
+		case 3: // Exit menu
+		{
+			PrecacheSound(g_menuSoundCancel);
+			EmitSoundToClient(client, g_menuSoundCancel);
+			Command_RefereeMenu(client, 1);
 		}
 	}
 }

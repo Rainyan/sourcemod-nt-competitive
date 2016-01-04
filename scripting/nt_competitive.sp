@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.8.5"
+#define PLUGIN_VERSION "0.3.8.6"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -95,6 +95,8 @@ public OnPluginStart()
 	g_hPauseMode						= CreateConVar("sm_competitive_pause_mode",				"2",					"Pausing mode. 0 = no pausing allowed, 1 = use Source engine pause feature, 2 = stop round timer", _, true, 0.0, true, 2.0);
 	g_hCollectiveReady					= CreateConVar("sm_competitive_readymode_collective",	"0",					"Can a team collectively ready up by anyone of the players. Can be useful for more organized events.", _, true, 0.0, true, 1.0);
 	g_hPreventZanshiStrats			= CreateConVar("sm_competitive_nozanshi",						"0",					"Whether or not to disable timeout wins.", _, true, 0.0, true, 1.0);
+	g_hJinraiScore							= CreateConVar("sm_competitive_jinrai_score",					"0",					"Competitive plugin's internal score cvar. Editing this will directly affect comp team scores.", _, true, 0.0);
+	g_hNSFScore							= CreateConVar("sm_competitive_nsf_score",						"0",					"Competitive plugin's internal score cvar. Editing this will directly affect comp team scores.", _, true, 0.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -110,6 +112,8 @@ public OnPluginStart()
 	HookConVarChange(g_hCommsBehaviour,					Event_CommsBehaviour);
 	HookConVarChange(g_hLogMode,						Event_LogMode);
 	HookConVarChange(g_hPreventZanshiStrats,			Event_ZanshiStrats);
+	HookConVarChange(g_hJinraiScore,						Event_JinraiScore);
+	HookConVarChange(g_hNSFScore,						Event_NSFScore);
 	
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 	
@@ -260,6 +264,8 @@ public Action:Command_RefereeMenu(client, args)
 		}
 	}
 	
+	DrawPanelItem(panel, "Manually edit team score");
+	DrawPanelItem(panel, "Manually edit player score (does not work yet)");
 	DrawPanelItem(panel, "Load previous match (does not work yet)");
 	DrawPanelItem(panel, "Exit");
 	
