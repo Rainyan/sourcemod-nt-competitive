@@ -474,6 +474,17 @@ void PauseRequest(client, reason)
 	}
 	
 	new team = GetClientTeam(client);
+	
+	if (g_shouldPause)
+	{
+		if (team == g_pausingTeam)
+			PrintToChat(client, "%s Your team has already requested a pause for the next freezetime.", g_tag);
+		else
+			PrintToChat(client, "%s Team \"%s\" has already requested a pause during next freezetime.", g_tag, g_teamName[g_pausingTeam]);
+		
+		return;
+	}
+	
 	g_pausingTeam = team;
 	g_pauseReason = reason;
 	
@@ -503,6 +514,10 @@ void PauseRequest(client, reason)
 
 void CancelPauseRequest(client)
 {
+	// Already cancelled, nothing to do
+	if (!g_shouldPause)
+		return;
+	
 	// We check for client & team validity in Command_Pause already before calling this
 	g_shouldPause = false;
 	
@@ -514,16 +529,23 @@ void UnPauseRequest(client)
 {
 	// We check for client & team validity in Command_Pause already before calling this
 	new team = GetClientTeam(client);
-	new otherTeam = GetOtherTeam(team);
+	
+	// Already did this, stop here
+	if (g_isTeamReadyForUnPause[team])
+		return;
 	
 	g_isTeamReadyForUnPause[team] = true;
 	PrintToChatAll("%s %s are ready, and want to unpause.", g_tag, g_teamName[team]);
 	
 	if (g_isTeamReadyForUnPause[TEAM_JINRAI] && g_isTeamReadyForUnPause[TEAM_NSF])
+	{
 		TogglePause();
-	
+	}
 	else
+	{
+		new otherTeam = GetOtherTeam(team);
 		PrintToChatAll("Waiting for %s to confirm unpause.", g_teamName[otherTeam]);
+	}
 }
 
 public Action:Command_OverrideStart(client, args)
