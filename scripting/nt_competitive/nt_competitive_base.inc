@@ -1520,7 +1520,7 @@ void RefereeMenu_ManualEdit_TeamScore(client)
 	if (g_isEditingSetting[client])
 	{
 		g_isEditingSetting[client] = false;
-		LogError("g_isEditingSetting was already enabled for client %i before accessing RefereeMenu_ChangeRound. This should never happen.", client);
+		LogError("g_isEditingSetting was already enabled for client %i before accessing RefereeMenu_ManualEdit_TeamScore. This should never happen.", client);
 	}
 	
 	for (new i = 1; i <= MaxClients; i++)
