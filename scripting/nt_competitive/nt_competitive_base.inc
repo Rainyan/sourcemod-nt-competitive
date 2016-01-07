@@ -1632,7 +1632,7 @@ void CheckGamedataFiles()
 	// Do a filesize based check.
 	// This should be fairly safe as the NT gamedata is updated extremely rarely.
 	new fileSize					= FileSize(filePath, false);		// Filesize of the currently running server gamedata version
-	new correctFileSize		= 1933;								// Filesize of the correct gamedata version (10 Oct 2015)
+	new correctFileSize		= 1933;								// Filesize of the correct gamedata version (30 Dec 2015 or 10 Oct 2015)
 	new oldFileSize_2014	= 1179;								// Old version filesize (23 Dec 2014)
 	new oldFileSize_2009	= 1075;								// Old version filesize (15 Dec 2009)
 	
