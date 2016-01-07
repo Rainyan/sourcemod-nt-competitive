@@ -129,6 +129,10 @@ public OnPluginStart()
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
 	
+#if DEBUG
+	PrepareDebugLogFolder();
+#endif
+	
 	g_liveTimer_OriginalValue = g_liveTimer;
 	g_unpauseTimer_OriginalValue = g_unpauseTimer;
 	

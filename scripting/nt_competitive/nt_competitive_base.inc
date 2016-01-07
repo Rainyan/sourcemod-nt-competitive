@@ -20,6 +20,9 @@ new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new String:g_soundLive[] = "buttons/button17.wav";
 new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 new String:g_convarBeingEdited[128];
+#if DEBUG
+new String:g_path_logDebug[] = "logs/competitive";
+#endif
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
 new g_jinraiScore[MAX_ROUNDS_PLAYED];
@@ -1944,3 +1947,28 @@ void CheckGhostcapPlugin()
 		return;
 	}
 }
+
+#if DEBUG
+void PrepareDebugLogFolder()
+{
+	decl String:path[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, path, sizeof(path), g_path_logDebug);
+	if ( !DirExists(path) )
+		CreateDirectory(path, 509);
+}
+
+void LogDebug(const String:message[], any ...)
+{
+	decl String:path[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, path, sizeof(path), g_path_logDebug);
+	StrCat(path, sizeof(path), "/competitive_debug.log");
+	
+	// Format according to SM format rules
+	decl String:formatMsg[512];
+	VFormat(formatMsg, sizeof(formatMsg), message, 2);
+	
+	new Handle:file = OpenFile(path, "a"); // fopen
+	WriteFileLine(file, formatMsg);
+	CloseHandle(file);
+}
+#endif
