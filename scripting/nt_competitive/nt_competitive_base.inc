@@ -200,6 +200,7 @@ public Action:Command_ReadyList(client, args)
 	return Plugin_Handled;
 }
 
+#if DEBUG
 public Action:Command_IgnoreTeams(client, args)
 {
 	if ( GetConVarBool(g_hLimitLiveTeams) )
@@ -216,6 +217,7 @@ public Action:Command_IgnoreTeams(client, args)
 	
 	return Plugin_Handled;
 }
+#endif
 
 void ToggleRecording()
 {
