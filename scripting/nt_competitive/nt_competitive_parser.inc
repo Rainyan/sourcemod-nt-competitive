@@ -237,7 +237,9 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	decl String:roundBuffer[64];
 	Format(roundBuffer, sizeof(roundBuffer), "***** Round %i *****", g_roundNumber);
 	LogCompetitive(roundBuffer);
-	
+#if DEBUG
+	LogDebug(roundBuffer);
+#endif
 	if (g_shouldPause)
 	{
 		g_shouldPause = false;
