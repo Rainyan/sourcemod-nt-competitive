@@ -20,7 +20,8 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 		{
 			decl String:clientName[MAX_NAME_LENGTH];
 			GetClientName( client, clientName, sizeof(clientName) );
-			LogDebug("Client %i \"%s\" triggered Event_PlayerSpawn without actually spawning.", client, clientName);
+			new team = GetClientTeam(client);
+			LogDebug("Client %i \"%s\" (team %i) triggered Event_PlayerSpawn without actually spawning. g_isSpawned[client] = %b, g_survivedLastRound[client] = %b", client, clientName, team, g_isSpawned[client], g_survivedLastRound[client]);
 		}
 		else
 		{
