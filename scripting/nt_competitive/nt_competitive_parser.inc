@@ -155,12 +155,15 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	if (g_isCurrentlyUnPausing)
 	{	
 		RestoreRound(g_roundNumber);
+		PrintToChatAll( "%s Round %i/%i", g_tag, g_roundNumber, GetConVarInt(g_hRoundLimit) );
 		SpamTimer();
 		
 		g_isCurrentlyUnPausing = false; // We have finished restoring score and announcing match live again
+		
+		return Plugin_Continue;
 	}
 	
-	// Increment round number unless we just came back from a pause
+	// Increment round number, unless we just came back from a pause
 	else if (!g_isCurrentlyRestoringRound)
 	{
 		g_roundNumber++;
@@ -215,12 +218,17 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 #endif
 				// Roll back team scores to previous round's state
 				g_jinraiScore[g_roundNumber] = g_jinraiScore[g_roundNumber - 1];
+				SetTeamScore(TEAM_JINRAI, g_jinraiScore[g_roundNumber]);
 				g_nsfScore[g_roundNumber] = g_nsfScore[g_roundNumber - 1];
+				SetTeamScore(TEAM_NSF, g_nsfScore[g_roundNumber]);
+				
+				PrintToChatAll("%s Round timed out. No team point awarded.", g_tag);
 			}
 		}
 	}
 	
 	g_fRoundTime	= GetGameTime();
+//	PrintToServer("# # # NEW ROUND Game Time: %f", g_fRoundTime);
 	
 	g_jinraiScore[g_roundNumber]	= GetTeamScore(TEAM_JINRAI);
 	g_nsfScore[g_roundNumber]	= GetTeamScore(TEAM_NSF);

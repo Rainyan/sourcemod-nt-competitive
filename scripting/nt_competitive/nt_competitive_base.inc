@@ -1870,7 +1870,7 @@ void CheckMatchState()
 		LogDebug("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
 #endif
 		
-		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
+		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 		
 		PrintToChatAll(msgBuffer);
 		LogCompetitive(msgBuffer);
@@ -1971,18 +1971,25 @@ void LogDebug(const String:message[], any ...)
 bool DidPlayerReallySpawn(client)
 {
 	if ( !Client_IsValid(client) || !IsClientInGame(client) )
+	{
+//		PrintToServer("Client is not valid %i", client);
 		return false;
+	}
 	
 	new team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+//		PrintToServer("Team is not valid %i", team);
 		return false;
-	
-	if ( !IsPlayerAlive(client) )
-		return false;
+	}
 	
 	new Float:currentTime = GetGameTime();
-	if (currentTime - g_fRoundTime > 15 + 1) // Spawn event triggered after round spawning is finished. Player cannot have spawned.
+	if (currentTime - g_fRoundTime > 30 + 1) // Spawn event triggered after round spawning is finished. Player cannot have spawned.
+	{
+//		PrintToServer("# # # NEW SPAWN Game Time: %f", currentTime);
+//		PrintToServer("Time is not valid %f - %f = %f > 15+1", currentTime, g_fRoundTime, (currentTime-g_fRoundTime) );
 		return false;
+	}
 	
 	return true;
 }
