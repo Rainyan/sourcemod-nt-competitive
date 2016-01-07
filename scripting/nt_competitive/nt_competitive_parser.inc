@@ -7,8 +7,27 @@
 public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	g_isSpawned[client] = true;
-	g_survivedLastRound[client] = true; // This will be checked on next round event, thus the variable name
+	
+	if ( DidPlayerReallySpawn(client) )
+	{
+		g_isSpawned[client] = true;
+		g_survivedLastRound[client] = true; // This will be checked on next round event, thus the variable name
+	}
+#if DEBUG
+	else
+	{
+		if ( Client_IsValid(client) )
+		{
+			decl String:clientName[MAX_NAME_LENGTH];
+			GetClientName( client, clientName, sizeof(clientName) );
+			LogDebug("Client %i \"%s\" triggered Event_PlayerSpawn without actually spawning.", client, clientName);
+		}
+		else
+		{
+			LogDebug("Invalid client %i triggered Event_PlayerSpawn", client);
+		}
+	}
+#endif
 }
 
 public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)

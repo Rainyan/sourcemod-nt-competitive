@@ -1967,3 +1967,22 @@ void LogDebug(const String:message[], any ...)
 	CloseHandle(file);
 }
 #endif
+
+bool DidPlayerReallySpawn(client)
+{
+	if ( !Client_IsValid(client) || !IsClientInGame(client) )
+		return false;
+	
+	new team = GetClientTeam(client);
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+		return false;
+	
+	if ( !IsPlayerAlive(client) )
+		return false;
+	
+	new Float:currentTime = GetGameTime();
+	if (currentTime - g_fRoundTime > 15 + 1) // Spawn event triggered after round spawning is finished. Player cannot have spawned.
+		return false;
+	
+	return true;
+}
