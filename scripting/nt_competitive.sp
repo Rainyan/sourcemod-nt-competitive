@@ -276,6 +276,7 @@ public Action:Command_RefereeMenu(client, args)
 	return Plugin_Handled;
 }
 
+#if DEBUG
 public Action:Command_ResetPauseBool(client, args)
 {
 	g_isPaused = false;
@@ -285,7 +286,7 @@ public Action:Command_ResetPauseBool(client, args)
 }
 
 public Action:Command_ForceLive(client, args)
-{
+{	
 	if (!g_isLive)
 	{
 		// There's no live countdown happening, it's safe to make one
@@ -339,10 +340,17 @@ public Action:Command_ForceLive(client, args)
 	
 	return Plugin_Handled;
 }
+#endif
 
 public Action:Command_Pause(client, args)
 {
-	if (!Client_IsValid(client) || client == 0)
+	if (client == 0)
+	{
+		ReplyToCommand(client, "%s Server cannot execute this command.", g_tag);
+		return Plugin_Stop;
+	}
+	
+	if ( !Client_IsValid(client) )
 		return Plugin_Stop;
 	
 	if (!g_isLive)
@@ -524,8 +532,24 @@ void CancelPauseRequest(client)
 
 void UnPauseRequest(client)
 {
-	// We check for client & team validity in Command_Pause already before calling this
+	if ( client == 0 || !Client_IsValid(client) || !IsClientInGame(client) )
+	{
+		decl String:error[64];
+		Format(error, sizeof(error), "Invalid client %i called UnPauseRequest", client);
+		
+		LogError(error);
+#if DEBUG
+		PrintToChatAll("Comp plugin error! %s", error);
+#endif
+		return;
+	}
+	
 	new team = GetClientTeam(client);
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+		LogError("Client %i with invalid team %i attempted calling UnPauseRequest", client, team);
+		return;
+	}
 	
 	// Already did this, stop here
 	if (g_isTeamReadyForUnPause[team])
@@ -547,10 +571,19 @@ void UnPauseRequest(client)
 
 public Action:Command_OverrideStart(client, args)
 {
+	if (client == 0)
+	{
+		ReplyToCommand(client, "%s Server cannot execute this command.", g_tag);
+		return Plugin_Stop;
+	}
+	
 	new team = GetClientTeam(client);
 	
-	if (team != TEAM_JINRAI && team != TEAM_NSF) // Spectator or unassigned, ignore
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+		ReplyToCommand(client, "%s You are not in a team.", g_tag);
 		return Plugin_Stop;
+	}
 	
 	if (!g_isExpectingOverride)
 	{
@@ -619,10 +652,19 @@ public Action:Command_OverrideStart(client, args)
 
 public Action:Command_UnOverrideStart(client, args)
 {
+	if (client == 0)
+	{
+		ReplyToCommand(client, "%s Server cannot execute this command.", g_tag);
+		return Plugin_Stop;
+	}
+	
 	new team = GetClientTeam(client);
 	
-	if (team != TEAM_JINRAI && team != TEAM_NSF) // Spectator or unassigned, ignore
+	if (team != TEAM_JINRAI && team != TEAM_NSF)
+	{
+		ReplyToCommand(client, "%s You are not in a team.", g_tag);
 		return Plugin_Stop;
+	}
 	
 	if (!g_isExpectingOverride)
 	{
@@ -644,6 +686,12 @@ public Action:Command_UnOverrideStart(client, args)
 
 public Action:Command_Ready(client, args)
 {
+	if (client == 0)
+	{
+		ReplyToCommand(client, "%s Server cannot execute this command.", g_tag);
+		return Plugin_Stop;
+	}
+	
 	new team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
@@ -716,9 +764,16 @@ public Action:Command_Ready(client, args)
 
 public Action:Command_UnReady(client, args)
 {
+	if (client == 0)
+	{
+		ReplyToCommand(client, "%s Server cannot execute this command.", g_tag);
+		return Plugin_Stop;
+	}
+	
 	new team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
+		g_isReady[client] = false;
 		ReplyToCommand(client, "%s You are not in a team.", g_tag);
 		return Plugin_Stop;
 	}
