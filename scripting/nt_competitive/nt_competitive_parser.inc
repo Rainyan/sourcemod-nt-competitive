@@ -160,10 +160,16 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	// Should we disallow wins by timeout?
 	if ( g_roundNumber > 1 && GetConVarBool(g_hPreventZanshiStrats) )
-	{	
+	{
+#if DEBUG
+		LogDebug("Anti-Zanshi strats mode is enabled!");
+#endif
 		// Nobody captured the ghost last round
 		if (g_ghostCapturingTeam != TEAM_JINRAI && g_ghostCapturingTeam != TEAM_NSF)
 		{
+#if DEBUG
+			LogDebug("Nobody captured the ghost last round");
+#endif
 			new survivors[sizeof(g_teamName)];
 			
 			// Get amount of survivors on both teams
@@ -182,7 +188,11 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			
 			// Both teams had players still alive when the time ran out
 			if (survivors[TEAM_JINRAI] > 0 && survivors[TEAM_NSF] > 0)
-			{	
+			{
+#if DEBUG
+				LogDebug("Both teams had players still alive when the time ran out");
+				LogDebug("Rolling back to scores: Jin %i -- NSF %i", g_jinraiScore[g_roundNumber - 1], g_nsfScore[g_roundNumber - 1]);
+#endif
 				// Roll back team scores to previous round's state
 				g_jinraiScore[g_roundNumber] = g_jinraiScore[g_roundNumber - 1];
 				g_nsfScore[g_roundNumber] = g_nsfScore[g_roundNumber - 1];
