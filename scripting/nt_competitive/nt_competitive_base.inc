@@ -140,8 +140,8 @@ void CheckIfEveryoneIsReady()
 	new playersReady = GetPlayersReady();
 	
 	#if DEBUG
-		PrintToServer("%s Players found total: %i", g_tag, players);
-		PrintToServer("%s Players ready: %i", g_tag, playersReady);
+		LogDebug("%s Players found total: %i", g_tag, players);
+		LogDebug("%s Players ready: %i", g_tag, playersReady);
 	#endif
 	
 	if (players > playersReady) // Everyone isn't ready, stop here
@@ -268,9 +268,9 @@ void ToggleRecording()
 			ClientCommand(i, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
 			ClientCommand(i, "record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
 			
-			#if DEBUG > 1
-				ClientCommand(i, "say Debug message: This client is now recording to %s", replayName);
-			#endif
+#if DEBUG > 1
+			LogDebug("Client %i is now recording to: %s", i, replayName);
+#endif
 		}
 	}
 	
@@ -283,9 +283,9 @@ void ToggleRecording()
 			
 			ClientCommand(i, "stop");
 			
-			#if DEBUG > 1
-				ClientCommand(i, "say Debug message: This client has stopped recording");
-			#endif
+#if DEBUG > 1
+			LogDebug("Client %i has stopped recording.", i);
+#endif
 		}
 	}
 }
@@ -335,10 +335,10 @@ void ToggleLive()
 		g_isLiveCountdown = false;
 		g_winner = 0; // Reset winner (overlay module queries this value)
 		
-		#if DEBUG
-			PrintToServer("Creating SteamID array of players...");
-			new foundPlayers;
-		#endif
+#if DEBUG
+		LogDebug("Creating SteamID array of players...");
+		new foundPlayers;
+#endif
 		
 		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		for (new i = 1; i <= MaxClients; i++)
@@ -351,10 +351,9 @@ void ToggleLive()
 				new String:clientName[MAX_NAME_LENGTH];
 				GetClientName(i, clientName, sizeof(clientName));
 				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
-				#if DEBUG
-					PrintToServer("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
-				#endif
-				
+#if DEBUG
+				LogDebug("%s Player \"%s\" has no SteamID authorized yet! Stopped going live.");
+#endif
 				g_isLive = false;
 				
 				return;
@@ -379,20 +378,20 @@ void ToggleLive()
 			}
 			
 #if DEBUG > 1
-				if (strlen(steamID) > 0)
-				{
-					PrintToServer("Found SteamID: %s", steamID);
-					PrintToServer("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
-					foundPlayers++;
-				}
+			if (strlen(steamID) > 0)
+			{
+				LogDebug("Found SteamID: %s", steamID);
+				LogDebug("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
+				foundPlayers++;
+			}
 #endif
 		}
 		
 #if DEBUG
-			PrintToServer("Completed SteamID array with %i results.", foundPlayers);
+		LogDebug("Completed SteamID array with %i results.", foundPlayers);
 #endif
-		
-#if DEBUG == 0
+
+#if !defined DEBUG || DEBUG == 0
 		// This should only occur in debug test cases
 		if (foundPlayers < 2)
 			LogError("Less than 2 players found!");
@@ -524,9 +523,9 @@ void TogglePause()
 				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
 				PrintToChatAll("%s Use !unpause when ready.", g_tag);
 				
-				#if DEBUG > 1
-					PrintToServer( "%s Pause max duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
-				#endif
+#if DEBUG
+				LogDebug( "%s Pausing! Pause max duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
+#endif
 				
 				g_hTimer_UnPause = CreateTimer( (1.0 + fPauseLength ), Timer_Unpause ); // Add 1 second to timer for messages to appear in correct order during countdown
 						
@@ -764,15 +763,14 @@ void TogglePauseLoop()
 			{				
 				ClientCommand(i, "pause");
 				
-				#if DEBUG > 1
+#if DEBUG > 1
 					if (forcePause)
-						PrintToServer("Force pause detected.");
+						LogDebug("Force pause detected.");
 					
 					new String:clientName[MAX_NAME_LENGTH];
 					GetClientName(i, clientName, sizeof(clientName));
-					PrintToServer("Found client to toggle pause. Client int: %i, name: %s", i, clientName);
-				#endif
-				
+					LogDebug("Found client to toggle pause. Client int: %i, name: %s", i, clientName);
+#endif
 				CreateTimer(0.05, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here. 0.01 was occasionally too fast, 0.05 seems pretty safe.
 				
 				break;
@@ -784,27 +782,26 @@ void TogglePauseLoop()
 		
 		if (i == MaxClients && unspawnedClients[1] > 0) // This will keep looping in 1 second intervals for as long as there are valid unspawned clients
 		{
-			#if DEBUG > 1
-					PrintToServer("Found %i invalid clients. Found %i valid unspawned clients.", invalidClients, unspawnedClients[1]);
-			#endif
+#if DEBUG > 1
+			LogDebug("Found %i invalid clients. Found %i valid unspawned clients.", invalidClients, unspawnedClients[1]);
+#endif
 			
 			if (GetGameTime() > g_fRoundTime + 13.9)
 			{
 				forcePause = true;
 				i = 0; // Reset loop
 				
-				#if DEBUG > 1
-					PrintToServer("New round is about to start! Force any valid client to toggle pause...");
-				#endif
-				
+#if DEBUG > 1
+				LogDebug("New round is about to start! Force any valid client to toggle pause...");
+#endif
 				continue;
 			}
 			
 			CreateTimer(1.0, Timer_TogglePauseLoop);
 			
-			#if DEBUG > 1
-				PrintToServer("No valid spawned client found. Restarting loop in TogglePauseLoop");
-			#endif
+#if DEBUG > 1
+			LogDebug("No valid spawned client found. Restarting loop in TogglePauseLoop");
+#endif
 		}
 		
 		else if (invalidClients == MaxClients)
@@ -943,9 +940,9 @@ void ToggleSourceTV()
 		ServerCommand("tv_stoprecord");
 		g_isSourceTVRecording = false;
 		
-		#if DEBUG
-			PrintToServer("ToggleSourceTV: tv_stoprecord");
-		#endif
+#if DEBUG
+		LogDebug("ToggleSourceTV: tv_stoprecord");
+#endif
 	}
 	
 	else
@@ -955,10 +952,9 @@ void ToggleSourceTV()
 		
 		if (!IsSourceTVBotConnected())
 		{
-			#if DEBUG
-				PrintToServer("ToggleSourceTV: SourceTV bot not found.");
-			#endif
-			
+#if DEBUG
+			LogDebug("ToggleSourceTV: SourceTV bot not found.");
+#endif
 			return;
 		}
 		
@@ -1000,9 +996,9 @@ void ToggleSourceTV()
 		ServerCommand("tv_record \"%s/%s\"", demoPath, replayName); // SourceTV bot needs to be connected for this to do anything. This is checked above with IsSourceTVBotConnected()
 		g_isSourceTVRecording = true;
 		
-		#if DEBUG
-			PrintToServer("ToggleSourceTV: tv_record \"%s/%s\"", demoPath, replayName);
-		#endif
+#if DEBUG
+		LogDebug("ToggleSourceTV: tv_record \"%s/%s\"", demoPath, replayName);
+#endif
 	}
 }
 
@@ -1027,9 +1023,9 @@ bool:IsSourceTVBotConnected()
 	
 	CloseHandle(hBotName);
 	
-	#if DEBUG > 1
-		PrintToServer("Looking for a SourceTV bot...");
-	#endif
+#if DEBUG > 1
+	LogDebug("Looking for a SourceTV bot...");
+#endif
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -1039,16 +1035,15 @@ bool:IsSourceTVBotConnected()
 		decl String:clientName[MAX_NAME_LENGTH];
 		GetClientName(i, clientName, sizeof(clientName));
 		
-		#if DEBUG > 1
-			PrintToServer("Found valid fake client, index: %i, name: %s", i, clientName);
-		#endif
+#if DEBUG > 1
+		LogDebug("Found valid fake client, index: %i, name: %s", i, clientName);
+#endif
 		
 		if (StrEqual(clientName, botName) || StrEqual(clientName, "SourceTV")) // Also check for default name "SourceTV", because sometimes tv_name doesn't work when bot first spawns
 		{			
-			#if DEBUG > 1
-				PrintToServer("Fake client name %s matches tv_name cvar %s or \"SourceTV\"", clientName, botName);
-			#endif
-			
+#if DEBUG > 1
+			LogDebug("Fake client name %s matches tv_name cvar %s or \"SourceTV\"", clientName, botName);
+#endif
 			return true;
 		}
 	}
@@ -1159,10 +1154,10 @@ void UpdatePlayersAlive() // Updates g_playersAlive array
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		#if !defined DEBUG || DEBUG == 0
-			if (IsFakeClient(i))
-				continue;
-		#endif
+#if !defined DEBUG || DEBUG == 0
+		if (IsFakeClient(i))
+			continue;
+#endif
 		
 		if (!Client_IsValid(i) || !IsClientInGame(i))
 			continue;
@@ -1190,10 +1185,10 @@ void ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new ro
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		#if !defined DEBUG || DEBUG == 0
-			if (IsFakeClient(i))
-				continue;
-		#endif
+#if !defined DEBUG || DEBUG == 0
+		if (IsFakeClient(i))
+			continue;
+#endif
 		
 		if (!Client_IsValid(i))
 			continue;
@@ -1740,7 +1735,7 @@ void RestoreRound(roundNumber, isAdminTriggered = false, client = 0)
 		SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][roundNumber]); // Restore XP
 		
 #if DEBUG > 1
-		PrintToServer("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][roundNumber], g_playerDeaths[i][roundNumber], roundNumber);
+		LogDebug("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][roundNumber], g_playerDeaths[i][roundNumber], roundNumber);
 #endif
 		
 		// We have to manually restore rank based on XP, so weapons selection won't glitch out
@@ -1870,10 +1865,10 @@ void CheckMatchState()
 	// Jinrai wins, NSF can't catch up anymore
 	if (g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) // (g_roundNumber - 1) because we're counting rounds by incrementing inside the event. So first round is 1, not 0.
 	{
-		#if DEBUG > 1
-			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-			PrintToServer("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
-		#endif
+#if DEBUG
+		LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
+		LogDebug("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
+#endif
 		
 		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore, g_nsfScore);
 		
@@ -1886,10 +1881,10 @@ void CheckMatchState()
 	// NSF wins, Jinrai can't catch up anymore
 	else if (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1))
 	{
-		#if DEBUG > 1
-			PrintToServer("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-			PrintToServer("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber], roundLimit, g_roundNumber);
-		#endif
+#if DEBUG
+		LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
+		LogDebug("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber], roundLimit, g_roundNumber);
+#endif
 		
 		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 		

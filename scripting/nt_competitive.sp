@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.8.6"
+#define PLUGIN_VERSION "0.3.8.7"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -59,14 +59,14 @@ public OnPluginStart()
 	RegAdminCmd("sm_referee",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel.");
 	RegAdminCmd("sm_ref",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel. Alternative for sm_referee.");
 	
-	#if DEBUG
-		RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
-		RegAdminCmd("sm_ignoreteams",		Command_IgnoreTeams,		ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
-		RegAdminCmd("sm_pause_resetbool",	Command_ResetPauseBool,		ADMFLAG_GENERIC,	"Reset g_isPaused to FALSE. Debug command.");
-		RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Logs the cmd argument. Debug command.");
-		RegAdminCmd("sm_unpause_other",		Command_UnpauseOther,		ADMFLAG_GENERIC,	"Pretend the other team requested unpause. Debug command.");
-		RegAdminCmd("sm_start_other",		Command_OverrideStartOther,	ADMFLAG_GENERIC,	"Pretend the other team requested force start. Debug command.");
-	#endif
+#if DEBUG
+	RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
+	RegAdminCmd("sm_ignoreteams",		Command_IgnoreTeams,		ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
+	RegAdminCmd("sm_pause_resetbool",	Command_ResetPauseBool,		ADMFLAG_GENERIC,	"Reset g_isPaused to FALSE. Debug command.");
+	RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Logs the cmd argument. Debug command.");
+	RegAdminCmd("sm_unpause_other",		Command_UnpauseOther,		ADMFLAG_GENERIC,	"Pretend the other team requested unpause. Debug command.");
+	RegAdminCmd("sm_start_other",		Command_OverrideStartOther,	ADMFLAG_GENERIC,	"Pretend the other team requested force start. Debug command.");
+#endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_death",		Event_PlayerDeath);
@@ -173,11 +173,10 @@ public OnClientAuthorized(client, const String:authID[])
 	
 	for (new i = 0; i < sizeof(g_livePlayers); i++)
 	{
-		#if DEBUG > 1
-			PrintToServer("Checking array index %i, array size %i", i, sizeof(g_livePlayers));
-			PrintToServer("Contents: %s", g_livePlayers[i]);
-		#endif
-		
+#if DEBUG > 1
+		LogDebug("Checking array index %i, array size %i", i, sizeof(g_livePlayers));
+		LogDebug("Contents: %s", g_livePlayers[i]);
+#endif
 		if ( StrEqual(authID, g_livePlayers[i]) )
 		{
 			isPlayerCompeting = true;
@@ -192,9 +191,9 @@ public OnClientAuthorized(client, const String:authID[])
 	else
 		g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
 	
-	#if DEBUG
-		PrintToServer("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
-	#endif
+#if DEBUG
+	LogDebug("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
+#endif
 }
 
 public bool OnClientConnect(client)
@@ -204,10 +203,9 @@ public bool OnClientConnect(client)
 	
 	if ( g_isPaused && GetConVarInt(g_hPauseMode) == PAUSEMODE_NORMAL )
 	{
-		#if DEBUG
-			PrintToServer("[COMP] Pause join detected!");
-		#endif
-		
+#if DEBUG
+		LogDebug("[COMP] Pause join detected!");
+#endif
 		PrintToChatAll("%s Player \"%s\" is attempting to join.", g_tag, clientName);
 		PrintToChatAll("The server needs to be unpaused for joining to finish.");
 		PrintToChatAll("If you wish to unpause now, type !pause in chat.");

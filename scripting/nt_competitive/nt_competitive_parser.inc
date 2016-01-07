@@ -204,7 +204,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		g_playerXP[i][g_roundNumber]		= GetEntProp(i, Prop_Data, "m_iFrags");	// Save everyone's XP for this round
 		
 #if DEBUG > 1
-		PrintToServer("Client %i has %i XP and %i deaths for round %i.", i, g_playerXP[i][g_roundNumber], g_playerDeaths[i][g_roundNumber], g_roundNumber);
+		LogDebug("Client %i has %i XP and %i deaths for round %i.", i, g_playerXP[i][g_roundNumber], g_playerDeaths[i][g_roundNumber], g_roundNumber);
 #endif
 	}
 	
@@ -383,27 +383,27 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 	{
 		SetConVarString(g_hJinraiName, oldVal);
 		
-		#if DEBUG
-			PrintToServer("Jinrai tried using \"NSF\" as their name. This is blocked because it's reserved as NSF's fallback default name.");
-		#endif
+#if DEBUG
+		LogDebug("Jinrai tried using \"NSF\" as their name. This is blocked because it's reserved as NSF's fallback default name.");
+#endif
 	}
 	
 	else if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "Jinrai"
 	{
 		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), "Jinrai");
 		
-		#if DEBUG
-			PrintToServer("Jinrai to default name.");
-		#endif
+#if DEBUG
+		LogDebug("Jinrai to default name.");
+#endif
 	}
 	
 	else if (StrEqual(newVal, nsfName)) // Jinrai tried using NSF's current name
 	{
 		SetConVarString(g_hJinraiName, oldVal);
 		
-		#if DEBUG
-			PrintToServer("Jinrai tried using NSF's current name, blocked.");
-		#endif
+#if DEBUG
+		LogDebug("Jinrai tried using NSF's current name, blocked.");
+#endif
 	}
 	
 	else // Name change ok
@@ -418,9 +418,9 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 			LogCompetitive(msgBuffer);
 		}
 		
-		#if DEBUG
-			PrintToServer("Jinrai name: %s", newVal);
-		#endif
+#if DEBUG
+		LogDebug("Jinrai name: %s", newVal);
+#endif
 	}
 }
 
@@ -433,27 +433,27 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 	{
 		SetConVarString(g_hJinraiName, oldVal);
 		
-		#if DEBUG
-			PrintToServer("NSF tried using \"Jinrai\" as their name. This is blocked because it's reserved as Jinrai's fallback default name.");
-		#endif
+#if DEBUG
+		LogDebug("NSF tried using \"Jinrai\" as their name. This is blocked because it's reserved as Jinrai's fallback default name.");
+#endif
 	}
 	
 	else if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "NSF"
 	{
 		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), "NSF");
 		
-		#if DEBUG
-			PrintToServer("NSF to default name.");
-		#endif
+#if DEBUG
+		LogDebug("NSF to default name.");
+#endif
 	}
 	
 	else if (StrEqual(newVal, jinraiName)) // NSF tried using Jinrai's current name
 	{
 		SetConVarString(g_hNSFName, oldVal);
 		
-		#if DEBUG
-			PrintToServer("NSF tried using Jinrai's current name, blocked.");
-		#endif
+#if DEBUG
+		LogDebug("NSF tried using Jinrai's current name, blocked.");
+#endif
 	}
 	
 	else // Name change ok
@@ -468,9 +468,9 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 			LogCompetitive(msgBuffer);
 		}
 		
-		#if DEBUG
-			PrintToServer("NSF name: %s", newVal);
-		#endif
+#if DEBUG
+		LogDebug("NSF name: %s", newVal);
+#endif
 	}
 }
 
@@ -478,10 +478,9 @@ public Event_SourceTVEnabled(Handle:cvar, const String:oldVal[], const String:ne
 {
 	if (StringToInt(newVal) && !IsSourceTVBotConnected())
 	{
-		#if DEBUG
-			PrintToServer("Event_SourceTVEnabled: No SourceTV bot found.");
-		#endif
-		
+#if DEBUG
+		LogDebug("Event_SourceTVEnabled: No SourceTV bot found.");
+#endif
 		PrintToChatAll("%s SourceTV bot doesn't appear to be connected. Global replay won't be recorded.", g_tag);
 	}
 	
