@@ -305,6 +305,14 @@ public Action:Command_JoinTeam(client, args)
 	
 	decl String:msgBuffer[512];
 	
+	// Team joining is not restricted by cvar, allow and log the team change
+	if ( !GetConVarBool(g_hLimitLiveTeams) )
+	{
+		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
+		LogCompetitive(msgBuffer);
+		return Plugin_Continue;
+	}
+	
 	if (g_assignedTeamWhenLive[client] == TEAM_UNASSIGNED) // Team not explicitly restricted for this player, let them join (substitutes after going live etc)
 	{
 		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);

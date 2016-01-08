@@ -203,25 +203,6 @@ public Action:Command_ReadyList(client, args)
 	return Plugin_Handled;
 }
 
-#if DEBUG
-public Action:Command_IgnoreTeams(client, args)
-{
-	if ( GetConVarBool(g_hLimitLiveTeams) )
-	{
-		SetConVarBool(g_hLimitLiveTeams, false);
-		ReplyToCommand(client, "Now ignoring team change protection.");
-	}
-	
-	else
-	{
-		SetConVarBool(g_hLimitLiveTeams, true);
-		ReplyToCommand(client, "Enforcing teams.");
-	}
-	
-	return Plugin_Handled;
-}
-#endif
-
 void ToggleRecording()
 {
 	if ( GetConVarBool(g_hClientRecording) == false )

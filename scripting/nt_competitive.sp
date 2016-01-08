@@ -61,7 +61,6 @@ public OnPluginStart()
 	
 #if DEBUG
 	RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start. Debug command.");
-	RegAdminCmd("sm_ignoreteams",		Command_IgnoreTeams,		ADMFLAG_GENERIC,	"Ignore team limitations when a match is live. Debug command.");
 	RegAdminCmd("sm_pause_resetbool",	Command_ResetPauseBool,		ADMFLAG_GENERIC,	"Reset g_isPaused to FALSE. Debug command.");
 	RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Logs the cmd argument. Debug command.");
 	RegAdminCmd("sm_unpause_other",		Command_UnpauseOther,		ADMFLAG_GENERIC,	"Pretend the other team requested unpause. Debug command.");
@@ -90,7 +89,7 @@ public OnPluginStart()
 	g_hKillVersobity					= CreateConVar("sm_competitive_killverbosity",						"1",					"How much info is given to players upon death. 0 = disabled, 1 = print amount of players remaining to everyone, 2 = only show the victim how much damage they dealt to their killer, 3 = only show the victim their killer's remaining health", _, true, 0.0, true, 3.0);
 	g_hVerbosityDelay			= CreateConVar("sm_competitive_killverbosity_delay",				"0",					"0 = display kill info instantly, 1 = display kill info nextround", _, true, 0.0, true, 1.0);
 	g_hClientRecording					= CreateConVar("sm_competitive_record_clients",						"0",					"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
-	g_hLimitLiveTeams					= CreateConVar("sm_competitive_limit_live_teams",								"1",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
+	g_hLimitLiveTeams					= CreateConVar("sm_competitive_limit_live_teams",								"0",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
 	g_hLimitTeams						= CreateConVar("sm_competitive_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
 	g_hPauseMode						= CreateConVar("sm_competitive_pause_mode",				"2",					"Pausing mode. 0 = no pausing allowed, 1 = use Source engine pause feature, 2 = stop round timer", _, true, 0.0, true, 2.0);
 	g_hCollectiveReady					= CreateConVar("sm_competitive_readymode_collective",	"0",					"Can a team collectively ready up by anyone of the players. Can be useful for more organized events.", _, true, 0.0, true, 1.0);
