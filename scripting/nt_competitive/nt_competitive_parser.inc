@@ -217,11 +217,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 				LogDebug("Rolling back to scores: Jin %i -- NSF %i", g_jinraiScore[g_roundNumber - 1], g_nsfScore[g_roundNumber - 1]);
 #endif
 				// Roll back team scores to previous round's state
-				g_jinraiScore[g_roundNumber] = g_jinraiScore[g_roundNumber - 1];
-				SetTeamScore(TEAM_JINRAI, g_jinraiScore[g_roundNumber]);
-				g_nsfScore[g_roundNumber] = g_nsfScore[g_roundNumber - 1];
-				SetTeamScore(TEAM_NSF, g_nsfScore[g_roundNumber]);
-				
+				RestoreRound(g_roundNumber - 1, _, _, true);
 				PrintToChatAll("%s Round timed out. No team point awarded.", g_tag);
 			}
 		}

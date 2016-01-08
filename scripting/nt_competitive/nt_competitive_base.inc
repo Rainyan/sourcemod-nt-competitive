@@ -850,6 +850,7 @@ public Action:Timer_Unpause(Handle:timer)
 	if (g_isPaused)
 	{
 		PrintToChatAll("%s Maximum pause time has ended!", g_tag);
+		PrintToChatAll("%s Unpausing...", g_tag);
 		TogglePause();
 	}
 	
@@ -1678,15 +1679,31 @@ void PrintToAdmins(const String:message[], bool toChat = true, bool toConsole = 
 	}
 }
 
-void RestoreRound(roundNumber, isAdminTriggered = false, client = 0)
+void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:isZanshiRestore = false)
 {	
 	if (roundNumber > g_furthestPlayedRound || roundNumber <= 0)
 	{
 		LogError("Attempted to restore a nonexistant round %i. Furthest played round is %i.", roundNumber, g_furthestPlayedRound);
 		
-		decl String:error[128];
-		Format(error, sizeof(error), "Failed restoring round %i. Check error logs for details.", roundNumber);
-		PrintToAdmins(error);
+		new bool:adminsPresent;
+		for (new i = 1; i <= MaxClients; i++)
+		{
+			if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+				continue;
+			
+			adminsPresent = true;
+		}
+		
+		if (adminsPresent)
+		{
+			decl String:error[128];
+			Format(error, sizeof(error), "Failed restoring round %i. Check SM error logs for details.", roundNumber);
+			PrintToAdmins(error);
+		}
+		else
+		{
+			PrintToChatAll("Round restore failed. Contact server admins for help.");
+		}
 		
 		g_confirmRoundChange = false;
 		return;
@@ -1721,7 +1738,10 @@ void RestoreRound(roundNumber, isAdminTriggered = false, client = 0)
 		}
 	}
 	
-	g_roundNumber = roundNumber; // Change round number
+	// Edit round number unless explicitly recovering previous match state (unpauses etc)
+	if (isZanshiRestore == false)
+		g_roundNumber = roundNumber;
+	
 	SetTeamScore(TEAM_JINRAI, g_jinraiScore[roundNumber]); // Set Jinrai score
 	SetTeamScore(TEAM_NSF, g_nsfScore[roundNumber]); // Set NFS score
 	

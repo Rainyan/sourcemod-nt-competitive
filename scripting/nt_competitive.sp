@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.8.9"
+#define PLUGIN_VERSION "0.3.9.0"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
