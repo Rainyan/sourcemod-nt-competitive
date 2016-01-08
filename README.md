@@ -52,7 +52,7 @@ sm_competitive_killverbosity				- How much info is given to players upon death. 
 sm_competitive_killverbosity_delay			- 0 = display kill info instantly, 1 = display kill info nextround. Default: 0
 sm_competitive_record_clients				- Should clients automatically record when going live. Default: 0
 sm_competitive_limit_live_teams				- Are players restricted from changing teams when a game is live. Default: 1
-sm_competitive_limit_teams					- Are teams enforced to use set numbers (5v5 for example). Default: 1
+sm_competitive_limit_teams					- Are teams enforced to use set numbers (5v5 for example). Default: 0
 sm_competitive_pause_mode					- Pausing mode. 0 = no pausing allowed, 1 = use Source engine pause feature, 2 = stop round timer.  Default: 2
 sm_competitive_readymode_collective			- Can a team collectively ready up by any one of the players. Can be useful for more organized events. Default: 0
 sm_competitive_nozanshi						- Whether or not to disable timeout wins. Default: 0
