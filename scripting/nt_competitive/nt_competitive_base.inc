@@ -1719,7 +1719,7 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 		}
 	}
 	
-	// Edit round number unless explicitly recovering previous match state (unpauses etc)
+	// Edit round number unless explicitly cancelling score due to nozanshi cvar
 	if (isZanshiRestore == false)
 		g_roundNumber = roundNumber;
 	
