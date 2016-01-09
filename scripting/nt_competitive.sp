@@ -65,6 +65,7 @@ public OnPluginStart()
 	RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Logs the cmd argument. Debug command.");
 	RegAdminCmd("sm_unpause_other",		Command_UnpauseOther,		ADMFLAG_GENERIC,	"Pretend the other team requested unpause. Debug command.");
 	RegAdminCmd("sm_start_other",		Command_OverrideStartOther,	ADMFLAG_GENERIC,	"Pretend the other team requested force start. Debug command.");
+	RegAdminCmd("sm_manual_round_edit", Command_ManualRoundEdit, ADMFLAG_GENERIC, "Manually edit round ing. Debug command.");
 #endif
 	
 	HookEvent("game_round_start",	Event_RoundStart);
@@ -832,23 +833,48 @@ public Action:Command_UnReady(client, args)
 }
 
 #if DEBUG
-	public Action:Command_LoggingTest(client, args)
+public Action:Command_LoggingTest(client, args)
+{
+	if (args != 1)
 	{
-		if (args != 1)
-		{
-			ReplyToCommand(client, "Expected 1 argument.");
-			
-			return Plugin_Stop;
-		}
+		ReplyToCommand(client, "Expected 1 argument.");
 		
-		new String:message[128];
-		GetCmdArg(1, message, sizeof(message));
-		LogCompetitive(message);
-		
-		ReplyToCommand(client, "Debug log message sent.");
-		
-		return Plugin_Handled;
+		return Plugin_Stop;
 	}
+	
+	new String:message[128];
+	GetCmdArg(1, message, sizeof(message));
+	LogCompetitive(message);
+	
+	ReplyToCommand(client, "Debug log message sent.");
+	
+	return Plugin_Handled;
+}
+
+public Action:Command_ManualRoundEdit(client, args)
+{
+	if (GetCmdArgs() != 1)
+	{
+		ReplyToCommand(client, "Usage: <round int>");
+		return Plugin_Stop;
+	}
+	
+	decl String:sBuffer[6];
+	GetCmdArg( 1, sBuffer, sizeof(sBuffer) );
+	
+	new round = StringToInt(sBuffer);
+	if (round < 1 || round > MAX_ROUNDS_PLAYED)
+	{
+		ReplyToCommand(client, "Invalid target round");
+		return Plugin_Stop;
+	}
+	
+	g_roundNumber = round;
+	
+	ReplyToCommand(client, "Set round int to %i", round);
+	
+	return Plugin_Handled;
+}
 #endif
 
 public Competitive_IsLive(Handle:plugin, numParams)
