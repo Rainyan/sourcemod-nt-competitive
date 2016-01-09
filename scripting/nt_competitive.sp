@@ -18,7 +18,7 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.9.0"
+#define PLUGIN_VERSION "0.3.9.1"
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
@@ -96,6 +96,7 @@ public OnPluginStart()
 	g_hPreventZanshiStrats			= CreateConVar("sm_competitive_nozanshi",						"0",					"Whether or not to disable timeout wins.", _, true, 0.0, true, 1.0);
 	g_hJinraiScore							= CreateConVar("sm_competitive_jinrai_score",					"0",					"Competitive plugin's internal score cvar. Editing this will directly affect comp team scores.", _, true, 0.0);
 	g_hNSFScore							= CreateConVar("sm_competitive_nsf_score",						"0",					"Competitive plugin's internal score cvar. Editing this will directly affect comp team scores.", _, true, 0.0);
+	g_hSuddenDeath						= CreateConVar("sm_competitive_sudden_death",				"1",					"Whether or not to allow match to end in a tie. Otherwise, game proceeds to sudden death until one team scores a point.", _, true, 0.0, true, 1.0);
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
