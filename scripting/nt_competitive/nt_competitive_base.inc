@@ -1722,38 +1722,40 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 		}
 	}
 	
-	// Edit round number unless explicitly cancelling score due to nozanshi cvar
 	if (isZanshiRestore == false)
+	{
+		// Only edit round number if restoring previous match state (unpause etc)
 		g_roundNumber = roundNumber;
+		
+		// Only recover previous XP/ranks if restoring previous match state (unpause etc)
+		for (new i = 1; i <= MaxClients; i++)
+		{
+			if ( !Client_IsValid(i) || IsFakeClient(i) )
+				continue;
+			
+			SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][roundNumber]); // Restore deaths
+			SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][roundNumber]); // Restore XP
+			
+	#if DEBUG > 1
+			LogDebug("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][roundNumber], g_playerDeaths[i][roundNumber], roundNumber);
+	#endif
+			
+			// We have to manually restore rank based on XP, so weapons selection won't glitch out
+			if (g_playerXP[i][roundNumber] < 0)
+				SetEntProp(i, Prop_Send, "m_iRank", 0); // Rankless dog
+			else if (g_playerXP[i][roundNumber] < 4)
+				SetEntProp(i, Prop_Send, "m_iRank", 1); // Private
+			else if (g_playerXP[i][roundNumber] < 10)
+				SetEntProp(i, Prop_Send, "m_iRank", 2); // Corporal
+			else if (g_playerXP[i][roundNumber] < 20)
+				SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
+			else
+				SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
+		}
+	}
 	
 	SetTeamScore(TEAM_JINRAI, g_jinraiScore[roundNumber]); // Set Jinrai score
 	SetTeamScore(TEAM_NSF, g_nsfScore[roundNumber]); // Set NFS score
-	
-	// Set players' XP, deaths, ranks
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if ( !Client_IsValid(i) || IsFakeClient(i) )
-			continue;
-		
-		SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][roundNumber]); // Restore deaths
-		SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][roundNumber]); // Restore XP
-		
-#if DEBUG > 1
-		LogDebug("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][roundNumber], g_playerDeaths[i][roundNumber], roundNumber);
-#endif
-		
-		// We have to manually restore rank based on XP, so weapons selection won't glitch out
-		if (g_playerXP[i][roundNumber] < 0)
-			SetEntProp(i, Prop_Send, "m_iRank", 0); // Rankless dog
-		else if (g_playerXP[i][roundNumber] < 4)
-			SetEntProp(i, Prop_Send, "m_iRank", 1); // Private
-		else if (g_playerXP[i][roundNumber] < 10)
-			SetEntProp(i, Prop_Send, "m_iRank", 2); // Corporal
-		else if (g_playerXP[i][roundNumber] < 20)
-			SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
-		else
-			SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
-	}
 	
 	if (isAdminTriggered)
 	{
