@@ -1734,23 +1734,11 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 				continue;
 			
 			SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][roundNumber]); // Restore deaths
-			SetEntProp(i, Prop_Data, "m_iFrags", g_playerXP[i][roundNumber]); // Restore XP
-			
-	#if DEBUG > 1
+			SetPlayerXP(i, g_playerXP[i][roundNumber]); // Restore XP
+#if DEBUG > 1
 			LogDebug("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][roundNumber], g_playerDeaths[i][roundNumber], roundNumber);
-	#endif
-			
-			// We have to manually restore rank based on XP, so weapons selection won't glitch out
-			if (g_playerXP[i][roundNumber] < 0)
-				SetEntProp(i, Prop_Send, "m_iRank", 0); // Rankless dog
-			else if (g_playerXP[i][roundNumber] < 4)
-				SetEntProp(i, Prop_Send, "m_iRank", 1); // Private
-			else if (g_playerXP[i][roundNumber] < 10)
-				SetEntProp(i, Prop_Send, "m_iRank", 2); // Corporal
-			else if (g_playerXP[i][roundNumber] < 20)
-				SetEntProp(i, Prop_Send, "m_iRank", 3); // Sergeant
-			else
-				SetEntProp(i, Prop_Send, "m_iRank", 4); // Lieutenant
+#endif
+			UpdatePlayerRank(i);
 		}
 	}
 	
