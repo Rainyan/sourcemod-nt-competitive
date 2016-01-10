@@ -198,7 +198,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			// Get amount of survivors on both teams
 			for (i = 1; i <= MaxClients; i++)
 			{
-				if ( !Client_IsValid(i) )
+				if ( !Client_IsValid(i) || !IsClientInGame(i) )
 					continue;
 				
 				new team = GetClientTeam(i);
