@@ -1945,9 +1945,19 @@ void CheckMatchState()
 		LogCompetitive(msgBuffer);
 	}
 	
+	// Check if game ended, and toggle off live mode if appropriate
+	if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || ((g_roundNumber - 1) == roundLimit))
+	{
+		ToggleLive();
+		LogCompetitive("Competitive match ended.");
+	}
+	
 	// Match point, one team has almost won
-	else if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) - 1) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - g_roundNumber - 1))
-		PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+	else if ( (g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) - 1) ||
+		(g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) - 1) )
+		{
+			PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+		}
 	
 	// Just another round, simply announce round number
 	else
@@ -1955,15 +1965,6 @@ void CheckMatchState()
 		// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
 		if (g_spamTimerCount <= 1)
 			PrintToChatAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
-	}
-	// ** Announce match state above **
-	
-	
-	// Check if game ended, and toggle off live mode if appropriate
-	if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || ((g_roundNumber - 1) == roundLimit))
-	{
-		ToggleLive();
-		LogCompetitive("Competitive match ended.");
 	}
 }
 
