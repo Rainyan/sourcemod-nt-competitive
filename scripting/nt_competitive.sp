@@ -90,8 +90,8 @@ public OnPluginStart()
 	g_hKillVersobity					= CreateConVar("sm_competitive_killverbosity",						"1",					"How much info is given to players upon death. 0 = disabled, 1 = print amount of players remaining to everyone, 2 = only show the victim how much damage they dealt to their killer, 3 = only show the victim their killer's remaining health", _, true, 0.0, true, 3.0);
 	g_hVerbosityDelay			= CreateConVar("sm_competitive_killverbosity_delay",				"0",					"0 = display kill info instantly, 1 = display kill info nextround", _, true, 0.0, true, 1.0);
 	g_hClientRecording					= CreateConVar("sm_competitive_record_clients",						"0",					"Should clients automatically record when going live.", _, true, 0.0, true, 1.0);
-	g_hLimitLiveTeams					= CreateConVar("sm_competitive_limit_live_teams",								"0",					"Are players restricted from changing teams when a game is live.", _, true, 0.0, true, 1.0);
-	g_hLimitTeams						= CreateConVar("sm_competitive_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example). Default: 1", _, true, 0.0, true, 1.0);
+	g_hLimitLiveTeams					= CreateConVar("sm_competitive_limit_live_teams",								"0",					"Team restrictions when game is live. 0 = players can join any team, 1 = only players present when going live can play in their teams 2 = new players can join teams midgame", _, true, 0.0, true, 2.0);
+	g_hLimitTeams						= CreateConVar("sm_competitive_limit_teams",									"1",					"Are teams enforced to use set numbers (5v5 for example).", _, true, 0.0, true, 1.0);
 	g_hPauseMode						= CreateConVar("sm_competitive_pause_mode",				"2",					"Pausing mode. 0 = no pausing allowed, 1 = use Source engine pause feature, 2 = stop round timer", _, true, 0.0, true, 2.0);
 	g_hCollectiveReady					= CreateConVar("sm_competitive_readymode_collective",	"0",					"Can a team collectively ready up by anyone of the players. Can be useful for more organized events.", _, true, 0.0, true, 1.0);
 	g_hPreventZanshiStrats			= CreateConVar("sm_competitive_nozanshi",						"0",					"Whether or not to disable timeout wins.", _, true, 0.0, true, 1.0);
@@ -164,7 +164,7 @@ public OnClientAuthorized(client, const String:authID[])
 	
 	if ( Client_IsValid(client) && IsFakeClient(client) )
 	{
-		g_assignedTeamWhenLive[client] = -1; // This is a bot, let them join whichever team they like
+		g_assignedTeamWhenLive[client] = TEAM_NONE; // This is a bot, let them join whichever team they like
 		return;
 	}
 	
@@ -187,10 +187,24 @@ public OnClientAuthorized(client, const String:authID[])
 	}
 	
 	if (!isPlayerCompeting)
-		g_assignedTeamWhenLive[client] = TEAM_SPECTATOR;
+	{
+		// Teams are limited, allow joining only spectator team
+		if (GetConVarInt(g_hLimitLiveTeams) == 1)
+		{
+			g_assignedTeamWhenLive[client] = TEAM_SPECTATOR;
+		}
+		
+		// Either teams are unlimited (g_hLimitLiveTeams 0), or new joiners are allowed to join any team (g_hLimitLiveTeams 2)
+		else
+		{
+			g_assignedTeamWhenLive[client] = TEAM_NONE;
+		}
+	}
 	
 	else
+	{
 		g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
+	}
 	
 #if DEBUG
 	LogDebug("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
