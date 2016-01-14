@@ -1978,14 +1978,13 @@ void CheckGhostcapPlugin()
 		return;
 	
 	new Handle:ghostcapPlugin = FindConVar("sm_ntghostcap_version");
-	new String:ghostcapUrl[] = "https://github.com/softashell/nt-sourcemod-plugins";
 	
 	// Look for ghost cap plugin's version variable
 	if (ghostcapPlugin == null)
 	{
+		new String:ghostcapUrl[] = "https://github.com/softashell/nt-sourcemod-plugins";
 		LogError("Using sm_competitive_nozanshi 1 setting requires Soft as HELL's Ghost cap event plugin, version 1.5.4 or newer: %s", ghostcapUrl);
 		SetConVarBool(g_hPreventZanshiStrats, false);
-		return;
 	}
 }
 
