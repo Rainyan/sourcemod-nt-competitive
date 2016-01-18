@@ -102,6 +102,7 @@ new Handle:g_hRoundTime;
 new Handle:g_hJinraiScore;
 new Handle:g_hNSFScore;
 new Handle:g_hSuddenDeath;
+new Handle:g_hSpectators_DisplayRemaining;
 
 new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
 new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
@@ -2037,4 +2038,23 @@ bool DidPlayerReallySpawn(client)
 	}
 	
 	return true;
+}
+
+void Spectators_DisplayRemainingPlayers(jinraiAlive, nsfAlive)
+{
+	decl String:message[12];
+	Format(message, sizeof(message), "%i vs %i", jinraiAlive, nsfAlive);
+	
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !IsClientInGame(i) )
+			continue;
+		
+		new team = GetClientTeam(i);
+		
+		if (team != TEAM_SPECTATOR)
+			continue;
+		
+		PrintCenterText(i, message);
+	}
 }
