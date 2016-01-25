@@ -1854,6 +1854,7 @@ void ApplyPenalty(admin, team)
 void CheckMatchState()
 {
 	new roundLimit = GetConVarInt(g_hRoundLimit);
+	new roundsLeft = roundLimit - g_roundNumber;
 	decl String:msgBuffer[256];
 	
 	// ** Announce match state below **
@@ -1955,9 +1956,12 @@ void CheckMatchState()
 	
 	// Match point, one team has almost won
 	else if (
-				(g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) - 1) ||
-				(g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) - 1) ||
-				( g_jinraiScore[g_roundNumber] == g_nsfScore[g_roundNumber] && g_roundNumber+1 == GetConVarInt(g_hRoundLimit) )
+				// Jinrai is winning, and NSF can catch up exactly in the amount of rounds remaining
+				(g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] && g_nsfScore[g_roundNumber] + roundsLeft == g_jinraiScore[g_roundNumber]) ||
+				// NSF is winning, and Jinrai can catch up exactly in the amount of rounds remaining
+				(g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] && g_jinraiScore[g_roundNumber] + roundsLeft == g_nsfScore[g_roundNumber]) ||
+				// It is the last round
+				(g_roundNumber == roundLimit)
 			)
 			{
 				PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
