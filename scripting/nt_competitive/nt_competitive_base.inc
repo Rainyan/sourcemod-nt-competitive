@@ -2042,6 +2042,9 @@ bool DidPlayerReallySpawn(client)
 
 void Spectators_DisplayRemainingPlayers()
 {
+	if (GetConVarInt(g_hSpectators_DisplayRemaining) == 0)
+		return;
+	
 	decl String:message[12];
 	
 	// Just display numbers remaining
