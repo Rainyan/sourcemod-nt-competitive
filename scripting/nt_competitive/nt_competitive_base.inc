@@ -83,6 +83,7 @@ new Handle:g_hMatchSize;
 new Handle:g_hMaxPauseLength;
 new Handle:g_hMaxPauseLength_Technical;
 new Handle:g_hMaxTimeouts;
+new Handle:g_hNeoScoreLimit;
 new Handle:g_hNeoRestartThis;
 new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
@@ -385,6 +386,7 @@ void ToggleLive()
 		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
 		SetConVarBool(g_hPausable, false);
 		SetConVarBool(g_hForceCamera, true);
+		SetConVarInt(g_hNeoScoreLimit, 99); // Make sure Neotokyo's own max round count is maxed out so it won't interfere
 		
 		NeoRestartThis();
 		

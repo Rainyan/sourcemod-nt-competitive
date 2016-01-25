@@ -105,6 +105,7 @@ public OnPluginStart()
 	g_hNeoRestartThis	= FindConVar("neo_restart_this");
 	g_hPausable			= FindConVar("sv_pausable");
 	g_hRoundTime		= FindConVar("neo_round_timelimit");
+	g_hNeoScoreLimit	= FindConVar("neo_score_limit");
 	
 	HookConVarChange(g_hNeoRestartThis,					Event_Restart);
 	HookConVarChange(g_hSourceTVEnabled,				Event_SourceTVEnabled);
@@ -156,6 +157,7 @@ public OnMapStart()
 public OnConfigsExecuted()
 {
 	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
+	SetConVarInt(g_hNeoScoreLimit, 99); // Set Neotokyo's own round max round count to highest value
 }
 
 public OnClientAuthorized(client, const String:authID[])
