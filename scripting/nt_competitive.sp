@@ -215,12 +215,11 @@ public OnClientAuthorized(client, const String:authID[])
 }
 
 public bool OnClientConnect(client)
-{
-	decl String:clientName[MAX_NAME_LENGTH];
-	GetClientName(client, clientName, sizeof(clientName));
-	
+{	
 	if ( g_isPaused && GetConVarInt(g_hPauseMode) == PAUSEMODE_NORMAL )
 	{
+		decl String:clientName[MAX_NAME_LENGTH];
+		GetClientName(client, clientName, sizeof(clientName));
 #if DEBUG
 		LogDebug("[COMP] Pause join detected!");
 #endif
@@ -244,6 +243,7 @@ public OnGhostCapture(client)
 	if ( !Client_IsValid(client) )
 	{
 		LogError("Returned invalid client %i", client);
+		g_ghostCapturingTeam = TEAM_NONE;
 		return;
 	}
 	
@@ -251,6 +251,7 @@ public OnGhostCapture(client)
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
 		LogError("Returned client %i does not belong to team Jinrai or NSF, returned team id %i", client, team);
+		g_ghostCapturingTeam = TEAM_NONE;
 		return;
 	}
 	
