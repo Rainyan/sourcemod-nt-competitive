@@ -1782,7 +1782,7 @@ void EmptyScore()
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || IsFakeClient(i) )
+		if ( !Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 		
 		SetEntProp(i, Prop_Data, "m_iDeaths", 0); // 0 deaths
