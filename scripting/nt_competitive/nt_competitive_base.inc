@@ -2040,10 +2040,16 @@ bool DidPlayerReallySpawn(client)
 	return true;
 }
 
-void Spectators_DisplayRemainingPlayers(jinraiAlive, nsfAlive)
+void Spectators_DisplayRemainingPlayers()
 {
 	decl String:message[12];
-	Format(message, sizeof(message), "%i vs %i", jinraiAlive, nsfAlive);
+	
+	// Just display numbers remaining
+	if (GetConVarInt(g_hSpectators_DisplayRemaining) == 1)
+		Format(message, sizeof(message), "%i vs %i", g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
+	// Display team name + numbers remaining
+	else
+		Format(message, sizeof(message), "Jinrai %i vs %i NSF", g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{

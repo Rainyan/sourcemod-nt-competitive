@@ -88,8 +88,8 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 		}
 	}
 	
-	if ( GetConVarBool(g_hSpectators_DisplayRemaining) )
-		Spectators_DisplayRemainingPlayers(g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
+	if (GetConVarInt(g_hSpectators_DisplayRemaining) > 0)
+		Spectators_DisplayRemainingPlayers();
 	
 	return Plugin_Handled;
 }
