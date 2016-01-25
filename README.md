@@ -7,13 +7,13 @@ The main module should already work.<br>
 The overlay and matchmaking modules are experimental and may not work properly.
 
 Features:
-  - Automatic demo recording.
+  - Automatic demo recording
   - Automatic SourceTV recording
-  - Count rounds, announce winner.
+  - Count rounds, announce winner
   - Fade to black
   - Handle dis/reconnecting players and teams
-  - Pausing system.
-  - Ready up system.
+  - Pausing system
+  - Ready up system
   - Panel menus for admins
   - Ability to fall back to previous rounds
   - Option to disable timeout round wins
