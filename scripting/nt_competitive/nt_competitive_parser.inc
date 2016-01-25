@@ -155,7 +155,9 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	
 	// Game is currently being unpaused (points being recovered etc). Stop here.
 	if (g_isCurrentlyUnPausing)
-	{	
+	{
+		g_fRoundTime	= GetGameTime();
+		
 		RestoreRound(g_roundNumber);
 		PrintToChatAll( "%s Round %i/%i", g_tag, g_roundNumber, GetConVarInt(g_hRoundLimit) );
 		SpamTimer();
