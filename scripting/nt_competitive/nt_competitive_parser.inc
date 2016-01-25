@@ -57,12 +57,10 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 		{
 			UpdatePlayersAlive();
 			
-			g_playersAlive[victimTeam]--; // This hook is fired too soon for UpdatePlayersAlive() to consider the victim dead, so we manually subtract 1 here
+			// This hook is fired too soon for UpdatePlayersAlive() to consider the victim dead, so we manually subtract 1 here
+			g_playersAlive[victimTeam]--;
 			
-			decl String:msgBuffer[sizeof(g_tag) + ( sizeof(g_teamName[]) * 2 ) + 27];
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s (%i) -- vs -- %s (%i)", g_tag, g_teamName[TEAM_JINRAI], g_playersAlive[TEAM_JINRAI], g_teamName[TEAM_NSF], g_playersAlive[TEAM_NSF]);
-			
-			PrintToConsoleAll(msgBuffer);
+			PrintToConsoleAll("%s %s (%i) -- vs -- %s (%i)", g_tag, g_teamName[TEAM_JINRAI], g_playersAlive[TEAM_JINRAI], g_teamName[TEAM_NSF], g_playersAlive[TEAM_NSF]);
 		}
 		
 		case 2: // Only show the victim how much damage they dealt to their killer (CSGO style)

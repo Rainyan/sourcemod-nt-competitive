@@ -497,8 +497,8 @@ void PauseRequest(client, reason)
 	if (g_isGamedataOutdated && ( GetConVarInt(g_hPauseMode) == PAUSEMODE_STOP_CLOCK) )
 	{
 		SetConVarInt(g_hPauseMode, PAUSEMODE_NORMAL);
-		PrintToAdmins("Admins: Server gamedata is outdated. Falling back to default pause mode to avoid errors.", true, true);
-		PrintToAdmins("See SM error logs for more info.");
+		PrintToAdmins(_, _, "Admins: Server gamedata is outdated. Falling back to default pause mode to avoid errors.");
+		PrintToAdmins(_, _, "See SM error logs for more info.");
 	}
 	
 	new team = GetClientTeam(client);

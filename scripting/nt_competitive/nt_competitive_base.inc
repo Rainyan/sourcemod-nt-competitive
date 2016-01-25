@@ -1098,14 +1098,17 @@ void LogCompetitive(const String:message[])
 	CloseHandle(hFile);
 }
 
-void PrintToConsoleAll(const String:message[])
+void PrintToConsoleAll(const String:message[], any ...)
 {
+	decl String:formatMsg[512];
+	VFormat(formatMsg, sizeof(formatMsg), message, 2);
+	
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if ( !Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 		
-		PrintToConsole(i, message);
+		PrintToConsole(i, formatMsg);
 	}
 }
 
@@ -1626,18 +1629,21 @@ void CheckGamedataFiles()
 	}
 }
 
-void PrintToAdmins(const String:message[], bool toChat = true, bool toConsole = false)
+void PrintToAdmins(bool toChat = true, bool toConsole = false, const String:message[], any ...)
 {
+	decl String:formatMsg[512];
+	VFormat(formatMsg, sizeof(formatMsg), message, 4);
+	
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
 			continue;
 		
 		if (toChat)
-			PrintToChat(i, message);
+			PrintToChat(i, formatMsg);
 		
 		if (toConsole)
-			PrintToConsole(i, message);
+			PrintToConsole(i, formatMsg);
 	}
 }
 
@@ -1657,15 +1663,9 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 		}
 		
 		if (adminsPresent)
-		{
-			decl String:error[128];
-			Format(error, sizeof(error), "Failed restoring round %i. Check SM error logs for details.", roundNumber);
-			PrintToAdmins(error);
-		}
+			PrintToAdmins(_, _, "Failed restoring round %i. Check SM error logs for details.", roundNumber);
 		else
-		{
 			PrintToChatAll("Round restore failed. Contact server admins for help.");
-		}
 		
 		g_confirmRoundChange = false;
 		return;
