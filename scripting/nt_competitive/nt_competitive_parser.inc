@@ -176,6 +176,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	// Round is being edited, stop here.
 	else if (g_isCurrentlyRestoringRound)
 	{
+		g_fRoundTime	= GetGameTime();
 		g_isCurrentlyRestoringRound = false;
 		
 		PrintToChatAll( "%s Round %i/%i", g_tag, g_roundNumber, GetConVarInt(g_hRoundLimit) );
