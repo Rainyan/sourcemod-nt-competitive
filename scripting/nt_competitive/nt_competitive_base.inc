@@ -331,7 +331,6 @@ void ToggleLive()
 		if ( GetConVarBool(g_hDebugKeyValues) )
 		{
 			Kv_Generate();
-			Kv_PopulateMeta(g_kv);
 		}
 #endif
 		g_isLiveCountdown = false;
@@ -2074,15 +2073,23 @@ void Spectators_DisplayRemainingPlayers()
 	}
 }
 
+// Purpose: Make sure handle holds valid KeyValues data, using the comp plugin's format.
+// This will also reset the entire traversal stack. Intended use: kv initialisation, import, export.
 bool Kv_IsValid(KeyValues kv)
 {
 	if (kv == INVALID_HANDLE)
 		return false;
 	
-	new sectionSymbol;
-	if ( !kv.GetSectionSymbol(sectionSymbol) )
+	kv.Rewind();
+	
+	new identifier_length = strlen(KV_IDENTIFIER) +1; // strlen + terminator
+	decl String:sectionName[identifier_length];
+	kv.GetSectionName(sectionName, identifier_length);
+	
+	if ( !StrEqual(sectionName, KV_IDENTIFIER) )
 	{
-		LogError("Tested non-zero KeyValues handle %i that isn't valid a KeyValues structure either. This probably shouldn't happen.", kv);
+		LogError("KeyValues handle points to a KeyValues that is not standard for the competitive plugin. This is most likely an error.");
+		LogError("Section name: %s Expected: %s", sectionName, KV_IDENTIFIER);
 		return false;
 	}
 	
@@ -2093,14 +2100,7 @@ bool Kv_IsValid(KeyValues kv)
 void Kv_Generate()
 {
 	KeyValues kv = new KeyValues(KV_IDENTIFIER);
-	
-	if ( !Kv_IsValid(kv) )
-	{
-		LogError("Failed generating KeyValues");
-		return;
-	}
-	
-	g_kv = kv;
+	Kv_PopulateMeta(kv);
 }
 
 // Purpose: Populates metadata for competitive plugin's KeyValues
@@ -2160,6 +2160,9 @@ void Kv_PopulateMeta(KeyValues kv)
 	kv.SetNum( "natives_forcecamera", GetConVarInt(g_hForceCamera) );
 	kv.SetNum( "natives_round_time", GetConVarInt(g_hRoundTime) );
 	kv.SetNum( "natives_scorelimit", GetConVarInt(g_hNeoScoreLimit) );
+	
+	// Store KeyValues globally
+	g_kv = kv;
 }
 
 void Kv_Export(KeyValues kv, const String:exportName[] = "comp_debug.kv")
