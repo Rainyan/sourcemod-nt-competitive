@@ -18,8 +18,6 @@
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
 
-#define PLUGIN_VERSION "0.3.9.7"
-
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
 	description	=	"Count score, announce winner, perform other competitive tasks",
@@ -99,6 +97,9 @@ public OnPluginStart()
 	g_hNSFScore							= CreateConVar("sm_competitive_nsf_score",						"0",					"Competitive plugin's internal score cvar. Editing this will directly affect comp team scores.", _, true, 0.0);
 	g_hSuddenDeath						= CreateConVar("sm_competitive_sudden_death",				"1",					"Whether or not to allow match to end in a tie. Otherwise, game proceeds to sudden death until one team scores a point.", _, true, 0.0, true, 1.0);
 	g_hSpectators_DisplayRemaining	= CreateConVar("sm_competitive_spectators_display_remaining_players",	"2", "How the number of remaining players is displayed to spectators in a competitive game. 0 = disabled, 1 = show remaining player numbers, 2 = show team names and remaining player numbers", _, true, 0.0, true, 2.0);
+#if DEBUG
+	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Test KeyValues functionality. Debug cvar.", _, true, 0.0, true, 1.0);
+#endif
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");

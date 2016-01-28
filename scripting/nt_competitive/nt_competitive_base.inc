@@ -4,8 +4,13 @@
 #endif
 #define _base_included_
 
+#define PLUGIN_VERSION "0.3.9.8"
+
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
+#define MAX_CVAR_LENGTH 64
+
+#define KV_IDENTIFIER "compdata"
 
 new String:g_tag[] = "[COMP]";
 new String:g_teamName[][64] = {
@@ -104,12 +109,17 @@ new Handle:g_hJinraiScore;
 new Handle:g_hNSFScore;
 new Handle:g_hSuddenDeath;
 new Handle:g_hSpectators_DisplayRemaining;
+#if DEBUG
+	new Handle:g_hDebugKeyValues;
+#endif
 
 new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
 new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
+
+KeyValues g_kv;
 
 Menu g_clientMenu = null;
 
@@ -317,6 +327,13 @@ void ToggleLive()
 	
 	if (g_isLive)
 	{
+#if DEBUG
+		if ( GetConVarBool(g_hDebugKeyValues) )
+		{
+			Kv_Generate();
+			Kv_PopulateMeta(g_kv);
+		}
+#endif
 		g_isLiveCountdown = false;
 		g_winner = 0; // Reset winner (overlay module queries this value)
 		
@@ -413,6 +430,14 @@ void ToggleLive()
 	// Stop live
 	else
 	{
+#if DEBUG
+		if ( GetConVarBool(g_hDebugKeyValues) )
+		{
+			if ( Kv_IsValid(g_kv) )
+				Kv_Export(g_kv);
+		}
+#endif
+		
 		if (g_isPaused)
 			TogglePause();
 		
@@ -2047,4 +2072,105 @@ void Spectators_DisplayRemainingPlayers()
 		
 		PrintCenterText(i, message);
 	}
+}
+
+bool Kv_IsValid(KeyValues kv)
+{
+	if (kv == INVALID_HANDLE)
+		return false;
+	
+	new sectionSymbol;
+	if ( !kv.GetSectionSymbol(sectionSymbol) )
+	{
+		LogError("Tested non-zero KeyValues handle %i that isn't valid a KeyValues structure either. This probably shouldn't happen.", kv);
+		return false;
+	}
+	
+	return true;
+}
+
+// Purpose: Generates new KeyValues structure and stores it globally
+void Kv_Generate()
+{
+	KeyValues kv = new KeyValues(KV_IDENTIFIER);
+	
+	if ( !Kv_IsValid(kv) )
+	{
+		LogError("Failed generating KeyValues");
+		return;
+	}
+	
+	g_kv = kv;
+}
+
+// Purpose: Populates metadata for competitive plugin's KeyValues
+void Kv_PopulateMeta(KeyValues kv)
+{
+	if ( !Kv_IsValid(kv) )
+	{
+		LogError("Failed populating KeyValues");
+		return;
+	}
+	
+	kv.JumpToKey("meta", true);
+	kv.SetNum( "timestamp", GetTime() );
+	kv.SetString("plugin_version", PLUGIN_VERSION);
+	
+	// Store string cvars
+	decl String:jinraiName[MAX_CVAR_LENGTH];
+	decl String:nsfName[MAX_CVAR_LENGTH];
+	decl String:competitionName[MAX_CVAR_LENGTH];
+	decl String:sourceTVPath[MAX_CVAR_LENGTH];
+	
+	GetConVarString( g_hJinraiName, jinraiName, sizeof(jinraiName) );
+	GetConVarString( g_hNSFName, nsfName, sizeof(nsfName) );
+	GetConVarString( g_hCompetitionName, competitionName, sizeof(competitionName) );
+	GetConVarString( g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath) );
+	
+	kv.SetString("jinrai_name", jinraiName);
+	kv.SetString("nsf_name", nsfName);
+	kv.SetString("competition_name", competitionName);
+	kv.SetString("sourcetv_path", sourceTVPath);
+	
+	// Store integer/boolean cvars
+	// Floats need SetFloat, but we're not expecting any as of now
+	kv.SetNum( "round_limit", GetConVarInt(g_hRoundLimit) );
+	kv.SetNum( "match_size", GetConVarInt(g_hMatchSize) );
+	kv.SetNum( "max_timeouts", GetConVarInt(g_hMaxTimeouts) );
+	kv.SetNum( "max_pause_length", GetConVarInt(g_hMaxPauseLength) );
+	kv.SetNum( "max_pause_length_technical", GetConVarInt(g_hMaxPauseLength_Technical) );
+	kv.SetNum( "comms_behaviour", GetConVarInt(g_hCommsBehaviour) );
+	kv.SetNum( "log_mode", GetConVarInt(g_hLogMode) );
+	kv.SetNum( "kill_verbosity", GetConVarInt(g_hKillVersobity) );
+	kv.SetNum( "kill_verbosity_delay", GetConVarInt(g_hVerbosityDelay) );
+	kv.SetNum( "match_size", GetConVarInt(g_hMatchSize) );
+	kv.SetNum( "client_recording", GetConVarInt(g_hClientRecording) );
+	kv.SetNum( "limit_live_teams", GetConVarInt(g_hLimitLiveTeams) );
+	kv.SetNum( "limit_teams", GetConVarInt(g_hLimitTeams) );
+	kv.SetNum( "pause_mode", GetConVarInt(g_hPauseMode) );
+	kv.SetNum( "collective_pause", GetConVarInt(g_hCollectiveReady) );
+	kv.SetNum( "no_zanshi", GetConVarInt(g_hPreventZanshiStrats) );
+	kv.SetNum( "jinrai_score", GetConVarInt(g_hJinraiScore) );
+	kv.SetNum( "nfs_score", GetConVarInt(g_hNSFScore) );
+	kv.SetNum( "sudden_death", GetConVarInt(g_hSuddenDeath) );
+	kv.SetNum( "spectators_display_remaining", GetConVarInt(g_hSpectators_DisplayRemaining) );
+	kv.SetNum( "natives_alltalk", GetConVarInt(g_hAlltalk) );
+	kv.SetNum( "natives_forcecamera", GetConVarInt(g_hForceCamera) );
+	kv.SetNum( "natives_pausable", GetConVarInt(g_hPausable) );
+	kv.SetNum( "natives_forcecamera", GetConVarInt(g_hForceCamera) );
+	kv.SetNum( "natives_round_time", GetConVarInt(g_hRoundTime) );
+	kv.SetNum( "natives_scorelimit", GetConVarInt(g_hNeoScoreLimit) );
+}
+
+void Kv_Export(KeyValues kv, const String:exportName[] = "comp_debug.kv")
+{
+	if ( !Kv_IsValid(kv) )
+	{
+		LogError("Failed exporting KeyValues");
+		return;
+	}
+	
+	kv.ExportToFile(exportName);
+	
+	CloseHandle(g_kv);
 }
