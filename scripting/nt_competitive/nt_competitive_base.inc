@@ -2082,6 +2082,7 @@ void Spectators_DisplayRemainingPlayers()
 	}
 }
 
+#if DEBUG
 // Purpose: Make sure handle holds valid KeyValues data, using the comp plugin's format.
 // This will also reset the entire traversal stack. Intended use: kv initialisation, import, export.
 bool Kv_IsValid(KeyValues kv)
@@ -2252,3 +2253,4 @@ void Kv_Export(KeyValues kv, const String:exportName[] = "comp_debug.kv")
 	
 	kv.ExportToFile(exportName);
 }
+#endif
