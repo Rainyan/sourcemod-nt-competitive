@@ -2116,6 +2116,7 @@ void Kv_PopulateMeta(KeyValues kv)
 	}
 	
 	kv.JumpToKey("meta", true);
+	
 	kv.SetNum( "timestamp", GetTime() );
 	kv.SetString("plugin_version", PLUGIN_VERSION);
 	
@@ -2163,6 +2164,25 @@ void Kv_PopulateMeta(KeyValues kv)
 	kv.SetNum( "natives_forcecamera", GetConVarInt(g_hForceCamera) );
 	kv.SetNum( "natives_round_time", GetConVarInt(g_hRoundTime) );
 	kv.SetNum( "natives_scorelimit", GetConVarInt(g_hNeoScoreLimit) );
+	
+	// List clients and their teams
+	kv.JumpToKey("clients", true);
+	
+	decl String:steamID[MAX_STEAMID_LENGTH];
+	new team;
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
+			continue;
+		
+		team = GetClientTeam(i);
+		// Valid teams are in range 0-3
+		if ( 0 > team > 3 )
+			continue;
+		
+		GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
+		kv.SetNum(steamID, team);
+	}
 	
 	// Store KeyValues globally
 	g_kv = kv;
