@@ -433,7 +433,10 @@ void ToggleLive()
 		if ( GetConVarBool(g_hDebugKeyValues) )
 		{
 			if ( Kv_IsValid(g_kv) )
+			{
 				Kv_Export(g_kv);
+				CloseHandle(g_kv);
+			}
 		}
 #endif
 		
@@ -2174,6 +2177,4 @@ void Kv_Export(KeyValues kv, const String:exportName[] = "comp_debug.kv")
 	}
 	
 	kv.ExportToFile(exportName);
-	
-	CloseHandle(g_kv);
 }
