@@ -1857,6 +1857,12 @@ void ApplyPenalty(admin, team)
 
 void CheckMatchState()
 {
+#if DEBUG
+	if ( GetConVarBool(g_hDebugKeyValues) )
+	{
+		Kv_LogRound(g_kv);
+	}
+#endif
 	new roundLimit = GetConVarInt(g_hRoundLimit);
 	new roundsLeft = roundLimit - g_roundNumber;
 	decl String:msgBuffer[256];
@@ -2097,6 +2103,54 @@ bool Kv_IsValid(KeyValues kv)
 	}
 	
 	return true;
+}
+
+void Kv_LogRound(KeyValues kv)
+{
+	if ( !Kv_IsValid(kv) )
+	{
+		LogError("Failed logging round to KeyValues");
+		return;
+	}
+	
+	kv.Rewind();
+	
+	// Create or jump to round key
+	decl String:roundKey[9];
+	Format(roundKey, sizeof(roundKey), "round%i", g_roundNumber);
+	kv.JumpToKey(roundKey, true);
+	
+	// Set round specific values
+	kv.SetNum("jinrai_score", g_jinraiScore[g_roundNumber]);
+	kv.SetNum("nsf_score", g_nsfScore[g_roundNumber]);
+	kv.SetNum( "round_limit", GetConVarInt(g_hRoundLimit) );
+	kv.SetNum("jinrai_pauses_used", g_usedTimeouts[TEAM_JINRAI]);
+	kv.SetNum("nsf_pauses_used", g_usedTimeouts[TEAM_NSF]);
+	
+	// Set player values for round
+	kv.JumpToKey("client_values", true);
+	decl String:steamID[MAX_STEAMID_LENGTH];
+	new team;
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
+			continue;
+		
+		team = GetClientTeam(i);
+		if (0 > team > 3)
+			continue;
+		
+		GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
+		kv.JumpToKey(steamID, true);
+		
+		kv.SetNum("team", team);
+		kv.SetNum( "xp", GetPlayerXP(i) );
+		kv.SetNum( "deaths", GetPlayerDeaths(i) );
+		
+		kv.GoBack();
+	}
+	
+	g_kv = kv;
 }
 
 // Purpose: Generates new KeyValues structure and stores it globally
