@@ -26,7 +26,9 @@ new String:g_soundLive[] = "buttons/button17.wav";
 new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 new String:g_convarBeingEdited[128];
 #if DEBUG
-new String:g_path_logDebug[] = "logs/competitive";
+new String:g_path_logDebug[PLATFORM_MAX_PATH] = "logs/competitive";
+new String:g_kvPath[PLATFORM_MAX_PATH] = "data/competitive/matches";
+new String:g_kvName[128];
 #endif
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
@@ -434,7 +436,7 @@ void ToggleLive()
 		{
 			if ( Kv_IsValid(g_kv) )
 			{
-				Kv_Export(g_kv);
+				Kv_Store(g_kv, g_kvName);
 				CloseHandle(g_kv);
 			}
 		}
@@ -1558,11 +1560,59 @@ void RefereeMenu_ManualEdit_PlayerScore(client)
 	Command_RefereeMenu(client, 1);
 }
 
-// Todo: add functionality
 void RefereeMenu_LoadMatch(client)
 {
-	PrintToChat(client, "The goggles, they do nothing!");
+#if DEBUG
+	Menu menu = CreateMenu(MenuHandler_RefereeMenu_LoadMatch);
+	
+	menu.SetTitle("Load previous match state");
+	
+	decl String:fullPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, fullPath, sizeof(fullPath), g_kvPath);
+	
+	if ( !DirExists(fullPath) )
+	{
+		LogError("Failed to open KeyValues path: %s", fullPath);
+		return;
+	}
+	
+	new Handle:dir = OpenDirectory(fullPath);
+	
+	decl String:buffer[PLATFORM_MAX_PATH];
+	new String:extension[] = ".kv";
+	FileType type;
+	new results;
+	while ( ReadDirEntry(dir, buffer, sizeof(buffer), type) )
+	{
+		if (results > 1000)
+		{
+			LogError("Warning: Over 1000 file results found. Breaking out of the loop to avoid unresponsiveness.");
+			break;
+		}
+		
+		// Not a file
+		if (type != FileType_File)
+			continue;
+		
+		// Not a .kv file
+		if ( StrContains(buffer, ".kv") != strlen(buffer) - strlen(extension) )
+		{
+			PrintToServer( "###StrContains(buffer) @ %i vs needle: %i", StrContains(buffer, ".kv"), (strlen(buffer) - strlen(extension)) );
+			continue;
+		}
+		
+//		PrintToServer("Found file: %s", buffer);
+		menu.AddItem(buffer, buffer);
+		
+		results++;
+	}
+	
+	CloseHandle(dir);
+	
+	menu.Display(client, MENU_TIME_FOREVER);
+#else
 	Command_RefereeMenu(client, 1);
+#endif
 }
 
 void ChatCvarEdit(client, Handle:cvar)
@@ -1861,6 +1911,7 @@ void CheckMatchState()
 	if ( GetConVarBool(g_hDebugKeyValues) )
 	{
 		Kv_LogRound(g_kv);
+		Kv_Store(g_kv, g_kvName);
 	}
 #endif
 	new roundLimit = GetConVarInt(g_hRoundLimit);
@@ -2106,6 +2157,7 @@ bool Kv_IsValid(KeyValues kv)
 	return true;
 }
 
+// Purpose: Logs current match status into round keyvalues entry
 void Kv_LogRound(KeyValues kv)
 {
 	if ( !Kv_IsValid(kv) )
@@ -2144,19 +2196,40 @@ void Kv_LogRound(KeyValues kv)
 		GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
 		kv.JumpToKey(steamID, true);
 		
+		// Store current round values
 		kv.SetNum("team", team);
 		kv.SetNum( "xp", GetPlayerXP(i) );
 		kv.SetNum( "deaths", GetPlayerDeaths(i) );
 		
-		kv.GoBack();
+		// Insert client into meta client list
+		kv.Rewind();
+		kv.JumpToKey("meta");
+		kv.JumpToKey("clients");
+		kv.SetNum(steamID, team);
+		
+		// Return cursor to client_values
+		kv.Rewind();
+		kv.JumpToKey(roundKey);
+		kv.JumpToKey("client_values");
 	}
 	
 	g_kv = kv;
 }
 
-// Purpose: Generates new KeyValues structure and stores it globally
+// Purpose: Generates new KeyValues structure
 void Kv_Generate()
 {
+	Format( g_kvName, sizeof(g_kvName), "comp_%i", GetTime() );
+	
+	// Concatenate competition title (if any) to the end of filename
+	decl String:compTitle[MAX_CVAR_LENGTH];
+	GetConVarString( g_hCompetitionName, compTitle, sizeof(compTitle) );
+	if (strlen(compTitle) > 0)
+	{
+		StrCat(g_kvName, sizeof(g_kvName), "_");
+		StrCat(g_kvName, sizeof(g_kvName), compTitle);
+	}
+	
 	KeyValues kv = new KeyValues(KV_IDENTIFIER);
 	Kv_PopulateMeta(kv);
 }
@@ -2239,11 +2312,11 @@ void Kv_PopulateMeta(KeyValues kv)
 		kv.SetNum(steamID, team);
 	}
 	
-	// Store KeyValues globally
-	g_kv = kv;
+	Kv_Store(kv, g_kvName);
 }
 
-void Kv_Export(KeyValues kv, const String:exportName[] = "comp_debug.kv")
+// Purpose: Stores KeyValues data globally and exports latest changes to file
+void Kv_Store(KeyValues kv, const String:exportName[] = "comp_debug")
 {
 	if ( !Kv_IsValid(kv) )
 	{
@@ -2251,6 +2324,39 @@ void Kv_Export(KeyValues kv, const String:exportName[] = "comp_debug.kv")
 		return;
 	}
 	
-	kv.ExportToFile(exportName);
+	g_kv = kv;
+	
+	if (StrContains(exportName, ".kv") != -1)
+	{
+		LogError("exportName contained .kv extension. This shouldn't happen.");
+		return;
+	}
+	
+	decl String:fullPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s.kv", g_kvPath, exportName);
+	
+	kv.ExportToFile(fullPath);
+}
+
+void Kv_RestoreFromFile(const String:fileName[])
+{
+	if (strlen(fileName) < 1)
+	{
+		LogError("Attempted to restore KeyValues from zero length filename");
+		return;
+	}
+	
+	decl String:fullPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s", g_kvPath, fileName);
+	
+	KeyValues kv = new KeyValues("");
+	
+	if ( !kv.ImportFromFile(fullPath) )
+	{
+		LogError("Failed importing KeyValues from path: %s", fullPath);
+		return;
+	}
+	
+	g_kv = kv;
 }
 #endif

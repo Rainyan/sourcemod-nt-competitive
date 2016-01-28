@@ -387,3 +387,16 @@ public int Menu_Clients(Menu menu, MenuAction action, client, choice)
 	
 	RefereeMenu_ClientActions(client);
 }
+
+public MenuHandler_RefereeMenu_LoadMatch(Menu:menu, MenuAction:action, client, choice)
+{
+	if (action != MenuAction_Select)
+		return;
+	
+	decl String:kvFileName[PLATFORM_MAX_PATH];
+	menu.GetItem( choice, kvFileName, sizeof(kvFileName) );
+	
+	Kv_RestoreFromFile(kvFileName);
+	
+//	PrintToServer("File chosen: %s", kvFileName);
+}
