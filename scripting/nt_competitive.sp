@@ -290,7 +290,7 @@ public Action:Command_RefereeMenu(client, args)
 	
 	DrawPanelItem(panel, "Manually edit team score");
 	DrawPanelItem(panel, "Manually edit player score (does not work yet)");
-	DrawPanelItem(panel, "Load previous match (does not work yet)");
+	DrawPanelItem(panel, "Load previous match");
 	DrawPanelItem(panel, "Exit");
 	
 	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME_FOREVER);

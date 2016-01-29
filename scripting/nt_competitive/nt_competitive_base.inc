@@ -29,6 +29,7 @@ new String:g_convarBeingEdited[128];
 new String:g_path_logDebug[PLATFORM_MAX_PATH] = "logs/competitive";
 new String:g_kvPath[PLATFORM_MAX_PATH] = "data/competitive/matches";
 new String:g_kvName[128];
+new String:g_kvName_Temp[sizeof(g_kvName)];
 #endif
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
@@ -1577,23 +1578,26 @@ void RefereeMenu_LoadMatch(client)
 	decl String:fullPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, fullPath, sizeof(fullPath), g_kvPath);
 	
-	if ( !DirExists(fullPath) )
+	new Handle:dir = OpenDirectory(fullPath);
+	
+	if (!DirExists(fullPath) || dir == null)
 	{
-		LogError("Failed to open KeyValues path: %s", fullPath);
+		LogError("Failed to open KeyValues directory path: %s", fullPath);
 		return;
 	}
 	
-	new Handle:dir = OpenDirectory(fullPath);
-	
+	new results;
+	new max_files = 1000;
 	decl String:buffer[PLATFORM_MAX_PATH];
 	new String:extension[] = ".kv";
 	FileType type;
-	new results;
 	while ( ReadDirEntry(dir, buffer, sizeof(buffer), type) )
 	{
-		if (results > 1000)
+		results++;
+		
+		if (results > max_files)
 		{
-			LogError("Warning: Over 1000 file results found. Breaking out of the loop to avoid unresponsiveness.");
+			LogError("Warning: Over %i file results found. Breaking out of the loop to avoid unresponsiveness.", max_files);
 			break;
 		}
 		
@@ -1610,8 +1614,6 @@ void RefereeMenu_LoadMatch(client)
 		
 //		PrintToServer("Found file: %s", buffer);
 		menu.AddItem(buffer, buffer);
-		
-		results++;
 	}
 	
 	CloseHandle(dir);
@@ -2377,7 +2379,10 @@ void Kv_RestoreFromFile(const String:fileName[])
 	new String:pluginVersion[32];
 	kv.GetString( "plugin_version", pluginVersion, sizeof(pluginVersion) );
 	if ( !Kv_IsCompatible(pluginVersion) )
+	{
+		delete kv;
 		return;
+	}
 	
 	// Restore string variables
 	new String:jinraiName[MAX_CVAR_LENGTH];
@@ -2422,6 +2427,7 @@ void Kv_RestoreFromFile(const String:fileName[])
 	
 	decl String:roundLabel[16] = "round";
 	new round = 1;
+	new i;
 	decl String:labelBuffer[16];
 	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
 	
@@ -2431,54 +2437,62 @@ void Kv_RestoreFromFile(const String:fileName[])
 	while ( kv.JumpToKey(labelBuffer, false) )
 	{
 		PrintToServer("Found round %i", round);
+		g_roundNumber = round;
+		g_jinraiScore[g_roundNumber] = kv.GetNum("jinrai_score");
+		g_nsfScore[g_roundNumber] = kv.GetNum("nsf_score");
+		
+		// Restore player scores etc. for specific round
+		kv.JumpToKey("client_values", false);
+		decl String:steamID[MAX_STEAMID_LENGTH];
+		new xp;
+		new deaths;
+		for (i = 1; i <= MaxClients; i++)
+		{
+			if ( !Client_IsValid(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
+				continue;
+			
+			GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
+			
+			ClientCommand(i, "kill");
+			xp = 0;
+			deaths = 0;
+			
+			// Player has xp/deaths stored in KeyValues for this round
+			if ( kv.JumpToKey(steamID, false) )
+			{
+				ClientCommand( i, "jointeam %i", kv.GetNum("team") );
+				xp = kv.GetNum("xp");
+				deaths = kv.GetNum("deaths");
+				
+				g_playerXP[i][g_roundNumber] = xp;
+				g_playerDeaths[i][g_roundNumber] = deaths;
+				
+				kv.GoBack();
+			}
+			
+			DataPack pack = new DataPack();
+			CreateDataTimer(1.0, Timer_RestoreClientFromKeyValues, pack);
+			pack.WriteCell(i);
+			pack.WriteCell(xp);
+			pack.WriteCell(deaths);
+		}
+		kv.GoBack();
 		
 		round++;
 		Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
 		
 		kv.GoBack();
 	}
-	PrintToServer("Rounds found total: %i", round-1);
+	round--;
+	PrintToServer("Rounds found total: %i", round);
 	
-	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round-1);
+	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
 	if (! kv.JumpToKey(labelBuffer, false) )
 	{
-		LogError("Failed restoring round %i labelled \"%s\" from KeyValues", round-1, labelBuffer);
+		LogError("Failed restoring round %i labelled \"%s\" from KeyValues", round, labelBuffer);
+		delete kv;
+		return;
 	}
-	kv.JumpToKey("client_values", false);
-	
-	// Restore player scores etc. for specific round
-	decl String:steamID[MAX_STEAMID_LENGTH];
-	new xp;
-	new deaths;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if ( !Client_IsValid(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
-			continue;
-		
-		GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
-		
-		ClientCommand(i, "kill");
-		xp = 0;
-		deaths = 0;
-		
-		// Player has xp/deaths stored in KeyValues for this round
-		if ( kv.JumpToKey(steamID, false) )
-		{
-			ClientCommand( i, "jointeam %i", kv.GetNum("team") );
-			xp = kv.GetNum("xp");
-			deaths = kv.GetNum("deaths");
-			
-			kv.GoBack();
-		}
-		
-		DataPack pack = new DataPack();
-		CreateDataTimer(1.0, Timer_RestoreClientFromKeyValues, pack);
-		pack.WriteCell(i);
-		pack.WriteCell(xp);
-		pack.WriteCell(deaths);
-	}
-	
-	kv.GoBack();
 	
 	// Restore round specific match settings
 	SetConVarInt( g_hRoundLimit, kv.GetNum("round_limit") );
@@ -2491,7 +2505,16 @@ void Kv_RestoreFromFile(const String:fileName[])
 	pack.WriteCell( kv.GetNum("nsf_score") );
 	
 	g_kv = kv;
+	delete kv;
 	strcopy(g_kvName, sizeof(g_kvName), fileName);
+	
+	if (strlen(competitionName) > 0)
+		PrintToChatAll("%s Match loaded %s", g_tag, competitionName);
+	else
+		PrintToChatAll("%s Match loaded.", g_tag, competitionName);
+	
+	PrintToChatAll("%s vs %s", jinraiName, nsfName);
+	PrintToChatAll("Round: %i", g_roundNumber);
 }
 
 bool Kv_IsCompatible(const String:pluginVersion[])
@@ -2524,12 +2547,239 @@ public Action:Timer_RestoreTeamScores(Handle:timer, DataPack:pack)
 	SetConVarInt(g_hJinraiScore, jinraiScore);
 	SetConVarInt(g_hNSFScore, nsfScore);
 	
+	g_jinraiScore[g_roundNumber] = jinraiScore;
+	g_nsfScore[g_roundNumber] = nsfScore;
+	
 	SetTeamScore(TEAM_JINRAI, jinraiScore);
 	SetTeamScore(TEAM_NSF, nsfScore);
 }
 
-#endif
+void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:getPrevious = false)
+{
+	if ( !Client_IsValid(client) || !IsClientInGame(client) )
+		return;
+	
+	if (strlen(kvFileName) < 1)
+	{
+		LogError("Attempted to restore KeyValues from zero length filename");
+		return;
+	}
+	
+	if (StrContains(kvFileName, ".kv") == -1)
+	{
+		LogError("KeyValues filename doesn't contain .kv extension. This shouldn't happen.");
+		return;
+	}
+	
+	decl String:fullPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s", g_kvPath);
+	
+	new Handle:dir = OpenDirectory(fullPath);
+	if (!DirExists(fullPath) || dir == null)
+	{
+		LogError("Failed to open KeyValues directory path: %s", fullPath);
+		return;
+	}
+	
+	decl String:filePath[PLATFORM_MAX_PATH];
+	Format(filePath, sizeof(filePath), "%s/%s", fullPath, kvFileName);
+	if ( !FileExists(filePath) )
+	{
+		LogError("KeyValues file %s does not exist.", fullPath);
+		return;
+	}
+	
+	new i;
+	new locatedPos;
+	new results;
+	new max_files = 128;
+	decl String:buffer[max_files][PLATFORM_MAX_PATH]; // fixme: this is expensive :-( dynamic array instead?
+	new String:extension[] = ".kv";
+	new bool:locatedFile;
+	new bool:servedFile;
+	FileType type;
+	while ( ReadDirEntry(dir, buffer[i], PLATFORM_MAX_PATH, type) )
+	{
+		results++;
+		
+		PrintToServer("Testing %s against %s", buffer[i], kvFileName);
+		
+		if (results > max_files)
+		{
+			LogError("Warning: Over %i file results found. Breaking out of the loop to avoid unresponsiveness.", max_files);
+			break;
+		}
+		
+		// Not a file
+		if (type != FileType_File)
+			continue;
+		
+		// Not a .kv file
+		if ( StrContains(buffer[i], ".kv") != strlen(buffer[i]) - strlen(extension) )
+			continue;
+		
+		if (locatedFile)
+		{
+			if (getPrevious)
+			{
+				new prevIndex = locatedPos - 1;
+				// We're at the first key, can't return previous.
+				// Return current key and notify via boolean
+				if (prevIndex < 0)
+				{
+					Menu_KvDetails(client, buffer[i], true);
+					servedFile = true;
+				}
+				else
+				{
+					PrintToServer("Going to previous index %i: %s", prevIndex, buffer[prevIndex]);
+					Menu_KvDetails(client, buffer[prevIndex]);
+					servedFile = true;
+				}
+			}
+			else
+			{
+				Menu_KvDetails(client, buffer[i]);
+				servedFile = true;
+			}
+			
+			break;
+		}
+		
+		if ( StrEqual(buffer[i], kvFileName) )
+		{
+			PrintToServer("Found it!");
+			locatedPos = i;
+			locatedFile = true;
+		}
+		
+		i++;
+	}
+	
+	// Failed to serve any next file after a match. Probably reached end of folder.
+	if (locatedFile && !servedFile)
+	{
+		if (getPrevious)
+		{
+			new prevIndex = locatedPos - 1;
+			// We're at the first key, can't return previous.
+			// Return current key and notify via boolean
+			if (prevIndex < 0)
+			{
+				Menu_KvDetails(client, buffer[i], true);
+				servedFile = true;
+			}
+			else
+			{
+				PrintToServer("Going to previous index %i: %s", prevIndex, buffer[prevIndex]);
+				Menu_KvDetails(client, buffer[prevIndex]);
+				servedFile = true;
+			}
+		}
+	}
+	
+	CloseHandle(dir);
+}
 
+void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
+{
+	if ( !Client_IsValid(client) || !IsClientInGame(client) )
+		return;
+	
+	if (strlen(kvFileName) < 1)
+	{
+		LogError("Attempted to restore KeyValues from zero length filename");
+		return;
+	}
+	
+	if (StrContains(kvFileName, ".kv") == -1)
+	{
+		LogError("fileName doesn't contain .kv extension. This shouldn't happen.");
+		return;
+	}
+	
+	decl String:fullPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s", g_kvPath, kvFileName);
+	
+	KeyValues kv = new KeyValues("");
+	
+	if ( !kv.ImportFromFile(fullPath) )
+	{
+		LogError("Failed importing KeyValues from path: %s", fullPath);
+		return;
+	}
+	
+	kv.JumpToKey("meta", false);
+	
+	// Get this match's date/time
+	decl String:readableTime[64];
+	FormatTime( readableTime, sizeof(readableTime), "%Y%m%d-%H%M", kv.GetNum("timestamp") );
+	
+	// Get match title, if any
+	new String:matchTitle[MAX_CVAR_LENGTH];
+	kv.GetString( "competition_name", matchTitle, sizeof(matchTitle) );
+	if (strlen(matchTitle) < 1)
+		strcopy(matchTitle, sizeof(matchTitle), "untitled match");
+	
+	// Get team names, if any
+	new String:jinraiName[MAX_CVAR_LENGTH];
+	kv.GetString( "jinrai_name", jinraiName, sizeof(jinraiName) );
+	new String:nsfName[MAX_CVAR_LENGTH];
+	kv.GetString( "nsf_name", nsfName, sizeof(nsfName) );
+	
+	kv.GoBack();
+	
+	decl String:roundLabel[16] = "round";
+	new roundCount = 1;
+	decl String:labelBuffer[16];
+	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, roundCount);
+	
+	while ( kv.JumpToKey(labelBuffer, false) )
+	{
+		roundCount++;
+		Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, roundCount);
+		
+		kv.GoBack();
+	}
+	roundCount--;
+	
+	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, roundCount);
+	kv.JumpToKey(labelBuffer, false);
+	
+	new jinraiScore = kv.GetNum("jinrai_score");
+	new nsfScore = kv.GetNum("nsf_score");
+	new roundLimit = kv.GetNum("round_limit");
+	
+	new Handle:panel = CreatePanel();
+	
+	SetPanelTitle(panel, "Match information");
+	
+	if (outOfBounds)
+		DrawPanelText(panel, "(Last file reached.)");
+	
+	DrawPanelText(panel, matchTitle);
+	
+	decl String:infoBuffer[128];
+	Format(infoBuffer, sizeof(infoBuffer), "Jinrai %i vs %i NSF", jinraiScore, nsfScore);
+	DrawPanelText(panel, infoBuffer);
+	
+	Format(infoBuffer, sizeof(infoBuffer), "Round limit: %i", roundLimit);
+	DrawPanelText(panel, infoBuffer);
+	
+	DrawPanelItem(panel, "Load this match");
+	DrawPanelItem(panel, "--->");
+	DrawPanelItem(panel, "<---");
+	DrawPanelItem(panel, "Back");
+	DrawPanelItem(panel, "Exit");
+	
+	strcopy(g_kvName_Temp, sizeof(g_kvName_Temp), kvFileName);
+	delete kv;
+	
+	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_LoadMatch_ViewMeta, MENU_TIME_FOREVER);
+	
+	CloseHandle(panel);
+}
+#endif
 // Purpose: Store current epoch globally so multiple functions can use it for identifying themselves
 void GenerateEpoch()
 {
