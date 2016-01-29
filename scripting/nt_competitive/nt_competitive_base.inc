@@ -2236,12 +2236,25 @@ void Kv_Generate()
 	if (strlen(compTitle) > 0)
 	{
 		StrCat(g_kvName, sizeof(g_kvName), "_");
-		StrCat(g_kvName, sizeof(g_kvName), compTitle);
+		
+		// Clean up any non alphanumeric characters from the string
+		new String:compBuffer[sizeof(compTitle)];
+		new bufferPos;
+		for (new j = 0; j < sizeof(compTitle); j++)
+		{
+			if (IsCharAlpha(compTitle[j]) || IsCharNumeric(compTitle[j]) || !IsCharSpace(compTitle[j]))
+				compBuffer[bufferPos++] = compTitle[j];
+		}
+		compBuffer[bufferPos] = '\0'; // Terminate the string with 0
+		StrCat(g_kvName, sizeof(g_kvName), compBuffer);
 	}
+	
 	StrCat(g_kvName, sizeof(g_kvName), ".kv");
 	
 	KeyValues kv = new KeyValues(KV_IDENTIFIER);
 	Kv_PopulateMeta(kv);
+	
+	delete kv;
 }
 
 // Purpose: Populates metadata for competitive plugin's KeyValues
