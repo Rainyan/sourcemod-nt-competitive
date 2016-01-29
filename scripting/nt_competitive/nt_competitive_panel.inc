@@ -343,6 +343,40 @@ public PanelHandler_RefereeMenu_GameInfo(Handle:menu, MenuAction:action, client,
 	}
 }
 
+public PanelHandler_RefereeMenu_LoadMatch_ViewMeta(Handle:menu, MenuAction:action, client, choice)
+{
+	if (action != MenuAction_Select)
+		return;
+	
+	switch (choice)
+	{
+		case 1: // Load match
+		{
+			Kv_RestoreFromFile(g_kvName_Temp);
+		}
+		case 2: // Next
+		{
+			Kv_Menu_Details_GetParallelFile(client, g_kvName_Temp, false);
+		}
+		case 3: // Previous
+		{
+			Kv_Menu_Details_GetParallelFile(client, g_kvName_Temp, true);
+		}
+		case 4: // Back
+		{
+			PrecacheSound(g_menuSoundCancel);
+			EmitSoundToClient(client, g_menuSoundCancel);
+			RefereeMenu_LoadMatch(client);
+		}
+		case 5: // Exit menu
+		{
+			PrecacheSound(g_menuSoundCancel);
+			EmitSoundToClient(client, g_menuSoundCancel);
+			Command_RefereeMenu(client, 1);
+		}
+	}
+}
+
 Menu BuildClientMenu()
 {
 	Menu menu = new Menu(Menu_Clients);
@@ -386,4 +420,19 @@ public int Menu_Clients(Menu menu, MenuAction action, client, choice)
 	}
 	
 	RefereeMenu_ClientActions(client);
+}
+
+public MenuHandler_RefereeMenu_LoadMatch(Menu:menu, MenuAction:action, client, choice)
+{
+	if (action != MenuAction_Select)
+		return;
+	
+	decl String:kvFileName[PLATFORM_MAX_PATH];
+	menu.GetItem( choice, kvFileName, sizeof(kvFileName) );
+	
+	Menu_KvDetails(client, kvFileName);
+	
+	//Kv_RestoreFromFile(kvFileName);
+	
+//	PrintToServer("File chosen: %s", kvFileName);
 }
