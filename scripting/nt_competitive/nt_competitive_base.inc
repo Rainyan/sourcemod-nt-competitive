@@ -12,7 +12,7 @@
 
 #define KV_IDENTIFIER "compdata"
 
-new String:g_tag[] = "[COMP]";
+new const String:g_tag[] = "[COMP]";
 new String:g_teamName[][64] = {
 	"Unassigned",
 	"Spectator",
@@ -20,9 +20,9 @@ new String:g_teamName[][64] = {
 	"NSF"
 };
 new String:g_livePlayers[MAXPLAYERS+1][MAX_STEAMID_LENGTH]; // Array for storing SteamIDs to allow disconnected players rejoining when live
-new String:g_menuSoundOk[] = "buttons/button14.wav";
-new String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
-new String:g_soundLive[] = "buttons/button17.wav";
+new const String:g_menuSoundOk[] = "buttons/button14.wav";
+new const String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
+new const String:g_soundLive[] = "buttons/button17.wav";
 new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 new String:g_convarBeingEdited[128];
 #if DEBUG
@@ -31,6 +31,37 @@ new String:g_kvPath[PLATFORM_MAX_PATH] = "data/competitive/matches";
 new String:g_kvName[128];
 new String:g_kvName_Temp[sizeof(g_kvName)];
 #endif
+
+new const String:g_kvKey_jinraiName[] = "jinrai_name";
+new const String:g_kvKey_nsfName[] = "nsf_name";
+new const String:g_kvKey_competitionName[] = "competition_name";
+new const String:g_kvKey_sourceTVPath[] = "sourcetv_path";
+new const String:g_kvKey_roundLimit[] = "round_limit";
+new const String:g_kvKey_matchSize[] = "match_size";
+new const String:g_kvKey_maxTimeouts[] = "max_timeouts";
+new const String:g_kvKey_maxPauseLength[] = "max_pause_length";
+new const String:g_kvKey_maxPauseLengthTechnical[] = "max_pause_length_technical";
+new const String:g_kvKey_commsBehaviour[] = "comms_behaviour";
+new const String:g_kvKey_logMode[] = "log_mode";
+new const String:g_kvKey_killVerbosity[] = "kill_verbosity";
+new const String:g_kvKey_killVerbosityDelay[] = "kill_verbosity_delay";
+new const String:g_kvKey_clientRecording[] = "client_recording";
+new const String:g_kvKey_limitLiveTeams[] = "limit_live_teams";
+new const String:g_kvKey_limitTeams[] = "limit_teams";
+new const String:g_kvKey_pauseMode[] = "pause_mode";
+new const String:g_kvKey_collectiveReady[] = "collective_ready";
+new const String:g_kvKey_noZanshi[] = "no_zanshi";
+new const String:g_kvKey_jinraiScore[] = "jinrai_score";
+new const String:g_kvKey_nsfScore[] = "nfs_score";
+new const String:g_kvKey_suddenDeath[] = "sudden_death";
+new const String:g_kvKey_spectators_displayRemaining[] = "spectators_display_remaining";
+new const String:g_kvKey_natives_alltalk[] = "natives_alltalk";
+new const String:g_kvKey_natives_forceCamera[] = "natives_forcecamera";
+new const String:g_kvKey_natives_pausable[] = "natives_pausable";
+new const String:g_kvKey_natives_roundTime[] = "natives_round_time";
+new const String:g_kvKey_natives_scoreLimit[] = "natives_scorelimit";
+new const String:g_kvKey_jinraiPauses[] = "jinrai_pauses_used";
+new const String:g_kvKey_nsfPauses[] = "nsf_pauses_used";
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
 new g_jinraiScore[MAX_ROUNDS_PLAYED];
@@ -2189,11 +2220,11 @@ void Kv_LogRound(KeyValues kv)
 	kv.JumpToKey(roundKey, true);
 	
 	// Set round specific values
-	kv.SetNum("jinrai_score", g_jinraiScore[g_roundNumber]);
-	kv.SetNum("nsf_score", g_nsfScore[g_roundNumber]);
-	kv.SetNum( "round_limit", GetConVarInt(g_hRoundLimit) );
-	kv.SetNum("jinrai_pauses_used", g_usedTimeouts[TEAM_JINRAI]);
-	kv.SetNum("nsf_pauses_used", g_usedTimeouts[TEAM_NSF]);
+	kv.SetNum(g_kvKey_jinraiScore, g_jinraiScore[g_roundNumber]);
+	kv.SetNum(g_kvKey_nsfScore, g_nsfScore[g_roundNumber]);
+	kv.SetNum( g_kvKey_roundLimit, GetConVarInt(g_hRoundLimit) );
+	kv.SetNum(g_kvKey_jinraiPauses, g_usedTimeouts[TEAM_JINRAI]);
+	kv.SetNum(g_kvKey_nsfPauses, g_usedTimeouts[TEAM_NSF]);
 	
 	// Set player values for round
 	kv.JumpToKey("client_values", true);
@@ -2286,39 +2317,37 @@ void Kv_PopulateMeta(KeyValues kv)
 	GetConVarString( g_hCompetitionName, competitionName, sizeof(competitionName) );
 	GetConVarString( g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath) );
 	
-	kv.SetString("jinrai_name", jinraiName);
-	kv.SetString("nsf_name", nsfName);
-	kv.SetString("competition_name", competitionName);
-	kv.SetString("sourcetv_path", sourceTVPath);
+	kv.SetString(g_kvKey_jinraiName, jinraiName);
+	kv.SetString(g_kvKey_nsfName, nsfName);
+	kv.SetString(g_kvKey_competitionName, competitionName);
+	kv.SetString(g_kvKey_sourceTVPath, sourceTVPath);
 	
 	// Store integer/boolean cvars
 	// Floats need SetFloat, but we're not expecting any as of now
-	kv.SetNum( "round_limit", GetConVarInt(g_hRoundLimit) );
-	kv.SetNum( "match_size", GetConVarInt(g_hMatchSize) );
-	kv.SetNum( "max_timeouts", GetConVarInt(g_hMaxTimeouts) );
-	kv.SetNum( "max_pause_length", GetConVarInt(g_hMaxPauseLength) );
-	kv.SetNum( "max_pause_length_technical", GetConVarInt(g_hMaxPauseLength_Technical) );
-	kv.SetNum( "comms_behaviour", GetConVarInt(g_hCommsBehaviour) );
-	kv.SetNum( "log_mode", GetConVarInt(g_hLogMode) );
-	kv.SetNum( "kill_verbosity", GetConVarInt(g_hKillVersobity) );
-	kv.SetNum( "kill_verbosity_delay", GetConVarInt(g_hVerbosityDelay) );
-	kv.SetNum( "match_size", GetConVarInt(g_hMatchSize) );
-	kv.SetNum( "client_recording", GetConVarInt(g_hClientRecording) );
-	kv.SetNum( "limit_live_teams", GetConVarInt(g_hLimitLiveTeams) );
-	kv.SetNum( "limit_teams", GetConVarInt(g_hLimitTeams) );
-	kv.SetNum( "pause_mode", GetConVarInt(g_hPauseMode) );
-	kv.SetNum( "collective_ready", GetConVarInt(g_hCollectiveReady) );
-	kv.SetNum( "no_zanshi", GetConVarInt(g_hPreventZanshiStrats) );
-	kv.SetNum( "jinrai_score", GetConVarInt(g_hJinraiScore) );
-	kv.SetNum( "nfs_score", GetConVarInt(g_hNSFScore) );
-	kv.SetNum( "sudden_death", GetConVarInt(g_hSuddenDeath) );
-	kv.SetNum( "spectators_display_remaining", GetConVarInt(g_hSpectators_DisplayRemaining) );
-	kv.SetNum( "natives_alltalk", GetConVarInt(g_hAlltalk) );
-	kv.SetNum( "natives_forcecamera", GetConVarInt(g_hForceCamera) );
-	kv.SetNum( "natives_pausable", GetConVarInt(g_hPausable) );
-	kv.SetNum( "natives_forcecamera", GetConVarInt(g_hForceCamera) );
-	kv.SetNum( "natives_round_time", GetConVarInt(g_hRoundTime) );
-	kv.SetNum( "natives_scorelimit", GetConVarInt(g_hNeoScoreLimit) );
+	kv.SetNum( g_kvKey_roundLimit, GetConVarInt(g_hRoundLimit) );
+	kv.SetNum( g_kvKey_matchSize, GetConVarInt(g_hMatchSize) );
+	kv.SetNum( g_kvKey_maxTimeouts, GetConVarInt(g_hMaxTimeouts) );
+	kv.SetNum( g_kvKey_maxPauseLength, GetConVarInt(g_hMaxPauseLength) );
+	kv.SetNum( g_kvKey_maxPauseLengthTechnical, GetConVarInt(g_hMaxPauseLength_Technical) );
+	kv.SetNum( g_kvKey_commsBehaviour, GetConVarInt(g_hCommsBehaviour) );
+	kv.SetNum( g_kvKey_logMode, GetConVarInt(g_hLogMode) );
+	kv.SetNum( g_kvKey_killVerbosity, GetConVarInt(g_hKillVersobity) );
+	kv.SetNum( g_kvKey_killVerbosityDelay, GetConVarInt(g_hVerbosityDelay) );
+	kv.SetNum( g_kvKey_clientRecording, GetConVarInt(g_hClientRecording) );
+	kv.SetNum( g_kvKey_limitLiveTeams, GetConVarInt(g_hLimitLiveTeams) );
+	kv.SetNum( g_kvKey_limitTeams, GetConVarInt(g_hLimitTeams) );
+	kv.SetNum( g_kvKey_pauseMode, GetConVarInt(g_hPauseMode) );
+	kv.SetNum( g_kvKey_collectiveReady, GetConVarInt(g_hCollectiveReady) );
+	kv.SetNum( g_kvKey_noZanshi, GetConVarInt(g_hPreventZanshiStrats) );
+	kv.SetNum( g_kvKey_jinraiScore, GetConVarInt(g_hJinraiScore) );
+	kv.SetNum( g_kvKey_nsfScore, GetConVarInt(g_hNSFScore) );
+	kv.SetNum( g_kvKey_suddenDeath, GetConVarInt(g_hSuddenDeath) );
+	kv.SetNum( g_kvKey_spectators_displayRemaining, GetConVarInt(g_hSpectators_DisplayRemaining) );
+	kv.SetNum( g_kvKey_natives_alltalk, GetConVarInt(g_hAlltalk) );
+	kv.SetNum( g_kvKey_natives_forceCamera, GetConVarInt(g_hForceCamera) );
+	kv.SetNum( g_kvKey_natives_pausable, GetConVarInt(g_hPausable) );
+	kv.SetNum( g_kvKey_natives_roundTime, GetConVarInt(g_hRoundTime) );
+	kv.SetNum( g_kvKey_natives_scoreLimit, GetConVarInt(g_hNeoScoreLimit) );
 	
 	// List clients and their teams
 	kv.JumpToKey("clients", true);
@@ -2407,10 +2436,10 @@ void Kv_RestoreFromFile(const String:fileName[])
 	new String:competitionName[MAX_CVAR_LENGTH];
 	new String:sourceTVPath[MAX_CVAR_LENGTH];
 	
-	kv.GetString( "jinrai_name", jinraiName, sizeof(jinraiName) );
-	kv.GetString( "nsf_name", nsfName, sizeof(nsfName) );
-	kv.GetString( "competition_name", competitionName, sizeof(competitionName) );
-	kv.GetString( "sourcetv_path", sourceTVPath, sizeof(sourceTVPath) );
+	kv.GetString( g_kvKey_jinraiName, jinraiName, sizeof(jinraiName) );
+	kv.GetString( g_kvKey_nsfName, nsfName, sizeof(nsfName) );
+	kv.GetString( g_kvKey_competitionName, competitionName, sizeof(competitionName) );
+	kv.GetString( g_kvKey_sourceTVPath, sourceTVPath, sizeof(sourceTVPath) );
 	
 	SetConVarString(g_hJinraiName, jinraiName);
 	SetConVarString(g_hNSFName, nsfName);
@@ -2418,27 +2447,27 @@ void Kv_RestoreFromFile(const String:fileName[])
 	SetConVarString(g_hSourceTVPath, sourceTVPath);
 	
 	// Restore numerical values
-	SetConVarInt( g_hMatchSize, kv.GetNum("match_size") );
-	SetConVarInt( g_hMaxTimeouts, kv.GetNum("max_timeouts") );
-	SetConVarInt( g_hMaxPauseLength, kv.GetNum("max_pause_length") );
-	SetConVarInt( g_hMaxPauseLength_Technical, kv.GetNum("max_pause_length_technical") );
-	SetConVarInt( g_hCommsBehaviour, kv.GetNum("comms_behaviour") );
-	SetConVarInt( g_hLogMode, kv.GetNum("log_mode") );
-	SetConVarInt( g_hKillVersobity, kv.GetNum("kill_verbosity") );
-	SetConVarInt( g_hVerbosityDelay, kv.GetNum("kill_verbosity_delay") );
-	SetConVarInt( g_hClientRecording, kv.GetNum("client_recording") );
-	SetConVarInt( g_hLimitLiveTeams, kv.GetNum("limit_live_teams") );
-	SetConVarInt( g_hLimitTeams, kv.GetNum("limit_teams") );
-	SetConVarInt( g_hPauseMode, kv.GetNum("pause_mode") );
-	SetConVarInt( g_hCollectiveReady, kv.GetNum("collective_ready") );
-	SetConVarInt( g_hPreventZanshiStrats, kv.GetNum("no_zanshi") );
-	SetConVarInt( g_hSuddenDeath, kv.GetNum("sudden_death") );
-	SetConVarInt( g_hSpectators_DisplayRemaining, kv.GetNum("spectators_display_remaining") );
-	SetConVarInt( g_hAlltalk, kv.GetNum("natives_alltalk") );
-	SetConVarInt( g_hForceCamera, kv.GetNum("natives_forcecamera") );
-	SetConVarInt( g_hPausable, kv.GetNum("natives_pausable") );
-	SetConVarInt( g_hRoundLimit, kv.GetNum("natives_round_time") );
-	SetConVarInt( g_hNeoScoreLimit, kv.GetNum("natives_scorelimit") );
+	SetConVarInt( g_hMatchSize, kv.GetNum(g_kvKey_matchSize) );
+	SetConVarInt( g_hMaxTimeouts, kv.GetNum(g_kvKey_maxTimeouts) );
+	SetConVarInt( g_hMaxPauseLength, kv.GetNum(g_kvKey_maxPauseLength) );
+	SetConVarInt( g_hMaxPauseLength_Technical, kv.GetNum(g_kvKey_maxPauseLengthTechnical) );
+	SetConVarInt( g_hCommsBehaviour, kv.GetNum(g_kvKey_commsBehaviour) );
+	SetConVarInt( g_hLogMode, kv.GetNum(g_kvKey_logMode) );
+	SetConVarInt( g_hKillVersobity, kv.GetNum(g_kvKey_killVerbosity) );
+	SetConVarInt( g_hVerbosityDelay, kv.GetNum(g_kvKey_killVerbosityDelay) );
+	SetConVarInt( g_hClientRecording, kv.GetNum(g_kvKey_clientRecording) );
+	SetConVarInt( g_hLimitLiveTeams, kv.GetNum(g_kvKey_limitLiveTeams) );
+	SetConVarInt( g_hLimitTeams, kv.GetNum(g_kvKey_limitTeams) );
+	SetConVarInt( g_hPauseMode, kv.GetNum(g_kvKey_pauseMode) );
+	SetConVarInt( g_hCollectiveReady, kv.GetNum(g_kvKey_collectiveReady) );
+	SetConVarInt( g_hPreventZanshiStrats, kv.GetNum(g_kvKey_noZanshi) );
+	SetConVarInt( g_hSuddenDeath, kv.GetNum(g_kvKey_suddenDeath) );
+	SetConVarInt( g_hSpectators_DisplayRemaining, kv.GetNum(g_kvKey_spectators_displayRemaining) );
+	SetConVarInt( g_hAlltalk, kv.GetNum(g_kvKey_natives_alltalk) );
+	SetConVarInt( g_hForceCamera, kv.GetNum(g_kvKey_natives_forceCamera) );
+	SetConVarInt( g_hPausable, kv.GetNum(g_kvKey_natives_pausable) );
+	SetConVarInt( g_hRoundLimit, kv.GetNum(g_kvKey_roundLimit) );
+	SetConVarInt( g_hNeoScoreLimit, kv.GetNum(g_kvKey_natives_scoreLimit) );
 	
 	kv.GoBack();
 	
@@ -2512,14 +2541,14 @@ void Kv_RestoreFromFile(const String:fileName[])
 	}
 	
 	// Restore round specific match settings
-	SetConVarInt( g_hRoundLimit, kv.GetNum("round_limit") );
-	g_usedTimeouts[TEAM_JINRAI] = kv.GetNum("jinrai_pauses_used");
-	g_usedTimeouts[TEAM_NSF] = kv.GetNum("nsf_pauses_used");
+	SetConVarInt( g_hRoundLimit, kv.GetNum(g_kvKey_roundLimit) );
+	g_usedTimeouts[TEAM_JINRAI] = kv.GetNum(g_kvKey_jinraiPauses);
+	g_usedTimeouts[TEAM_NSF] = kv.GetNum(g_kvKey_nsfPauses);
 	
 	DataPack pack = new DataPack();
 	CreateDataTimer(1.0, Timer_RestoreTeamScores, pack);
-	pack.WriteCell( kv.GetNum("jinrai_score") );
-	pack.WriteCell( kv.GetNum("nsf_score") );
+	pack.WriteCell( kv.GetNum(g_kvKey_jinraiScore) );
+	pack.WriteCell( kv.GetNum(g_kvKey_nsfScore) );
 	
 	g_kv = kv;
 	delete kv;
@@ -2734,15 +2763,15 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 	
 	// Get match title, if any
 	new String:matchTitle[MAX_CVAR_LENGTH];
-	kv.GetString( "competition_name", matchTitle, sizeof(matchTitle) );
+	kv.GetString( g_kvKey_competitionName, matchTitle, sizeof(matchTitle) );
 	if (strlen(matchTitle) < 1)
 		strcopy(matchTitle, sizeof(matchTitle), "untitled match");
 	
 	// Get team names, if any
 	new String:jinraiName[MAX_CVAR_LENGTH];
-	kv.GetString( "jinrai_name", jinraiName, sizeof(jinraiName) );
+	kv.GetString( g_kvKey_jinraiName, jinraiName, sizeof(jinraiName) );
 	new String:nsfName[MAX_CVAR_LENGTH];
-	kv.GetString( "nsf_name", nsfName, sizeof(nsfName) );
+	kv.GetString( g_kvKey_nsfName, nsfName, sizeof(nsfName) );
 	
 	kv.GoBack();
 	
@@ -2763,9 +2792,9 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, roundCount);
 	kv.JumpToKey(labelBuffer, false);
 	
-	new jinraiScore = kv.GetNum("jinrai_score");
-	new nsfScore = kv.GetNum("nsf_score");
-	new roundLimit = kv.GetNum("round_limit");
+	new jinraiScore = kv.GetNum(g_kvKey_jinraiScore);
+	new nsfScore = kv.GetNum(g_kvKey_nsfScore);
+	new roundLimit = kv.GetNum(g_kvKey_roundLimit);
 	
 	new Handle:panel = CreatePanel();
 	
