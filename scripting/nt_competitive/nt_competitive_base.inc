@@ -54,6 +54,7 @@ new g_targetRound;
 new g_furthestPlayedRound;
 new g_penalizedTeam;
 new g_ghostCapturingTeam;
+new g_epoch;
 
 new Float:g_fRoundTime;
 
@@ -329,6 +330,7 @@ void ToggleLive()
 	
 	if (g_isLive)
 	{
+		GenerateEpoch();
 #if DEBUG
 		if ( GetConVarBool(g_hDebugKeyValues) )
 		{
@@ -964,10 +966,15 @@ void ToggleSourceTV()
 		decl String:replayName[sizeof(mapName)+sizeof(timestamp)+sizeof(competitionName)+2];
 		
 		if (strlen(competitionName) > 0)
-			Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, mapName);
+			Format(replayName, sizeof(replayName), "%s_%s_%s_", competitionName, timestamp, mapName);
 		
 		else
-			Format(replayName, sizeof(replayName), "%s_%s", timestamp, mapName);
+			Format(replayName, sizeof(replayName), "%s_%s_", timestamp, mapName);
+		
+		// Concatenate epoch to the end of filename. This can be helpful to connect a replay to related KeyValues entry
+		decl String:epochBuffer[16];
+		IntToString( g_epoch, epochBuffer, sizeof(epochBuffer) );
+		StrCat(replayName, sizeof(replayName), epochBuffer);
 		
 		// Clean up any non alphanumeric characters from the string
 		new String:replayBuffer[sizeof(replayName) + 1];
@@ -2219,7 +2226,7 @@ void Kv_LogRound(KeyValues kv)
 // Purpose: Generates new KeyValues structure
 void Kv_Generate()
 {
-	Format( g_kvName, sizeof(g_kvName), "comp_%i", GetTime() );
+	Format(g_kvName, sizeof(g_kvName), "comp_%i", g_epoch);
 	
 	// Concatenate competition title (if any) to the end of filename
 	decl String:compTitle[MAX_CVAR_LENGTH];
@@ -2250,10 +2257,10 @@ void Kv_PopulateMeta(KeyValues kv)
 	kv.SetString("plugin_version", PLUGIN_VERSION);
 	
 	// Store string cvars
-	decl String:jinraiName[MAX_CVAR_LENGTH];
-	decl String:nsfName[MAX_CVAR_LENGTH];
-	decl String:competitionName[MAX_CVAR_LENGTH];
-	decl String:sourceTVPath[MAX_CVAR_LENGTH];
+	new String:jinraiName[MAX_CVAR_LENGTH];
+	new String:nsfName[MAX_CVAR_LENGTH];
+	new String:competitionName[MAX_CVAR_LENGTH];
+	new String:sourceTVPath[MAX_CVAR_LENGTH];
 	
 	GetConVarString( g_hJinraiName, jinraiName, sizeof(jinraiName) );
 	GetConVarString( g_hNSFName, nsfName, sizeof(nsfName) );
@@ -2281,7 +2288,7 @@ void Kv_PopulateMeta(KeyValues kv)
 	kv.SetNum( "limit_live_teams", GetConVarInt(g_hLimitLiveTeams) );
 	kv.SetNum( "limit_teams", GetConVarInt(g_hLimitTeams) );
 	kv.SetNum( "pause_mode", GetConVarInt(g_hPauseMode) );
-	kv.SetNum( "collective_pause", GetConVarInt(g_hCollectiveReady) );
+	kv.SetNum( "collective_ready", GetConVarInt(g_hCollectiveReady) );
 	kv.SetNum( "no_zanshi", GetConVarInt(g_hPreventZanshiStrats) );
 	kv.SetNum( "jinrai_score", GetConVarInt(g_hJinraiScore) );
 	kv.SetNum( "nfs_score", GetConVarInt(g_hNSFScore) );
@@ -2364,7 +2371,167 @@ void Kv_RestoreFromFile(const String:fileName[])
 		return;
 	}
 	
+	kv.JumpToKey("meta", false);
+	
+	// TODO: Do KeyValues compatibility check here
+	new String:pluginVersion[32];
+	kv.GetString( "plugin_version", pluginVersion, sizeof(pluginVersion) );
+	if ( !Kv_IsCompatible(pluginVersion) )
+		return;
+	
+	// Restore string variables
+	new String:jinraiName[MAX_CVAR_LENGTH];
+	new String:nsfName[MAX_CVAR_LENGTH];
+	new String:competitionName[MAX_CVAR_LENGTH];
+	new String:sourceTVPath[MAX_CVAR_LENGTH];
+	
+	kv.GetString( "jinrai_name", jinraiName, sizeof(jinraiName) );
+	kv.GetString( "nsf_name", nsfName, sizeof(nsfName) );
+	kv.GetString( "competition_name", competitionName, sizeof(competitionName) );
+	kv.GetString( "sourcetv_path", sourceTVPath, sizeof(sourceTVPath) );
+	
+	SetConVarString(g_hJinraiName, jinraiName);
+	SetConVarString(g_hNSFName, nsfName);
+	SetConVarString(g_hCompetitionName, competitionName);
+	SetConVarString(g_hSourceTVPath, sourceTVPath);
+	
+	// Restore numerical values
+	SetConVarInt( g_hMatchSize, kv.GetNum("match_size") );
+	SetConVarInt( g_hMaxTimeouts, kv.GetNum("max_timeouts") );
+	SetConVarInt( g_hMaxPauseLength, kv.GetNum("max_pause_length") );
+	SetConVarInt( g_hMaxPauseLength_Technical, kv.GetNum("max_pause_length_technical") );
+	SetConVarInt( g_hCommsBehaviour, kv.GetNum("comms_behaviour") );
+	SetConVarInt( g_hLogMode, kv.GetNum("log_mode") );
+	SetConVarInt( g_hKillVersobity, kv.GetNum("kill_verbosity") );
+	SetConVarInt( g_hVerbosityDelay, kv.GetNum("kill_verbosity_delay") );
+	SetConVarInt( g_hClientRecording, kv.GetNum("client_recording") );
+	SetConVarInt( g_hLimitLiveTeams, kv.GetNum("limit_live_teams") );
+	SetConVarInt( g_hLimitTeams, kv.GetNum("limit_teams") );
+	SetConVarInt( g_hPauseMode, kv.GetNum("pause_mode") );
+	SetConVarInt( g_hCollectiveReady, kv.GetNum("collective_ready") );
+	SetConVarInt( g_hPreventZanshiStrats, kv.GetNum("no_zanshi") );
+	SetConVarInt( g_hSuddenDeath, kv.GetNum("sudden_death") );
+	SetConVarInt( g_hSpectators_DisplayRemaining, kv.GetNum("spectators_display_remaining") );
+	SetConVarInt( g_hAlltalk, kv.GetNum("natives_alltalk") );
+	SetConVarInt( g_hForceCamera, kv.GetNum("natives_forcecamera") );
+	SetConVarInt( g_hPausable, kv.GetNum("natives_pausable") );
+	SetConVarInt( g_hRoundLimit, kv.GetNum("natives_round_time") );
+	SetConVarInt( g_hNeoScoreLimit, kv.GetNum("natives_scorelimit") );
+	
+	kv.GoBack();
+	
+	decl String:roundLabel[16] = "round";
+	new round = 1;
+	decl String:labelBuffer[16];
+	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
+	
+	// Determine the highest played round
+	// When recovering from server crash, this is most likely what is desired
+	// TODO: Ability to specify where to load in
+	while ( kv.JumpToKey(labelBuffer, false) )
+	{
+		PrintToServer("Found round %i", round);
+		
+		round++;
+		Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
+		
+		kv.GoBack();
+	}
+	PrintToServer("Rounds found total: %i", round-1);
+	
+	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round-1);
+	if (! kv.JumpToKey(labelBuffer, false) )
+	{
+		LogError("Failed restoring round %i labelled \"%s\" from KeyValues", round-1, labelBuffer);
+	}
+	kv.JumpToKey("client_values", false);
+	
+	// Restore player scores etc. for specific round
+	decl String:steamID[MAX_STEAMID_LENGTH];
+	new xp;
+	new deaths;
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if ( !Client_IsValid(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
+			continue;
+		
+		GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
+		
+		ClientCommand(i, "kill");
+		xp = 0;
+		deaths = 0;
+		
+		// Player has xp/deaths stored in KeyValues for this round
+		if ( kv.JumpToKey(steamID, false) )
+		{
+			ClientCommand( i, "jointeam %i", kv.GetNum("team") );
+			xp = kv.GetNum("xp");
+			deaths = kv.GetNum("deaths");
+			
+			kv.GoBack();
+		}
+		
+		DataPack pack = new DataPack();
+		CreateDataTimer(1.0, Timer_RestoreClientFromKeyValues, pack);
+		pack.WriteCell(i);
+		pack.WriteCell(xp);
+		pack.WriteCell(deaths);
+	}
+	
+	kv.GoBack();
+	
+	// Restore round specific match settings
+	SetConVarInt( g_hRoundLimit, kv.GetNum("round_limit") );
+	g_usedTimeouts[TEAM_JINRAI] = kv.GetNum("jinrai_pauses_used");
+	g_usedTimeouts[TEAM_NSF] = kv.GetNum("nsf_pauses_used");
+	
+	DataPack pack = new DataPack();
+	CreateDataTimer(1.0, Timer_RestoreTeamScores, pack);
+	pack.WriteCell( kv.GetNum("jinrai_score") );
+	pack.WriteCell( kv.GetNum("nsf_score") );
+	
 	g_kv = kv;
 	strcopy(g_kvName, sizeof(g_kvName), fileName);
 }
+
+bool Kv_IsCompatible(const String:pluginVersion[])
+{
+	// Todo: actual version check
+	if ( !StrEqual(pluginVersion, pluginVersion) )
+		return false;
+	
+	return true;
+}
+
+public Action:Timer_RestoreClientFromKeyValues(Handle:timer, DataPack:pack)
+{
+	pack.Reset();
+	new client = pack.ReadCell();
+	new xp = pack.ReadCell();
+	new deaths = pack.ReadCell();
+	
+	SetPlayerXP(client, xp);
+	SetPlayerDeaths(client, deaths);
+	UpdatePlayerRank(client);
+}
+
+public Action:Timer_RestoreTeamScores(Handle:timer, DataPack:pack)
+{
+	pack.Reset();
+	new jinraiScore = pack.ReadCell();
+	new nsfScore = pack.ReadCell();
+	
+	SetConVarInt(g_hJinraiScore, jinraiScore);
+	SetConVarInt(g_hNSFScore, nsfScore);
+	
+	SetTeamScore(TEAM_JINRAI, jinraiScore);
+	SetTeamScore(TEAM_NSF, nsfScore);
+}
+
 #endif
+
+// Purpose: Store current epoch globally so multiple functions can use it for identifying themselves
+void GenerateEpoch()
+{
+	g_epoch = GetTime();
+}
