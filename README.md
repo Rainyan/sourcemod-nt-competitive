@@ -28,7 +28,7 @@ Compile dependencies:
   - <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">SourceMod NT include</a>
 
 Server requirements:
-  - <a target="_blank" href="http://www.sourcemod.net/downloads.php?branch=stable">SourceMod</a> 1.7.0 or later
+  - <a target="_blank" href="http://www.sourcemod.net/downloads.php?branch=stable">SourceMod</a> 1.7 or later
 
 Some optional features also require:
   - Up-to-date <a target="_blank" href="https://github.com/alliedmodders/sourcemod/tree/master/gamedata">Neotokyo gamedata</a>
@@ -59,4 +59,5 @@ sm_competitive_nozanshi									- Whether or not to disable timeout wins. Defaul
 sm_competitive_jinrai_score								- Competitive plugin's internal score cvar. Editing this will directly affect comp team scores. Default: 0
 sm_competitive_nsf_score								- Competitive plugin's internal score cvar. Editing this will directly affect comp team scores. Default: 0
 sm_competitive_spectators_display_remaining_players		- How the number of remaining players is displayed to spectators in a competitive game. 0 = disabled, 1 = show remaining player numbers, 2 = show team names and remaining player numbers. Default: 2
+sm_competitive_keyvalues_test							- Test KeyValues functionality. Debug cvar. Default: 1
 ```
