@@ -2272,7 +2272,7 @@ void Kv_PopulateMeta(KeyValues kv)
 	
 	kv.JumpToKey("meta", true);
 	
-	kv.SetNum( "timestamp", GetTime() );
+	kv.SetNum("timestamp", g_epoch);
 	kv.SetString("plugin_version", PLUGIN_VERSION);
 	
 	// Store string cvars
