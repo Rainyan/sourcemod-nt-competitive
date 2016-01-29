@@ -2229,6 +2229,7 @@ void Kv_Generate()
 		StrCat(g_kvName, sizeof(g_kvName), "_");
 		StrCat(g_kvName, sizeof(g_kvName), compTitle);
 	}
+	StrCat(g_kvName, sizeof(g_kvName), ".kv");
 	
 	KeyValues kv = new KeyValues(KV_IDENTIFIER);
 	Kv_PopulateMeta(kv);
@@ -2316,7 +2317,7 @@ void Kv_PopulateMeta(KeyValues kv)
 }
 
 // Purpose: Stores KeyValues data globally and exports latest changes to file
-void Kv_Store(KeyValues kv, const String:exportName[] = "comp_debug")
+void Kv_Store(KeyValues kv, const String:exportName[] = "comp_debug.kv")
 {
 	if ( !Kv_IsValid(kv) )
 	{
@@ -2326,14 +2327,14 @@ void Kv_Store(KeyValues kv, const String:exportName[] = "comp_debug")
 	
 	g_kv = kv;
 	
-	if (StrContains(exportName, ".kv") != -1)
+	if (StrContains(exportName, ".kv") == -1)
 	{
-		LogError("exportName contained .kv extension. This shouldn't happen.");
+		LogError("exportName doesn't contain .kv extension. This shouldn't happen.");
 		return;
 	}
 	
 	decl String:fullPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s.kv", g_kvPath, exportName);
+	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s", g_kvPath, exportName);
 	
 	kv.ExportToFile(fullPath);
 }
@@ -2343,6 +2344,12 @@ void Kv_RestoreFromFile(const String:fileName[])
 	if (strlen(fileName) < 1)
 	{
 		LogError("Attempted to restore KeyValues from zero length filename");
+		return;
+	}
+	
+	if (StrContains(fileName, ".kv") == -1)
+	{
+		LogError("fileName doesn't contain .kv extension. This shouldn't happen.");
 		return;
 	}
 	
@@ -2358,5 +2365,6 @@ void Kv_RestoreFromFile(const String:fileName[])
 	}
 	
 	g_kv = kv;
+	strcopy(g_kvName, sizeof(g_kvName), fileName);
 }
 #endif
