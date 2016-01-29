@@ -134,6 +134,9 @@ public OnPluginStart()
 		InitDirectory(loggingPath);
 	
 #if DEBUG
+	if (!DirExists(g_kvPath))
+		InitDirectory(g_kvPath);
+	
 	PrepareDebugLogFolder();
 #endif
 	
