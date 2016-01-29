@@ -2251,10 +2251,8 @@ void Kv_Generate()
 	
 	StrCat(g_kvName, sizeof(g_kvName), ".kv");
 	
-	KeyValues kv = new KeyValues(KV_IDENTIFIER);
-	Kv_PopulateMeta(kv);
-	
-	delete kv;
+	g_kv = new KeyValues(KV_IDENTIFIER);
+	Kv_PopulateMeta(g_kv);
 }
 
 // Purpose: Populates metadata for competitive plugin's KeyValues
