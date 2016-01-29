@@ -441,6 +441,7 @@ void ToggleLive()
 			{
 				Kv_Store(g_kv, g_kvName);
 				CloseHandle(g_kv);
+				g_kv = null;
 			}
 		}
 #endif
@@ -1578,16 +1579,21 @@ void RefereeMenu_LoadMatch(client)
 	decl String:fullPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, fullPath, sizeof(fullPath), g_kvPath);
 	
-	new Handle:dir = OpenDirectory(fullPath);
+	if ( !DirExists(fullPath) )
+	{
+		LogError("Failed to open KeyValues directory path: %s", fullPath);
+		return;
+	}
 	
-	if (!DirExists(fullPath) || dir == null)
+	new Handle:dir = OpenDirectory(fullPath);
+	if (dir == null)
 	{
 		LogError("Failed to open KeyValues directory path: %s", fullPath);
 		return;
 	}
 	
 	new results;
-	new max_files = 1000;
+	new max_files = 128;
 	decl String:buffer[PLATFORM_MAX_PATH];
 	new String:extension[] = ".kv";
 	FileType type;
@@ -2768,6 +2774,7 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 	if (outOfBounds)
 		DrawPanelText(panel, "(Last file reached.)");
 	
+	DrawPanelText(panel, readableTime);
 	DrawPanelText(panel, matchTitle);
 	
 	decl String:infoBuffer[128];
@@ -2794,5 +2801,8 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 // Purpose: Store current epoch globally so multiple functions can use it for identifying themselves
 void GenerateEpoch()
 {
-	g_epoch = GetTime();
+	new Handle:hTimeAdjustment = FindConVar("sm_time_adjustment");
+	new time = GetTime() + GetConVarInt(hTimeAdjustment);
+	
+	g_epoch = time;
 }
