@@ -2803,6 +2803,7 @@ void GenerateEpoch()
 {
 	new Handle:hTimeAdjustment = FindConVar("sm_time_adjustment");
 	new time = GetTime() + GetConVarInt(hTimeAdjustment);
+	CloseHandle(hTimeAdjustment);
 	
 	g_epoch = time;
 }
