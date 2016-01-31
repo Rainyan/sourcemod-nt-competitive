@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.3.9.8"
+#define PLUGIN_VERSION "0.3.9.9"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -1741,7 +1741,7 @@ void CheckGamedataFiles()
 		// Unknown file version. Notify server, but don't treat as an error.
 		else
 		{
-			PrintToServer("%s Note: Neotokyo gamedata file %s has a nonstandard filesize %i bytes (expected %i bytes), has it been customized? \"sm_competitive_pause_mode 2\" may throw an error if the file is outdated.", filePath, fileSize, correctFileSize);
+			PrintToServer("%s Note: Neotokyo gamedata file %s has a nonstandard filesize %i bytes (expected %i bytes), has it been customized? \"sm_competitive_pause_mode 2\" may throw an error if the file is outdated.", g_tag, filePath, fileSize, correctFileSize);
 			g_isGamedataOutdated = false;
 		}
 	}
@@ -2482,7 +2482,7 @@ void Kv_RestoreFromFile(const String:fileName[])
 	// TODO: Ability to specify where to load in
 	while ( kv.JumpToKey(labelBuffer, false) )
 	{
-		PrintToServer("Found round %i", round);
+//		PrintToServer("Found round %i", round);
 		g_roundNumber = round;
 		g_jinraiScore[g_roundNumber] = kv.GetNum("jinrai_score");
 		g_nsfScore[g_roundNumber] = kv.GetNum("nsf_score");
@@ -2530,7 +2530,7 @@ void Kv_RestoreFromFile(const String:fileName[])
 		kv.GoBack();
 	}
 	round--;
-	PrintToServer("Rounds found total: %i", round);
+//	PrintToServer("Rounds found total: %i", round);
 	
 	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
 	if (! kv.JumpToKey(labelBuffer, false) )
@@ -2678,7 +2678,7 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 				}
 				else
 				{
-					PrintToServer("Going to previous index %i: %s", prevIndex, buffer[prevIndex]);
+//					PrintToServer("Going to previous index %i: %s", prevIndex, buffer[prevIndex]);
 					Menu_KvDetails(client, buffer[prevIndex]);
 					servedFile = true;
 				}
@@ -2694,7 +2694,7 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 		
 		if ( StrEqual(buffer[i], kvFileName) )
 		{
-			PrintToServer("Found it!");
+//			PrintToServer("Found it!");
 			locatedPos = i;
 			locatedFile = true;
 		}
@@ -2831,8 +2831,6 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 void GenerateEpoch()
 {
 	new Handle:hTimeAdjustment = FindConVar("sm_time_adjustment");
-	new time = GetTime() + GetConVarInt(hTimeAdjustment);
+	g_epoch = GetTime() + GetConVarInt(hTimeAdjustment);
 	CloseHandle(hTimeAdjustment);
-	
-	g_epoch = time;
 }
