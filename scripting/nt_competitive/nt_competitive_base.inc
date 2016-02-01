@@ -2203,6 +2203,15 @@ bool Kv_IsValid(KeyValues kv)
 	return true;
 }
 
+bool Kv_IsValidFile(const String:fileName[])
+{
+	new const String:extension[] = ".kv";
+	if ( StrContains(fileName, extension) != strlen(fileName) - strlen(extension) )
+		return false;
+	
+	return true;
+}
+
 // Purpose: Logs current match status into round keyvalues entry
 void Kv_LogRound(KeyValues kv)
 {
@@ -2382,9 +2391,9 @@ void Kv_Store(KeyValues kv, const String:exportName[] = "comp_debug.kv")
 	
 	g_kv = kv;
 	
-	if (StrContains(exportName, ".kv") == -1)
+	if ( !Kv_IsValidFile(exportName) )
 	{
-		LogError("exportName doesn't contain .kv extension. This shouldn't happen.");
+		LogError("exportName doesn't use a .kv extension. This shouldn't happen.");
 		return;
 	}
 	
@@ -2402,9 +2411,9 @@ void Kv_RestoreFromFile(const String:fileName[])
 		return;
 	}
 	
-	if (StrContains(fileName, ".kv") == -1)
+	if ( !Kv_IsValidFile(fileName) )
 	{
-		LogError("fileName doesn't contain .kv extension. This shouldn't happen.");
+		LogError("fileName doesn't use a .kv extension. This shouldn't happen.");
 		return;
 	}
 	
@@ -2615,7 +2624,7 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 		return;
 	}
 	
-	if (StrContains(kvFileName, ".kv") == -1)
+	if ( !Kv_IsValidFile(kvFileName) )
 	{
 		LogError("KeyValues filename doesn't contain .kv extension. This shouldn't happen.");
 		return;
@@ -2644,7 +2653,6 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 	new results;
 	new max_files = 128;
 	decl String:buffer[max_files][PLATFORM_MAX_PATH]; // fixme: this is expensive :-( dynamic array instead?
-	new String:extension[] = ".kv";
 	new bool:locatedFile;
 	new bool:servedFile;
 	FileType type;
@@ -2665,7 +2673,7 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 			continue;
 		
 		// Not a .kv file
-		if ( StrContains(buffer[i], ".kv") != strlen(buffer[i]) - strlen(extension) )
+		if ( !Kv_IsValidFile(buffer[i]) )
 			continue;
 		
 		if (locatedFile)
@@ -2678,25 +2686,22 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 				if (prevIndex < 0)
 				{
 					Menu_KvDetails(client, buffer[i], true);
-					servedFile = true;
 				}
 				else
 				{
 //					PrintToServer("Going to previous index %i: %s", prevIndex, buffer[prevIndex]);
 					Menu_KvDetails(client, buffer[prevIndex]);
-					servedFile = true;
 				}
 			}
 			else
 			{
 				Menu_KvDetails(client, buffer[i]);
-				servedFile = true;
 			}
 			
+			servedFile = true;
 			break;
 		}
-		
-		if ( StrEqual(buffer[i], kvFileName) )
+		else if ( StrEqual(buffer[i], kvFileName) )
 		{
 //			PrintToServer("Found it!");
 			locatedPos = i;
@@ -2717,14 +2722,18 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 			if (prevIndex < 0)
 			{
 				Menu_KvDetails(client, buffer[i], true);
-				servedFile = true;
 			}
 			else
 			{
 				PrintToServer("Going to previous index %i: %s", prevIndex, buffer[prevIndex]);
 				Menu_KvDetails(client, buffer[prevIndex]);
-				servedFile = true;
 			}
+			
+			servedFile = true;
+		}
+		else
+		{
+			LogError("Failed locating parallel kv file. kvFileName = \"%s\", getPrevious = %b, locatedFile = %b, servedFile = %b", kvFileName, getPrevious, locatedFile, servedFile);
 		}
 	}
 	
@@ -2742,7 +2751,7 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 		return;
 	}
 	
-	if (StrContains(kvFileName, ".kv") == -1)
+	if ( !Kv_IsValidFile(kvFileName) )
 	{
 		LogError("fileName doesn't contain .kv extension. This shouldn't happen.");
 		return;
