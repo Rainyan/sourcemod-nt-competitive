@@ -2156,7 +2156,7 @@ void Spectators_DisplayRemainingPlayers()
 	if (GetConVarInt(g_hSpectators_DisplayRemaining) == 0)
 		return;
 	
-	decl String:message[12];
+	decl String:message[24];
 	
 	// Just display numbers remaining
 	if (GetConVarInt(g_hSpectators_DisplayRemaining) == 1)
