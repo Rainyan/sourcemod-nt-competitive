@@ -2421,7 +2421,8 @@ void Kv_RestoreFromFile(const String:fileName[])
 	
 	kv.JumpToKey("meta", false);
 	
-	// TODO: Do KeyValues compatibility check here
+	/*
+	// TODO: Do KeyValues compatibility check here if/when breaking compatibility
 	new String:pluginVersion[32];
 	kv.GetString( "plugin_version", pluginVersion, sizeof(pluginVersion) );
 	if ( !Kv_IsCompatible(pluginVersion) )
@@ -2429,6 +2430,7 @@ void Kv_RestoreFromFile(const String:fileName[])
 		delete kv;
 		return;
 	}
+	*/
 	
 	// Restore string variables
 	new String:jinraiName[MAX_CVAR_LENGTH];
@@ -2563,6 +2565,7 @@ void Kv_RestoreFromFile(const String:fileName[])
 	PrintToChatAll("Round: %i", g_roundNumber);
 }
 
+/*
 bool Kv_IsCompatible(const String:pluginVersion[])
 {
 	// Todo: actual version check
@@ -2571,6 +2574,7 @@ bool Kv_IsCompatible(const String:pluginVersion[])
 	
 	return true;
 }
+*/
 
 public Action:Timer_RestoreClientFromKeyValues(Handle:timer, DataPack:pack)
 {
