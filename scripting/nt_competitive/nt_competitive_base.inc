@@ -1635,6 +1635,7 @@ void RefereeMenu_LoadMatch(client)
 		
 		if (results > max_files)
 		{
+			//fixme: unoptimised
 			LogError("Warning: Over %i file results found. Breaking out of the loop to avoid unresponsiveness.", max_files);
 			break;
 		}
@@ -2747,105 +2748,6 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 	CloseHandle(dir);
 }
 
-void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
-{
-	if ( !Client_IsValid(client) || !IsClientInGame(client) )
-		return;
-	
-	if (strlen(kvFileName) < 1)
-	{
-		LogError("Attempted to restore KeyValues from zero length filename");
-		return;
-	}
-	
-	if ( !Kv_IsValidFile(kvFileName) )
-	{
-		LogError("fileName doesn't contain .kv extension. This shouldn't happen.");
-		return;
-	}
-	
-	decl String:fullPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s", g_kvPath, kvFileName);
-	
-	KeyValues kv = new KeyValues("");
-	
-	if ( !kv.ImportFromFile(fullPath) )
-	{
-		LogError("Failed importing KeyValues from path: %s", fullPath);
-		return;
-	}
-	
-	kv.JumpToKey("meta", false);
-	
-	// Get this match's date/time
-	decl String:readableTime[64];
-	FormatTime( readableTime, sizeof(readableTime), "%Y%m%d-%H%M", kv.GetNum("timestamp") );
-	
-	// Get match title, if any
-	new String:matchTitle[MAX_CVAR_LENGTH];
-	kv.GetString( g_kvKey_competitionName, matchTitle, sizeof(matchTitle) );
-	if (strlen(matchTitle) < 1)
-		strcopy(matchTitle, sizeof(matchTitle), "untitled match");
-	
-	// Get team names, if any
-	new String:jinraiName[MAX_CVAR_LENGTH];
-	kv.GetString( g_kvKey_jinraiName, jinraiName, sizeof(jinraiName) );
-	new String:nsfName[MAX_CVAR_LENGTH];
-	kv.GetString( g_kvKey_nsfName, nsfName, sizeof(nsfName) );
-	
-	kv.GoBack();
-	
-	decl String:roundLabel[16] = "round";
-	new roundCount = 1;
-	decl String:labelBuffer[16];
-	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, roundCount);
-	
-	while ( kv.JumpToKey(labelBuffer, false) )
-	{
-		roundCount++;
-		Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, roundCount);
-		
-		kv.GoBack();
-	}
-	roundCount--;
-	
-	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, roundCount);
-	kv.JumpToKey(labelBuffer, false);
-	
-	new jinraiScore = kv.GetNum(g_kvKey_jinraiScore);
-	new nsfScore = kv.GetNum(g_kvKey_nsfScore);
-	new roundLimit = kv.GetNum(g_kvKey_roundLimit);
-	
-	new Handle:panel = CreatePanel();
-	
-	SetPanelTitle(panel, "Match information");
-	
-	if (outOfBounds)
-		DrawPanelText(panel, "(Last file reached.)");
-	
-	DrawPanelText(panel, readableTime);
-	DrawPanelText(panel, matchTitle);
-	
-	decl String:infoBuffer[128];
-	Format(infoBuffer, sizeof(infoBuffer), "Jinrai %i vs %i NSF", jinraiScore, nsfScore);
-	DrawPanelText(panel, infoBuffer);
-	
-	Format(infoBuffer, sizeof(infoBuffer), "Round limit: %i", roundLimit);
-	DrawPanelText(panel, infoBuffer);
-	
-	DrawPanelItem(panel, "Load this match");
-	DrawPanelItem(panel, "--->");
-	DrawPanelItem(panel, "<---");
-	DrawPanelItem(panel, "Back");
-	DrawPanelItem(panel, "Exit");
-	
-	strcopy(g_kvName_Temp, sizeof(g_kvName_Temp), kvFileName);
-	delete kv;
-	
-	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_LoadMatch_ViewMeta, MENU_TIME_FOREVER);
-	
-	CloseHandle(panel);
-}
 #endif
 // Purpose: Store current epoch globally so multiple functions can use it for identifying themselves
 void GenerateEpoch()
