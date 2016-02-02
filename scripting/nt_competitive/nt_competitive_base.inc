@@ -2570,10 +2570,19 @@ void Kv_RestoreFromFile(const String:fileName[], bool:goLive = false)
 	else
 		PrintToChatAll("%s Match loaded.", g_tag);
 	
-	// Start restored match right away if not live already
-	if (goLive && !g_isLive)
+	// Start restored match right away
+	if (goLive)
 	{
-		ToggleLive(true);
+		if (!g_isLive)
+		{
+			ToggleLive(true);
+		}
+		// Already live, subtract current round from count.
+		// Everyone was slayed earlier so newround is guaranteed.
+		else
+		{
+			g_roundNumber--;
+		}
 	}
 	// Just announce successful restore, but don't go live
 	else
