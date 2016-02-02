@@ -2566,9 +2566,9 @@ void Kv_RestoreFromFile(const String:fileName[])
 	strcopy(g_kvName, sizeof(g_kvName), fileName);
 	
 	if (strlen(competitionName) > 0)
-		PrintToChatAll("%s Match loaded %s", g_tag, competitionName);
+		PrintToChatAll("%s Match loaded: %s", g_tag, competitionName);
 	else
-		PrintToChatAll("%s Match loaded.", g_tag, competitionName);
+		PrintToChatAll("%s Match loaded.", g_tag);
 	
 	PrintToChatAll("%s vs %s", jinraiName, nsfName);
 	PrintToChatAll("Round: %i", g_roundNumber);
