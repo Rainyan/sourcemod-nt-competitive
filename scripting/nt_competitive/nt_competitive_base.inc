@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.3.9.9"
+#define PLUGIN_VERSION "0.3.9.10"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -356,7 +356,7 @@ public Action:Timer_CancelLiveEndConfirmation(Handle:timer)
 	g_confirmLiveEnd = false;
 }
 
-void ToggleLive()
+void ToggleLive(bool:isKvRestore = false)
 {
 	g_isLive = !g_isLive;
 	
@@ -440,7 +440,9 @@ void ToggleLive()
 		SetConVarBool(g_hForceCamera, true);
 		SetConVarInt(g_hNeoScoreLimit, 99); // Make sure Neotokyo's own max round count is maxed out so it won't interfere
 		
-		NeoRestartThis();
+		// Only reset team/player scores if we're not restoring a previous game from KeyValues
+		if (!isKvRestore)
+			NeoRestartThis();
 		
 		g_loggingEnabled = GetConVarBool(g_hLogMode);
 		
@@ -2403,7 +2405,7 @@ void Kv_Store(KeyValues kv, const String:exportName[] = "comp_debug.kv")
 	kv.ExportToFile(fullPath);
 }
 
-void Kv_RestoreFromFile(const String:fileName[])
+void Kv_RestoreFromFile(const String:fileName[], bool:goLive = false)
 {
 	if (strlen(fileName) < 1)
 	{
@@ -2570,8 +2572,17 @@ void Kv_RestoreFromFile(const String:fileName[])
 	else
 		PrintToChatAll("%s Match loaded.", g_tag);
 	
-	PrintToChatAll("%s vs %s", jinraiName, nsfName);
-	PrintToChatAll("Round: %i", g_roundNumber);
+	// Start restored match right away if not live already
+	if (goLive && !g_isLive)
+	{
+		ToggleLive(true);
+	}
+	// Just announce successful restore, but don't go live
+	else
+	{
+		PrintToChatAll("%s vs %s", jinraiName, nsfName);
+		PrintToChatAll("Loaded round: %i", g_roundNumber);
+	}
 }
 
 /*
