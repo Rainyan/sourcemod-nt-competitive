@@ -29,7 +29,7 @@ new String:g_convarBeingEdited[128];
 new String:g_path_logDebug[PLATFORM_MAX_PATH] = "logs/competitive";
 new String:g_kvPath[PLATFORM_MAX_PATH] = "data/competitive/matches";
 new String:g_kvName[128];
-new String:g_kvName_Temp[sizeof(g_kvName)];
+new String:g_kvName_Temp[MAXPLAYERS+1][sizeof(g_kvName)];
 #endif
 
 new const String:g_kvKey_jinraiName[] = "jinrai_name";
@@ -113,6 +113,7 @@ new bool:g_isCurrentlyEditingClients[MAXPLAYERS+1];
 new bool:g_isCurrentlyGivingPenalty[MAXPLAYERS+1];
 new bool:g_survivedLastRound[MAXPLAYERS+1];
 new bool:g_isSuddenDeathRound;
+new bool:g_goLiveAfterKvRestore[MAXPLAYERS+1] = true;
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;

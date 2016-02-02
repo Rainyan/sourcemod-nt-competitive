@@ -350,25 +350,30 @@ public PanelHandler_RefereeMenu_LoadMatch_ViewMeta(Handle:menu, MenuAction:actio
 	
 	switch (choice)
 	{
-		case 1: // Load match
+		case 1: // Flip "go live after kv restore" bool
 		{
-			Kv_RestoreFromFile(g_kvName_Temp);
+			g_goLiveAfterKvRestore[client] = !g_goLiveAfterKvRestore[client];
+			Menu_KvDetails(client, g_kvName_Temp[client]);
 		}
-		case 2: // Next
+		case 2: // Load match
 		{
-			Kv_Menu_Details_GetParallelFile(client, g_kvName_Temp, false);
+			Kv_RestoreFromFile(g_kvName_Temp[client], g_goLiveAfterKvRestore[client]);
 		}
-		case 3: // Previous
+		case 3: // Next
 		{
-			Kv_Menu_Details_GetParallelFile(client, g_kvName_Temp, true);
+			Kv_Menu_Details_GetParallelFile(client, g_kvName_Temp[client], false);
 		}
-		case 4: // Back
+		case 4: // Previous
+		{
+			Kv_Menu_Details_GetParallelFile(client, g_kvName_Temp[client], true);
+		}
+		case 5: // Back
 		{
 			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
 			RefereeMenu_LoadMatch(client);
 		}
-		case 5: // Exit menu
+		case 6: // Exit menu
 		{
 			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
@@ -442,6 +447,7 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 	decl String:fullPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s", g_kvPath, kvFileName);
 	
+	// Import KeyValues from file
 	KeyValues kv = new KeyValues("");
 	
 	if ( !kv.ImportFromFile(fullPath) )
@@ -450,6 +456,7 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 		return;
 	}
 	
+	// Prepare to fetch metadata
 	kv.JumpToKey("meta", false);
 	
 	// Get this match's date/time
@@ -491,7 +498,13 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 	new nsfScore = kv.GetNum(g_kvKey_nsfScore);
 	new roundLimit = kv.GetNum(g_kvKey_roundLimit);
 	
+	// Done reading from kv
+	delete kv;
+	
+	// Create panel
 	new Handle:panel = CreatePanel();
+	// Store selected kv filename for use in callbacks
+	strcopy(g_kvName_Temp[client], sizeof(g_kvName_Temp), kvFileName);
 	
 	SetPanelTitle(panel, "Match information");
 	
@@ -508,14 +521,18 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 	Format(infoBuffer, sizeof(infoBuffer), "Round limit: %i", roundLimit);
 	DrawPanelText(panel, infoBuffer);
 	
+	decl String:liveFromRestore[128] = "Go live after restore: ";
+	if (g_goLiveAfterKvRestore[client])
+		StrCat(liveFromRestore, sizeof(liveFromRestore), "yes");
+	else
+		StrCat(liveFromRestore, sizeof(liveFromRestore), "no");
+	
+	DrawPanelItem(panel, liveFromRestore);
 	DrawPanelItem(panel, "Load this match");
 	DrawPanelItem(panel, "--->");
 	DrawPanelItem(panel, "<---");
 	DrawPanelItem(panel, "Back");
 	DrawPanelItem(panel, "Exit");
-	
-	strcopy(g_kvName_Temp, sizeof(g_kvName_Temp), kvFileName);
-	delete kv;
 	
 	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_LoadMatch_ViewMeta, MENU_TIME_FOREVER);
 	
