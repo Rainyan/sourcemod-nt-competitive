@@ -1628,7 +1628,6 @@ void RefereeMenu_LoadMatch(client)
 	new results;
 	new max_files = 128;
 	decl String:buffer[PLATFORM_MAX_PATH];
-	new String:extension[] = ".kv";
 	FileType type;
 	while ( ReadDirEntry(dir, buffer, sizeof(buffer), type) )
 	{
@@ -1645,11 +1644,8 @@ void RefereeMenu_LoadMatch(client)
 			continue;
 		
 		// Not a .kv file
-		if ( StrContains(buffer, ".kv") != strlen(buffer) - strlen(extension) )
-		{
-			PrintToServer( "###StrContains(buffer) @ %i vs needle: %i", StrContains(buffer, ".kv"), (strlen(buffer) - strlen(extension)) );
+		if ( !Kv_IsValidFile(buffer) )
 			continue;
-		}
 		
 //		PrintToServer("Found file: %s", buffer);
 		menu.AddItem(buffer, buffer);
