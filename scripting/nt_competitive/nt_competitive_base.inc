@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.3.9.10"
+#define PLUGIN_VERSION "0.3.9.11"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -54,7 +54,8 @@ new const String:g_kvKey_noZanshi[] = "no_zanshi";
 new const String:g_kvKey_jinraiScore[] = "jinrai_score";
 new const String:g_kvKey_nsfScore[] = "nfs_score";
 new const String:g_kvKey_suddenDeath[] = "sudden_death";
-new const String:g_kvKey_spectators_displayRemaining[] = "spectators_display_remaining";
+new const String:g_kvKey_centered_displayRemaining[] = "centered_display_remaining";
+new const String:g_kvKey_centered_displayTarget[] = "centered_display_target";
 new const String:g_kvKey_natives_alltalk[] = "natives_alltalk";
 new const String:g_kvKey_natives_forceCamera[] = "natives_forcecamera";
 new const String:g_kvKey_natives_pausable[] = "natives_pausable";
@@ -144,7 +145,8 @@ new Handle:g_hRoundTime;
 new Handle:g_hJinraiScore;
 new Handle:g_hNSFScore;
 new Handle:g_hSuddenDeath;
-new Handle:g_hSpectators_DisplayRemaining;
+new Handle:g_hCenteredDisplayRemaining;
+new Handle:g_hCenteredDisplayTarget;
 #if DEBUG
 	new Handle:g_hDebugKeyValues;
 #endif
@@ -2151,19 +2153,23 @@ bool DidPlayerReallySpawn(client)
 	return true;
 }
 
-void Spectators_DisplayRemainingPlayers()
+void CenterText_DisplayRemaining()
 {
-	if (GetConVarInt(g_hSpectators_DisplayRemaining) == 0)
+	if (GetConVarInt(g_hCenteredDisplayRemaining) == 0)
 		return;
 	
 	decl String:message[24];
 	
 	// Just display numbers remaining
-	if (GetConVarInt(g_hSpectators_DisplayRemaining) == 1)
-		Format(message, sizeof(message), "%i vs %i", g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
+	if (GetConVarInt(g_hCenteredDisplayRemaining) == 1)
+		Format(message, sizeof(message), "%i -- %i", g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
 	// Display team name + numbers remaining
 	else
-		Format(message, sizeof(message), "Jinrai %i vs %i NSF", g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
+		Format(message, sizeof(message), "JIN %i -- %i NSF", g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
+	
+	new bool:specOnly;
+	if ( GetConVarInt(g_hCenteredDisplayTarget) == 1)
+		specOnly = true;
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -2172,7 +2178,10 @@ void Spectators_DisplayRemainingPlayers()
 		
 		new team = GetClientTeam(i);
 		
-		if (team != TEAM_SPECTATOR)
+		if (specOnly && team != TEAM_SPECTATOR)
+			continue;
+		
+		else if ( team != TEAM_SPECTATOR || IsPlayerAlive(i) )
 			continue;
 		
 		PrintCenterText(i, message);
@@ -2351,7 +2360,8 @@ void Kv_PopulateMeta(KeyValues kv)
 	kv.SetNum( g_kvKey_jinraiScore, GetConVarInt(g_hJinraiScore) );
 	kv.SetNum( g_kvKey_nsfScore, GetConVarInt(g_hNSFScore) );
 	kv.SetNum( g_kvKey_suddenDeath, GetConVarInt(g_hSuddenDeath) );
-	kv.SetNum( g_kvKey_spectators_displayRemaining, GetConVarInt(g_hSpectators_DisplayRemaining) );
+	kv.SetNum( g_kvKey_centered_displayRemaining, GetConVarInt(g_hCenteredDisplayRemaining) );
+	kv.SetNum( g_kvKey_centered_displayTarget, GetConVarInt(g_hCenteredDisplayTarget) );
 	kv.SetNum( g_kvKey_natives_alltalk, GetConVarInt(g_hAlltalk) );
 	kv.SetNum( g_kvKey_natives_forceCamera, GetConVarInt(g_hForceCamera) );
 	kv.SetNum( g_kvKey_natives_pausable, GetConVarInt(g_hPausable) );
@@ -2473,7 +2483,8 @@ void Kv_RestoreFromFile(const String:fileName[], bool:goLive = false)
 	SetConVarInt( g_hCollectiveReady, kv.GetNum(g_kvKey_collectiveReady) );
 	SetConVarInt( g_hPreventZanshiStrats, kv.GetNum(g_kvKey_noZanshi) );
 	SetConVarInt( g_hSuddenDeath, kv.GetNum(g_kvKey_suddenDeath) );
-	SetConVarInt( g_hSpectators_DisplayRemaining, kv.GetNum(g_kvKey_spectators_displayRemaining) );
+	SetConVarInt( g_hCenteredDisplayRemaining, kv.GetNum(g_kvKey_centered_displayRemaining) );
+	SetConVarInt( g_hCenteredDisplayTarget, kv.GetNum(g_kvKey_centered_displayTarget) );
 	SetConVarInt( g_hAlltalk, kv.GetNum(g_kvKey_natives_alltalk) );
 	SetConVarInt( g_hForceCamera, kv.GetNum(g_kvKey_natives_forceCamera) );
 	SetConVarInt( g_hPausable, kv.GetNum(g_kvKey_natives_pausable) );
