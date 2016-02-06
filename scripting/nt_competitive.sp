@@ -155,7 +155,7 @@ public OnAllPluginsLoaded()
 }
 
 public OnMapStart()
-{	
+{
 	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
 

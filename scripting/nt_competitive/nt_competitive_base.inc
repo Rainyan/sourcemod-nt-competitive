@@ -643,7 +643,7 @@ void TogglePause()
 				g_isCurrentlyUnPausing = true;
 				
 				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the pause round
-				GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL); // Back to action
+				WarmUp_End();
 				
 				RestoreRound(g_roundNumber); // Restore everyone's XP, deaths and ranks to the state before pausing
 				
@@ -682,7 +682,7 @@ void KillTimers_UnPause()
 
 public Action:Timer_EnterPauseRound(Handle:timer)
 {
-	GameRules_SetProp("m_iGameState", GAMESTYLE_WARMUP);
+	WarmUp_Start();
 	
 	new Float:pauseLength;
 	if (g_pauseReason == REASON_TECHNICAL)
@@ -2776,4 +2776,14 @@ void GenerateEpoch()
 	new Handle:hTimeAdjustment = FindConVar("sm_time_adjustment");
 	g_epoch = GetTime() + GetConVarInt(hTimeAdjustment);
 	CloseHandle(hTimeAdjustment);
+}
+
+void WarmUp_Start()
+{
+	GameRules_SetProp("m_iGameState", GAMESTYLE_WARMUP);
+}
+
+void WarmUp_End()
+{
+	GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL);
 }
