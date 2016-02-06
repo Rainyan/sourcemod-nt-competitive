@@ -365,6 +365,7 @@ void ToggleLive(bool:isKvRestore = false)
 	
 	if (g_isLive)
 	{
+		WarmUp_End();
 		GenerateEpoch();
 #if DEBUG
 		if ( GetConVarBool(g_hDebugKeyValues) )
@@ -486,12 +487,12 @@ void ToggleLive(bool:isKvRestore = false)
 			TogglePause();
 		
 		ToggleRecording();
-		
 		SetConVarBool(g_hForceCamera, false);
-		
 		ResetGlobalVariables();
 		
 		PrintToChatAll("%s Match has ended.", g_tag);
+		
+		WarmUp_Start();
 	}
 	
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
