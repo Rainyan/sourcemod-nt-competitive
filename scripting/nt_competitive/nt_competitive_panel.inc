@@ -521,7 +521,7 @@ void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 	Format(infoBuffer, sizeof(infoBuffer), "Round limit: %i", roundLimit);
 	DrawPanelText(panel, infoBuffer);
 	
-	decl String:liveFromRestore[128] = "Go live after restore: ";
+	decl String:liveFromRestore[27] = "Go live after restore: ";
 	if (g_goLiveAfterKvRestore[client])
 		StrCat(liveFromRestore, sizeof(liveFromRestore), "yes");
 	else
