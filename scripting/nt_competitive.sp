@@ -697,6 +697,11 @@ public Action:Command_UnOverrideStart(client, args)
 		return Plugin_Stop;
 	}
 	
+	if (g_isLiveCountdown)
+	{
+		CancelLiveCountdown();
+	}
+	
 	g_isWantingOverride[team] = false;
 	PrintToChatAll("%s Team %s has cancelled wanting to force start the match.", g_tag, g_teamName[team]);
 	
