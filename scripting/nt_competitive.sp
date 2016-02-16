@@ -890,18 +890,12 @@ public Action:Command_ManualRoundEdit(client, args)
 
 public Competitive_IsLive(Handle:plugin, numParams)
 {
-	if (g_isLive)
-		return true;
-	
-	return false;
+	return g_isLive;
 }
 
 public Competitive_IsPaused(Handle:plugin, numParams)
 {
-	if (g_isPaused)
-		return true;
-	
-	return false;
+	return g_isPaused;
 }
 
 public Competitive_GetTeamScore(Handle:plugin, numParams)
