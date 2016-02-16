@@ -2778,3 +2778,23 @@ void WarmUp_End()
 {
 	GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL);
 }
+
+void CancelLiveCountdown()
+{
+	// Kill the live countdown timer
+	if (g_hTimer_LiveCountdown != INVALID_HANDLE)
+	{
+		KillTimer(g_hTimer_LiveCountdown);
+		g_hTimer_LiveCountdown = INVALID_HANDLE;
+	}
+	
+	// Kill the actual live toggle timer
+	if (g_hTimer_GoLive != INVALID_HANDLE)
+	{
+		KillTimer(g_hTimer_GoLive);
+		g_hTimer_GoLive = INVALID_HANDLE;
+	}
+	
+	g_isLiveCountdown = false; // We are no longer in a live countdown
+	g_liveTimer = g_liveTimer_OriginalValue; // Reset live countdown timer to its original value
+}

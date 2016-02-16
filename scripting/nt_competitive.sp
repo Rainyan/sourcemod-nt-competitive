@@ -329,23 +329,7 @@ public Action:Command_ForceLive(client, args)
 		// There already is a live countdown! Cancel it.
 		else
 		{
-			// Kill the live countdown timer
-			if (g_hTimer_LiveCountdown != INVALID_HANDLE)
-			{
-				KillTimer(g_hTimer_LiveCountdown);
-				g_hTimer_LiveCountdown = INVALID_HANDLE;
-			}
-			
-			// Kill the actual live toggle timer
-			if (g_hTimer_GoLive != INVALID_HANDLE)
-			{
-				KillTimer(g_hTimer_GoLive);
-				g_hTimer_GoLive = INVALID_HANDLE;
-			}
-			
-			g_isLiveCountdown = false; // We are no longer in a live countdown
-			g_liveTimer = g_liveTimer_OriginalValue; // Reset live countdown timer to its original value
-			
+			CancelLiveCountdown();
 			PrintToChatAll("Live countdown stopped by admin.");			
 		}
 	}
@@ -600,6 +584,9 @@ void UnPauseRequest(client)
 
 public Action:Command_OverrideStart(client, args)
 {
+	if (g_isLive)
+		return Plugin_Stop;
+	
 	if (client == 0)
 	{
 		ReplyToCommand(client, "%s Server cannot execute this command.", g_tag);
@@ -681,6 +668,9 @@ public Action:Command_OverrideStart(client, args)
 
 public Action:Command_UnOverrideStart(client, args)
 {
+	if (g_isLive)
+		return Plugin_Stop;
+	
 	if (client == 0)
 	{
 		ReplyToCommand(client, "%s Server cannot execute this command.", g_tag);
