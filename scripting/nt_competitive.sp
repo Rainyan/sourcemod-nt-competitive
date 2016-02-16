@@ -329,8 +329,7 @@ public Action:Command_ForceLive(client, args)
 		// There already is a live countdown! Cancel it.
 		else
 		{
-			CancelLiveCountdown();
-			PrintToChatAll("Live countdown stopped by admin.");			
+			CancelLiveCountdown();		
 		}
 	}
 	
@@ -698,9 +697,7 @@ public Action:Command_UnOverrideStart(client, args)
 	}
 	
 	if (g_isLiveCountdown)
-	{
 		CancelLiveCountdown();
-	}
 	
 	g_isWantingOverride[team] = false;
 	PrintToChatAll("%s Team %s has cancelled wanting to force start the match.", g_tag, g_teamName[team]);
@@ -847,6 +844,9 @@ public Action:Command_UnReady(client, args)
 			PrintToChatAll("%s Team %s is NOT READY.", g_tag, g_teamName[team]);
 		}
 	}
+	
+	if (g_isLiveCountdown)
+		CancelLiveCountdown();
 	
 	return Plugin_Handled;
 }

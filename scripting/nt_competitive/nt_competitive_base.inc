@@ -2797,4 +2797,6 @@ void CancelLiveCountdown()
 	
 	g_isLiveCountdown = false; // We are no longer in a live countdown
 	g_liveTimer = g_liveTimer_OriginalValue; // Reset live countdown timer to its original value
+	
+	PrintToChatAll("%s Live countdown cancelled.", g_tag);
 }
