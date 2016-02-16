@@ -1775,6 +1775,7 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 				continue;
 			
 			adminsPresent = true;
+			break;
 		}
 		
 		if (adminsPresent)
