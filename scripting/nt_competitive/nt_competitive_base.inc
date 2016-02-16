@@ -187,7 +187,10 @@ enum {
 };
 
 void CheckIfEveryoneIsReady()
-{	
+{
+	if (g_isLiveCountdown || g_isLive)
+		return;
+	
 	new players = GetPlayerCount();
 	new playersReady = GetPlayersReady();
 	
