@@ -638,7 +638,7 @@ public Action:Command_OverrideStart(client, args)
 	
 	if (g_isWantingOverride[team])
 	{
-		ReplyToCommand(client, "%s Your team already wants to start. If you want to revert this, use !unstart.", g_tag);
+		ReplyToCommand(client, "%s Your team already wants to start. If you wish to revert this, use !unstart instead.", g_tag);
 		return Plugin_Stop;
 	}
 	
