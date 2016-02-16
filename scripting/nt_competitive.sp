@@ -354,8 +354,8 @@ public Action:Command_ForceLive(client, args)
 	{
 		if (!g_confirmLiveEnd)
 		{
-			PrintToChat(client, "%s Stopping a competitive match, are you sure?", g_tag);
-			PrintToChat(client, "Please repeat the command to confirm.");
+			ReplyToCommand(client, "%s Stopping a competitive match, are you sure?", g_tag);
+			ReplyToCommand(client, "Please repeat the command to confirm.");
 			g_confirmLiveEnd = true;
 			
 			CreateTimer(10.0, Timer_CancelLiveEndConfirmation); // Flip the bool back if force end isn't confirmed in 10 seconds
