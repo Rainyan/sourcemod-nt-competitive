@@ -99,7 +99,7 @@ public OnPluginStart()
 	g_hCenteredDisplayRemaining	= CreateConVar("sm_competitive_display_remaining_players_centered",	"2", "How the number of remaining players is displayed to clients in a competitive game. 0 = disabled, 1 = show remaining player numbers, 2 = show team names and remaining player numbers", _, true, 0.0, true, 2.0);
 	g_hCenteredDisplayTarget			= CreateConVar("sm_competitive_display_remaining_players_target",	"2", "Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players", _, true, 1.0, true, 2.0);
 #if DEBUG
-	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Test KeyValues functionality. Debug cvar.", _, true, 0.0, true, 1.0);
+	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Store match data into KeyValues file. Debug cvar.", _, true, 0.0, true, 1.0);
 #endif
 	
 	g_hAlltalk			= FindConVar("sv_alltalk");
