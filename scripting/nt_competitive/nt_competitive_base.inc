@@ -2795,6 +2795,9 @@ void CancelLiveCountdown()
 	{
 		KillTimer(g_hTimer_LiveCountdown);
 		g_hTimer_LiveCountdown = INVALID_HANDLE;
+		
+		if (g_hTimer_LiveCountdown != INVALID_HANDLE)
+			LogError("Failed killing timer g_hTimer_LiveCountdown");
 	}
 	
 	// Kill the actual live toggle timer
@@ -2802,6 +2805,9 @@ void CancelLiveCountdown()
 	{
 		KillTimer(g_hTimer_GoLive);
 		g_hTimer_GoLive = INVALID_HANDLE;
+		
+		if (g_hTimer_GoLive != INVALID_HANDLE)
+			LogError("Failed killing timer g_hTimer_GoLive");
 	}
 	
 	g_isLiveCountdown = false; // We are no longer in a live countdown
