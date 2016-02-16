@@ -171,8 +171,8 @@ enum {
 };
 
 enum {
-	GAMESTYLE_WARMUP = 1,
-	GAMESTYLE_NORMAL
+	GAMESTATE_WARMUP = 1,
+	GAMESTATE_NORMAL
 };
 
 enum {
@@ -365,7 +365,7 @@ void ToggleLive(bool:isKvRestore = false)
 	
 	if (g_isLive)
 	{
-		WarmUp_End();
+		SetGameState(GAMESTATE_NORMAL);
 		GenerateEpoch();
 		
 		// Cancel both teams' override preference
@@ -486,7 +486,7 @@ void ToggleLive(bool:isKvRestore = false)
 		
 		PrintToChatAll("%s Match has ended.", g_tag);
 		
-		WarmUp_Start();
+		SetGameState(GAMESTATE_WARMUP);
 	}
 	
 	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
@@ -638,7 +638,7 @@ void TogglePause()
 				g_isCurrentlyUnPausing = true;
 				
 				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the pause round
-				WarmUp_End();
+				SetGameState(GAMESTATE_NORMAL);
 				
 				RestoreRound(g_roundNumber); // Restore everyone's XP, deaths and ranks to the state before pausing
 				
@@ -677,7 +677,7 @@ void KillTimers_UnPause()
 
 public Action:Timer_EnterPauseRound(Handle:timer)
 {
-	WarmUp_Start();
+	SetGameState(GAMESTATE_WARMUP);
 	
 	new Float:pauseLength;
 	if (g_pauseReason == REASON_TECHNICAL)
@@ -2774,14 +2774,9 @@ void GenerateEpoch()
 	CloseHandle(hTimeAdjustment);
 }
 
-void WarmUp_Start()
+void SetGameState(state)
 {
-	GameRules_SetProp("m_iGameState", GAMESTYLE_WARMUP);
-}
-
-void WarmUp_End()
-{
-	GameRules_SetProp("m_iGameState", GAMESTYLE_NORMAL);
+	GameRules_SetProp("m_iGameState", state);
 }
 
 void CancelLiveCountdown()
