@@ -652,15 +652,7 @@ public Action:Command_OverrideStart(client, args)
 	PrintToChatAll("%s Team %s wishes to start the match with current players.", g_tag, g_teamName[team]);
 	
 	if (bothTeamsWantOverride)
-	{
-		g_isExpectingOverride = false;
-		
-		// Cancel both teams' override preference
-		g_isWantingOverride[TEAM_JINRAI] = false;
-		g_isWantingOverride[TEAM_NSF] = false;
-		
 		LiveCountDown();
-	}
 	
 	return Plugin_Handled;
 }

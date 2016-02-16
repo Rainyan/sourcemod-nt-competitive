@@ -367,6 +367,11 @@ void ToggleLive(bool:isKvRestore = false)
 	{
 		WarmUp_End();
 		GenerateEpoch();
+		
+		// Cancel both teams' override preference
+		g_isWantingOverride[TEAM_JINRAI] = false;
+		g_isWantingOverride[TEAM_NSF] = false;
+		g_isExpectingOverride = false;
 #if DEBUG
 		if ( GetConVarBool(g_hDebugKeyValues) )
 		{
