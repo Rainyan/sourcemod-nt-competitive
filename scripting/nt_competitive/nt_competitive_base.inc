@@ -416,26 +416,15 @@ void ToggleLive(bool:isKvRestore = false)
 				strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), steamID);
 				PrintToServer("sizeof g_livePlayers: %i", sizeof(g_livePlayers[]));
 				g_assignedTeamWhenLive[i] = team;
-			}
-			
-#if DEBUG > 1
-			if (strlen(steamID) > 0)
-			{
+#if DEBUG
 				LogDebug("Found SteamID: %s", steamID);
 				LogDebug("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
 				foundPlayers++;
-			}
 #endif
+			}
 		}
-		
 #if DEBUG
 		LogDebug("Completed SteamID array with %i results.", foundPlayers);
-#endif
-
-#if !defined DEBUG || DEBUG == 0
-		// This should only occur in debug test cases
-		if (foundPlayers < 2)
-			LogError("Less than 2 players found!");
 #endif
 		
 		// Set convars for competitive
