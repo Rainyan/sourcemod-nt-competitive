@@ -2776,6 +2776,12 @@ void GenerateEpoch()
 
 void SetGameState(state)
 {
+	if (state != GAMESTATE_NORMAL && state != GAMESTATE_WARMUP)
+	{
+		LogError("Invalid gamestate %i", state);
+		return;
+	}
+	
 	GameRules_SetProp("m_iGameState", state);
 }
 
