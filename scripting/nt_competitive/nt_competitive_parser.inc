@@ -229,20 +229,27 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	g_fRoundTime	= GetGameTime();
 //	PrintToServer("# # # NEW ROUND Game Time: %f", g_fRoundTime);
 	
-	g_jinraiScore[g_roundNumber]	= GetTeamScore(TEAM_JINRAI);
-	g_nsfScore[g_roundNumber]	= GetTeamScore(TEAM_NSF);
-	
-	for (i = 1; i <= MaxClients; i++)
+	if (g_roundNumber > MAX_ROUNDS_PLAYED)
 	{
-		if ( !Client_IsValid(i) || IsFakeClient(i) )
-			continue;
+		LogError("Current round number %i is larger than MAX_ROUNDS_PLAYED %i – round info array is too small to store current round. This should never happen.", g_roundNumber, MAX_ROUNDS_PLAYED);
+	}
+	else
+	{
+		g_jinraiScore[g_roundNumber]	= GetTeamScore(TEAM_JINRAI);
+		g_nsfScore[g_roundNumber]	= GetTeamScore(TEAM_NSF);
 		
-		g_playerDeaths[i][g_roundNumber]	= GetEntProp(i, Prop_Data, "m_iDeaths");	// Save everyone's death count for this round
-		g_playerXP[i][g_roundNumber]		= GetEntProp(i, Prop_Data, "m_iFrags");	// Save everyone's XP for this round
-		
+		for (i = 1; i <= MaxClients; i++)
+		{
+			if ( !Client_IsValid(i) || IsFakeClient(i) )
+				continue;
+			
+			g_playerDeaths[i][g_roundNumber]	= GetEntProp(i, Prop_Data, "m_iDeaths");	// Save everyone's death count for this round
+			g_playerXP[i][g_roundNumber]		= GetEntProp(i, Prop_Data, "m_iFrags");	// Save everyone's XP for this round
+			
 #if DEBUG > 1
-		LogDebug("Client %i has %i XP and %i deaths for round %i.", i, g_playerXP[i][g_roundNumber], g_playerDeaths[i][g_roundNumber], g_roundNumber);
+			LogDebug("Client %i has %i XP and %i deaths for round %i.", i, g_playerXP[i][g_roundNumber], g_playerDeaths[i][g_roundNumber], g_roundNumber);
 #endif
+		}
 	}
 	
 	ResetPlayersAlive(); // Reset global count of living players. Used for kill feeds etc
