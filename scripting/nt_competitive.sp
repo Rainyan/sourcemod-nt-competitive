@@ -546,12 +546,9 @@ void UnPauseRequest(client)
 {
 	if ( client == 0 || !Client_IsValid(client) || !IsClientInGame(client) )
 	{
-		decl String:error[64];
-		Format(error, sizeof(error), "Invalid client %i called UnPauseRequest", client);
-		
-		LogError(error);
+		LogError("Invalid client %i called UnPauseRequest", client);
 #if DEBUG
-		PrintToChatAll("Comp plugin error! %s", error);
+		PrintToAdmins(true, true, "Comp plugin error: "Invalid client %i called UnPauseRequest", client);
 #endif
 		return;
 	}
