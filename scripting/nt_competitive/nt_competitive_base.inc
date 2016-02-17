@@ -231,7 +231,7 @@ public Action:Command_ReadyList(client, args)
 	if (!Client_IsValid(client))
 		return Plugin_Stop;
 	
-	PrintToChat(client, "%s List of readied players is printed in your console.", g_tag);
+	ReplyToCommand(client, "%s List of readied players is printed in your console.", g_tag);
 	
 	PrintToConsole(client, "\n%s Players and their READY state:", g_tag);
 	for (new i = 1; i <= MaxClients; i++)
@@ -2767,8 +2767,8 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 	
 	CloseHandle(dir);
 }
-
 #endif
+
 // Purpose: Store current epoch globally so multiple functions can use it for identifying themselves
 void GenerateEpoch()
 {
