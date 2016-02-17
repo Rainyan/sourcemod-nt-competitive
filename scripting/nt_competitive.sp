@@ -548,7 +548,7 @@ void UnPauseRequest(client)
 	{
 		LogError("Invalid client %i called UnPauseRequest", client);
 #if DEBUG
-		PrintToAdmins(true, true, "Comp plugin error: "Invalid client %i called UnPauseRequest", client);
+		PrintToAdmins(true, true, "Comp plugin error: Invalid client %i called UnPauseRequest", client);
 #endif
 		return;
 	}
