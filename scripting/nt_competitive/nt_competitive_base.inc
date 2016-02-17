@@ -2713,11 +2713,10 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 				// Return current key and notify via boolean
 				if (prevIndex < 0)
 				{
-					Menu_KvDetails(client, buffer[i], true);
+					Menu_KvDetails(client, buffer[locatedPos], true);
 				}
 				else
 				{
-//					PrintToServer("Going to previous index %i: %s", prevIndex, buffer[prevIndex]);
 					Menu_KvDetails(client, buffer[prevIndex]);
 				}
 			}
