@@ -2761,7 +2761,7 @@ void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:get
 		}
 		else
 		{
-			LogError("Failed locating parallel kv file. kvFileName = \"%s\", getPrevious = %b, locatedFile = %b, servedFile = %b", kvFileName, getPrevious, locatedFile, servedFile);
+			Menu_KvDetails(client, buffer[locatedPos], true);
 		}
 	}
 	
