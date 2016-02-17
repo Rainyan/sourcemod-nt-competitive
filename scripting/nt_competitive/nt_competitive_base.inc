@@ -148,7 +148,7 @@ new Handle:g_hSuddenDeath;
 new Handle:g_hCenteredDisplayRemaining;
 new Handle:g_hCenteredDisplayTarget;
 #if DEBUG
-	new Handle:g_hDebugKeyValues;
+new Handle:g_hDebugKeyValues;
 #endif
 
 new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
@@ -194,10 +194,10 @@ void CheckIfEveryoneIsReady()
 	new players = GetPlayerCount();
 	new playersReady = GetPlayersReady();
 	
-	#if DEBUG
-		LogDebug("%s Players found total: %i", g_tag, players);
-		LogDebug("%s Players ready: %i", g_tag, playersReady);
-	#endif
+#if DEBUG
+	LogDebug("%s Players found total: %i", g_tag, players);
+	LogDebug("%s Players ready: %i", g_tag, playersReady);
+#endif
 	
 	if (players > playersReady) // Everyone isn't ready, stop here
 		return;
