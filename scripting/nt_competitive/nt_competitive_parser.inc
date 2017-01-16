@@ -307,7 +307,10 @@ public Action:Command_JoinTeam(client, args)
 
 	new String:steamID[MAX_STEAMID_LENGTH];
 	if (!GetClientAuthId(client, AuthId_Steam2, steamID, sizeof(steamID)))
+	{
 		LogError("Failed fetching auth string for %s (client %i)", clientName, client);
+		return Plugin_Continue;
+	}
 
 	decl String:team[10];
 	GetCmdArg(1, team, sizeof(team));
