@@ -293,8 +293,8 @@ public Action:Command_JoinTeam(client, args)
 {
 	decl String:clientName[MAX_NAME_LENGTH];
 	GetClientName(client, clientName, sizeof(clientName));
-
-	if (g_isLive && !g_isRecording[client])
+	// This client should be recording their gameplay
+	if (g_isLive && !g_isRecording[client] && GetConVarBool(g_hClientRecording))
 	{
 		PlayerRecord(client);
 	}
