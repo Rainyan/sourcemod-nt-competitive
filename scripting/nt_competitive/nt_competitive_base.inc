@@ -2147,6 +2147,13 @@ Jinrai %i - NSF %i, round %i in a first to %i points game.",
 			g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], g_roundNumber,
 			roundLimit);
 		}
+		else if (g_roundNumber > 1)
+		{
+			decl String:message[24];
+			Format(message, sizeof(message), "%s Round %i", g_tag, g_roundNumber);
+			PrintToChatAll(message);
+			LogCompetitive(message);
+		}
 	}
 }
 
