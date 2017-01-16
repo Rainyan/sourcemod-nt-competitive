@@ -248,6 +248,7 @@ public OnClientDisconnect(client)
 	g_isReady[client] = false;
 	g_survivedLastRound[client] = false;
 	g_isSpawned[client] = false;
+	g_isRecording[client] = false;
 }
 
 public OnGhostCapture(client)

@@ -294,7 +294,11 @@ public Action:Command_JoinTeam(client, args)
 	decl String:clientName[MAX_NAME_LENGTH];
 	GetClientName(client, clientName, sizeof(clientName));
 
-	if (!g_isLive || !GetConVarBool(g_hLimitLiveTeams) )
+	if (g_isLive && !g_isRecording[client])
+	{
+		PlayerRecord(client);
+	}
+	else if (!g_isLive || !GetConVarBool(g_hLimitLiveTeams) )
 	{
 		if (g_isReady[client])
 		{
@@ -325,7 +329,6 @@ public Action:Command_JoinTeam(client, args)
 		LogCompetitive(msgBuffer);
 		return Plugin_Continue;
 	}
-
 	// Team not explicitly restricted for this player, let them join (substitutes after going live etc)
 	if (g_assignedTeamWhenLive[client] == TEAM_NONE)
 	{
@@ -334,7 +337,6 @@ public Action:Command_JoinTeam(client, args)
 
 		return Plugin_Continue;
 	}
-
 	// Player attempts to join their correct team, let them
 	else if (iTeam == g_assignedTeamWhenLive[client])
 	{

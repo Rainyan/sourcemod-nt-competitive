@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.3.9.16"
+#define PLUGIN_VERSION "0.3.9.17"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -120,6 +120,7 @@ new bool:g_isCurrentlyEditingClients[MAXPLAYERS+1];
 new bool:g_isCurrentlyGivingPenalty[MAXPLAYERS+1];
 new bool:g_survivedLastRound[MAXPLAYERS+1];
 new bool:g_isSuddenDeathRound;
+new bool:g_isRecording[MAXPLAYERS+1];
 
 #if defined KV_DEBUG
 new bool:g_goLiveAfterKvRestore[MAXPLAYERS+1] = true;
@@ -272,6 +273,50 @@ public Action:Command_ReadyList(client, args)
 	return Plugin_Handled;
 }
 
+void PlayerRecord(client)
+{
+	if (!Client_IsValid(client))
+		return;
+
+	new String:steamID[MAX_STEAMID_LENGTH];
+	GetClientAuthId(client, AuthId_Steam2, steamID, sizeof(steamID));
+
+	new String:timestamp[15];
+	FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
+
+	new String:competitionName[32];
+	GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
+
+	new String:replayName[sizeof(steamID)+sizeof(timestamp)+sizeof(competitionName)+2];
+
+	if (strlen(competitionName) > 0)
+		Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, steamID);
+	else
+		Format(replayName, sizeof(replayName), "%s_%s", timestamp, steamID);
+
+	// Clean up any non alphanumeric characters from the string
+	new String:replayBuffer[sizeof(replayName) + 1];
+	new bufferPos;
+
+	for (new j = 0; j < sizeof(replayName); j++)
+	{
+		if (IsCharAlpha(replayName[j]) || IsCharNumeric(replayName[j]) || !IsCharSpace(replayName[j]))
+			replayBuffer[bufferPos++] = replayName[j];
+	}
+	replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
+
+	ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitization
+	strcopy(replayName, sizeof(replayName), replayBuffer);
+
+	ClientCommand(client, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
+	ClientCommand(client, "record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
+	g_isRecording[client] = true;
+
+#if DEBUG > 1
+	LogDebug("Client %i is now recording to: %s", client, replayName);
+#endif
+}
+
 void ToggleRecording()
 {
 	if ( GetConVarBool(g_hClientRecording) == false )
@@ -284,46 +329,9 @@ void ToggleRecording()
 			if (!Client_IsValid(i) || IsFakeClient(i))
 				continue;
 
-			new String:steamID[MAX_STEAMID_LENGTH];
-			GetClientAuthId(i, AuthId_Steam2, steamID, sizeof(steamID));
-
-			new String:timestamp[15];
-			FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
-
-			new String:competitionName[32];
-			GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
-
-			new String:replayName[sizeof(steamID)+sizeof(timestamp)+sizeof(competitionName)+2];
-
-			if (strlen(competitionName) > 0)
-				Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, steamID);
-
-			else
-				Format(replayName, sizeof(replayName), "%s_%s", timestamp, steamID);
-
-			// Clean up any non alphanumeric characters from the string
-			new String:replayBuffer[sizeof(replayName) + 1];
-			new bufferPos;
-
-			for (new j = 0; j < sizeof(replayName); j++)
-			{
-				if (IsCharAlpha(replayName[j]) || IsCharNumeric(replayName[j]) || !IsCharSpace(replayName[j]))
-					replayBuffer[bufferPos++] = replayName[j];
-			}
-			replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
-
-			ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitization
-			strcopy(replayName, sizeof(replayName), replayBuffer);
-
-			ClientCommand(i, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
-			ClientCommand(i, "record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
-
-#if DEBUG > 1
-			LogDebug("Client %i is now recording to: %s", i, replayName);
-#endif
+			PlayerRecord(i);
 		}
 	}
-
 	else // Stop recording
 	{
 		for (new i = 1; i <= MaxClients; i++)
