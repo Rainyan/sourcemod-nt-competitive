@@ -134,8 +134,8 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		{
 			g_damageDealt[i][j] = 0;
 		}
-
-		if ( GetConVarBool(g_hVerbosityDelay) && g_shouldShowKillInfo[i] ) // We want to display last round's kill info
+		// We want to display last round's kill info
+		if ( GetConVarBool(g_hVerbosityDelay) && g_shouldShowKillInfo[i] )
 			PrintToConsole(i, g_killInfoBuffer[i]);
 
 		g_shouldShowKillInfo[i] = false;

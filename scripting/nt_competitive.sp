@@ -10,6 +10,8 @@
 //#define DEBUG 1 // Basic debug
 #define DEBUG 2 // Extended debug
 
+//#define KV_DEBUG 1 // Don't enable outside dev testing
+
 #include <sourcemod>
 #include <sdktools>
 #include <smlib>
@@ -73,7 +75,8 @@ public OnPluginStart()
 
 	CreateConVar("sm_competitive_version", PLUGIN_VERSION, "Competitive plugin version.", FCVAR_DONTRECORD);
 
-	g_hRoundLimit						= CreateConVar("sm_competitive_round_limit",						"15",					"How many rounds are played in a competitive match.", _, true, 1.0);
+	g_hRoundStyle						= CreateConVar("sm_competitive_round_style",						"1",					"How a match win is determined. 1 = best of X rounds, 2 = first to X points", _, true, 1.0, true, 2.0);
+	g_hRoundLimit						= CreateConVar("sm_competitive_round_limit",						"15",					"If sm_competitive_round_style equals 1, this is the best of X rounds. If it equals 2, this is the score required to win.", _, true, 1.0);
 	g_hMatchSize						= CreateConVar("sm_competitive_players_total",						"10",					"How many players total are expected to ready up before starting a competitive match.");
 	g_hMaxTimeouts						= CreateConVar("sm_competitive_max_timeouts",						"1",					"How many time-outs are allowed per match per team.", _, true, 0.0);
 	g_hMaxPauseLength					= CreateConVar("sm_competitive_max_pause_length",					"60",					"How long can a competitive time-out last, in seconds.", _, true, 0.0);
@@ -99,7 +102,7 @@ public OnPluginStart()
 	g_hCenteredDisplayRemaining	= CreateConVar("sm_competitive_display_remaining_players_centered",	"2", "How the number of remaining players is displayed to clients in a competitive game. 0 = disabled, 1 = show remaining player numbers, 2 = show team names and remaining player numbers", _, true, 0.0, true, 2.0);
 	g_hCenteredDisplayTarget			= CreateConVar("sm_competitive_display_remaining_players_target",	"2", "Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players", _, true, 1.0, true, 2.0);
 	g_hCompForceCamera				= CreateConVar("sm_competitive_force_camera",				"1",				"Should fade to black be forced on death when live. Can be useful to disable on pugs etc.", _, true, 0.0, true, 1.0);
-#if DEBUG
+#if defined KV_DEBUG
 	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Store match data into KeyValues file. Debug cvar.", _, true, 0.0, true, 1.0);
 #endif
 
@@ -135,10 +138,12 @@ public OnPluginStart()
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
 
-#if DEBUG
+#if defined KV_DEBUG
 	if (!DirExists(g_kvPath))
 		InitDirectory(g_kvPath);
+#endif
 
+#if DEBUG
 	PrepareDebugLogFolder();
 #endif
 
@@ -296,7 +301,11 @@ public Action:Command_RefereeMenu(client, args)
 
 	DrawPanelItem(panel, "Manually edit team score");
 	DrawPanelItem(panel, "Manually edit player score (does not work yet)");
+#if defined KV_DEBUG
 	DrawPanelItem(panel, "Load previous match");
+#else
+	DrawPanelItem(panel, "Load previous match (experimental, disabled)");
+#endif
 	DrawPanelItem(panel, "Exit");
 
 	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME_FOREVER);

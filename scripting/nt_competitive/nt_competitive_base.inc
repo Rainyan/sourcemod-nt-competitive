@@ -25,12 +25,15 @@ new const String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new const String:g_soundLive[] = "buttons/button17.wav";
 new String:g_killInfoBuffer[MAXPLAYERS+1][512];
 new String:g_convarBeingEdited[128];
+
 #if DEBUG
 new String:g_path_logDebug[PLATFORM_MAX_PATH] = "logs/competitive";
+#endif
+
+#if defined KV_DEBUG
 new String:g_kvPath[PLATFORM_MAX_PATH] = "data/competitive/matches";
 new String:g_kvName[128];
 new String:g_kvName_Temp[MAXPLAYERS+1][sizeof(g_kvName)];
-#endif
 
 new const String:g_kvKey_jinraiName[] = "jinrai_name";
 new const String:g_kvKey_nsfName[] = "nsf_name";
@@ -63,6 +66,7 @@ new const String:g_kvKey_natives_roundTime[] = "natives_round_time";
 new const String:g_kvKey_natives_scoreLimit[] = "natives_scorelimit";
 new const String:g_kvKey_jinraiPauses[] = "jinrai_pauses_used";
 new const String:g_kvKey_nsfPauses[] = "nsf_pauses_used";
+#endif
 
 new g_assignedTeamWhenLive[MAXPLAYERS+1];
 new g_jinraiScore[MAX_ROUNDS_PLAYED];
@@ -114,7 +118,10 @@ new bool:g_isCurrentlyEditingClients[MAXPLAYERS+1];
 new bool:g_isCurrentlyGivingPenalty[MAXPLAYERS+1];
 new bool:g_survivedLastRound[MAXPLAYERS+1];
 new bool:g_isSuddenDeathRound;
+
+#if defined KV_DEBUG
 new bool:g_goLiveAfterKvRestore[MAXPLAYERS+1] = true;
+#endif
 
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
@@ -129,6 +136,7 @@ new Handle:g_hNeoScoreLimit;
 new Handle:g_hNeoRestartThis;
 new Handle:g_hPausable;
 new Handle:g_hRoundLimit;
+new Handle:g_hRoundStyle;
 new Handle:g_hSourceTVEnabled;
 new Handle:g_hSourceTVPath;
 new Handle:g_hJinraiName;
@@ -148,7 +156,8 @@ new Handle:g_hSuddenDeath;
 new Handle:g_hCenteredDisplayRemaining;
 new Handle:g_hCenteredDisplayTarget;
 new Handle:g_hCompForceCamera;
-#if DEBUG
+
+#if defined KV_DEBUG
 new Handle:g_hDebugKeyValues;
 #endif
 
@@ -158,7 +167,9 @@ new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
 
+#if defined KV_DEBUG
 KeyValues g_kv;
+#endif
 
 Menu g_clientMenu = null;
 
@@ -376,7 +387,7 @@ void ToggleLive(bool:isKvRestore = false)
 		g_isWantingOverride[TEAM_JINRAI] = false;
 		g_isWantingOverride[TEAM_NSF] = false;
 		g_isExpectingOverride = false;
-#if DEBUG
+#if defined KV_DEBUG
 		if ( GetConVarBool(g_hDebugKeyValues) )
 		{
 			Kv_Generate();
@@ -469,7 +480,7 @@ void ToggleLive(bool:isKvRestore = false)
 	// Stop live
 	else
 	{
-#if DEBUG
+#if defined KV_DEBUG
 		if ( GetConVarBool(g_hDebugKeyValues) )
 		{
 			if ( Kv_IsValid(g_kv) )
@@ -1376,7 +1387,15 @@ void RefereeMenu_GameInfo(client)
 
 	// Show how many rounds are played
 	decl String:boRounds[128];
-	Format( boRounds, sizeof(boRounds), "Best of %i rounds", GetConVarInt(g_hRoundLimit) );
+	if (GetConVarInt(g_hRoundStyle) == 1)
+	{
+		Format( boRounds, sizeof(boRounds), "Best of %i rounds", GetConVarInt(g_hRoundLimit) );
+	}
+	else
+	{
+		Format( boRounds, sizeof(boRounds), "First to %i rounds", GetConVarInt(g_hRoundLimit) );
+	}
+
 	DrawPanelItem(panel, boRounds);
 
 	// Show how many (time-out) pauses are allowed per team per map
@@ -1606,7 +1625,7 @@ void RefereeMenu_ManualEdit_PlayerScore(client)
 
 void RefereeMenu_LoadMatch(client)
 {
-#if DEBUG
+#if defined KV_DEBUG
 	Menu menu = CreateMenu(MenuHandler_RefereeMenu_LoadMatch);
 
 	menu.SetTitle("Load previous match state");
@@ -1658,6 +1677,7 @@ void RefereeMenu_LoadMatch(client)
 
 	menu.Display(client, MENU_TIME_FOREVER);
 #else
+	PrintToChat(client, "This is a disabled experimental feature.");
 	Command_RefereeMenu(client, 1);
 #endif
 }
@@ -1955,7 +1975,7 @@ void ApplyPenalty(admin, team)
 
 void CheckMatchState()
 {
-#if DEBUG
+#if defined KV_DEBUG
 	if ( GetConVarBool(g_hDebugKeyValues) )
 	{
 		Kv_LogRound(g_kv);
@@ -1966,43 +1986,18 @@ void CheckMatchState()
 	new roundsLeft = roundLimit - g_roundNumber;
 	decl String:msgBuffer[256];
 
-	// ** Announce match state below **
-	// Jinrai wins, NSF can't catch up anymore
-	if ( !g_isSuddenDeathRound && g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) ) // (g_roundNumber - 1) because we're counting rounds by incrementing inside the event. So first round is 1, not 0.
+	// Win condition: Best of X rounds
+	if (GetConVarInt(g_hRoundStyle) == 1)
 	{
-#if DEBUG
-		LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-		LogDebug("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
-#endif
-
-		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-
-		PrintToChatAll(msgBuffer);
-		LogCompetitive(msgBuffer);
-
-		g_winner = TEAM_JINRAI;
-	}
-
-	// NSF wins, Jinrai can't catch up anymore
-	else if ( !g_isSuddenDeathRound && g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1))
-	{
-#if DEBUG
-		LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-		LogDebug("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber], roundLimit, g_roundNumber);
-#endif
-
-		Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-
-		PrintToChatAll(msgBuffer);
-		LogCompetitive(msgBuffer);
-
-		g_winner = TEAM_NSF;
-	}
-
-	else if (g_isSuddenDeathRound)
-	{
-		if (g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber])
+		// ** Announce match state below **
+		// Jinrai wins, NSF can't catch up anymore
+		if ( !g_isSuddenDeathRound && g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) ) // (g_roundNumber - 1) because we're counting rounds by incrementing inside the event. So first round is 1, not 0.
 		{
+	#if DEBUG
+			LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
+			LogDebug("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
+	#endif
+
 			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 
 			PrintToChatAll(msgBuffer);
@@ -2010,8 +2005,15 @@ void CheckMatchState()
 
 			g_winner = TEAM_JINRAI;
 		}
-		else if (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber])
+
+		// NSF wins, Jinrai can't catch up anymore
+		else if ( !g_isSuddenDeathRound && g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1))
 		{
+	#if DEBUG
+			LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
+			LogDebug("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber], roundLimit, g_roundNumber);
+	#endif
+
 			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 
 			PrintToChatAll(msgBuffer);
@@ -2019,25 +2021,29 @@ void CheckMatchState()
 
 			g_winner = TEAM_NSF;
 		}
-		else
-		{
-			Format(msgBuffer, sizeof(msgBuffer), "%s SUDDEN DEATH. Next team to score wins.", g_tag);
-			PrintToChatAll(msgBuffer);
-			LogCompetitive(msgBuffer);
 
-			return;
-		}
-	}
-
-	// Tie, we ran out of rounds to play
-	else if ( (g_roundNumber - 1) == roundLimit )
-	{
-		// Sudden death mode
-		if ( GetConVarBool(g_hSuddenDeath) )
+		else if (g_isSuddenDeathRound)
 		{
-			if (!g_isSuddenDeathRound)
+			if (g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber])
 			{
-				g_isSuddenDeathRound = true;
+				Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
+
+				PrintToChatAll(msgBuffer);
+				LogCompetitive(msgBuffer);
+
+				g_winner = TEAM_JINRAI;
+			}
+			else if (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber])
+			{
+				Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
+
+				PrintToChatAll(msgBuffer);
+				LogCompetitive(msgBuffer);
+
+				g_winner = TEAM_NSF;
+			}
+			else
+			{
 				Format(msgBuffer, sizeof(msgBuffer), "%s SUDDEN DEATH. Next team to score wins.", g_tag);
 				PrintToChatAll(msgBuffer);
 				LogCompetitive(msgBuffer);
@@ -2046,42 +2052,101 @@ void CheckMatchState()
 			}
 		}
 
-		// No sudden death. End match in a tie.
-		else
+		// Tie, we ran out of rounds to play
+		else if ( (g_roundNumber - 1) == roundLimit )
 		{
-			Format(msgBuffer, sizeof(msgBuffer), "%s MATCH TIED %i - %i", g_tag, g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-			PrintToChatAll(msgBuffer);
-		}
-
-		LogCompetitive(msgBuffer);
-	}
-
-	// Check if game ended, and toggle off live mode if appropriate
-	if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || ((g_roundNumber - 1) == roundLimit))
-	{
-		ToggleLive();
-		LogCompetitive("Competitive match ended.");
-	}
-
-	// Match point, one team has almost won
-	else if (
-				// Jinrai is winning, and NSF can catch up exactly in the amount of rounds remaining
-				(g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] && g_nsfScore[g_roundNumber] + roundsLeft == g_jinraiScore[g_roundNumber]) ||
-				// NSF is winning, and Jinrai can catch up exactly in the amount of rounds remaining
-				(g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] && g_jinraiScore[g_roundNumber] + roundsLeft == g_nsfScore[g_roundNumber]) ||
-				// It is the last round
-				(g_roundNumber == roundLimit)
-			)
+			// Sudden death mode
+			if ( GetConVarBool(g_hSuddenDeath) )
 			{
-				PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+				if (!g_isSuddenDeathRound)
+				{
+					g_isSuddenDeathRound = true;
+					Format(msgBuffer, sizeof(msgBuffer), "%s SUDDEN DEATH. Next team to score wins.", g_tag);
+					PrintToChatAll(msgBuffer);
+					LogCompetitive(msgBuffer);
+
+					return;
+				}
 			}
 
-	// Just another round, simply announce round number
+			// No sudden death. End match in a tie.
+			else
+			{
+				Format(msgBuffer, sizeof(msgBuffer), "%s MATCH TIED %i - %i", g_tag, g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
+				PrintToChatAll(msgBuffer);
+			}
+
+			LogCompetitive(msgBuffer);
+		}
+
+		// Check if game ended, and toggle off live mode if appropriate
+		if ((g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1)) || ((g_roundNumber - 1) == roundLimit))
+		{
+			ToggleLive();
+			LogCompetitive("Competitive match ended.");
+		}
+
+		// Match point, one team has almost won
+		else if (
+					// Jinrai is winning, and NSF can catch up exactly in the amount of rounds remaining
+					(g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] && g_nsfScore[g_roundNumber] + roundsLeft == g_jinraiScore[g_roundNumber]) ||
+					// NSF is winning, and Jinrai can catch up exactly in the amount of rounds remaining
+					(g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] && g_jinraiScore[g_roundNumber] + roundsLeft == g_nsfScore[g_roundNumber]) ||
+					// It is the last round
+					(g_roundNumber == roundLimit)
+				)
+				{
+					PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+				}
+
+		// Just another round, simply announce round number
+		else
+		{
+			// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
+			if (g_spamTimerCount <= 1)
+				PrintToChatAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
+		}
+	}
+	// Win condition: First to X rounds
 	else
 	{
-		// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
-		if (g_spamTimerCount <= 1)
-			PrintToChatAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
+		// Jinrai reached score required to win
+		if (g_jinraiScore[g_roundNumber] == roundLimit)
+		{
+			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i",
+				g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber],
+				g_nsfScore[g_roundNumber]);
+
+			PrintToChatAll(msgBuffer);
+			LogCompetitive(msgBuffer);
+			g_winner = TEAM_JINRAI;
+
+			ToggleLive();
+			LogCompetitive("Competitive match ended.");
+		}
+		// NSF reached score required to win
+		else if (g_nsfScore[g_roundNumber] == roundLimit)
+		{
+			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i",
+				g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber],
+				g_jinraiScore[g_roundNumber]);
+
+			PrintToChatAll(msgBuffer);
+			LogCompetitive(msgBuffer);
+			g_winner = TEAM_NSF;
+
+			ToggleLive();
+			LogCompetitive("Competitive match ended.");
+		}
+		// This should never happen
+		else if (g_nsfScore[g_roundNumber] > roundLimit ||
+			g_jinraiScore[g_roundNumber] > roundLimit)
+		{
+			ThrowError("Team has reached score higher than required to win a match. \
+Jinrai %i - NSF %i, round %i in a first to %i points game.",
+			g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], g_roundNumber,
+			roundLimit);
+		}
 	}
 }
 
@@ -2188,7 +2253,7 @@ void CenterText_DisplayRemaining()
 	}
 }
 
-#if DEBUG
+#if defined KV_DEBUG
 // Purpose: Make sure handle holds valid KeyValues data, using the comp plugin's format.
 // This will also reset the entire traversal stack. Intended use: kv initialisation, import, export.
 bool Kv_IsValid(KeyValues kv)

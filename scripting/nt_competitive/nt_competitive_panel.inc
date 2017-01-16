@@ -345,6 +345,7 @@ public PanelHandler_RefereeMenu_GameInfo(Handle:menu, MenuAction:action, client,
 
 public PanelHandler_RefereeMenu_LoadMatch_ViewMeta(Handle:menu, MenuAction:action, client, choice)
 {
+#if defined KV_DEBUG
 	if (action != MenuAction_Select)
 		return;
 
@@ -380,6 +381,11 @@ public PanelHandler_RefereeMenu_LoadMatch_ViewMeta(Handle:menu, MenuAction:actio
 			Command_RefereeMenu(client, 1);
 		}
 	}
+#else
+	PrecacheSound(g_menuSoundCancel);
+	EmitSoundToClient(client, g_menuSoundCancel);
+	Command_RefereeMenu(client, 1);
+#endif
 }
 
 Menu BuildClientMenu()
@@ -427,6 +433,7 @@ public int Menu_Clients(Menu menu, MenuAction action, client, choice)
 	RefereeMenu_ClientActions(client);
 }
 
+#if defined KV_DEBUG
 void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 {
 	if ( !Client_IsValid(client) || !IsClientInGame(client) )
@@ -553,3 +560,4 @@ public MenuHandler_RefereeMenu_LoadMatch(Menu:menu, MenuAction:action, client, c
 
 //	PrintToServer("File chosen: %s", kvFileName);
 }
+#endif
