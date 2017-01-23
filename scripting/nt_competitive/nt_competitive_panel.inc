@@ -394,7 +394,7 @@ Menu BuildClientMenu()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || IsFakeClient(i) )
+		if ( !IsValidClient(i) || IsFakeClient(i) )
 			continue;
 
 		new team = GetClientTeam(i);
@@ -424,7 +424,7 @@ public int Menu_Clients(Menu menu, MenuAction action, client, choice)
 
 	new target = StringToInt(targetString);
 
-	if ( !Client_IsValid(target) )
+	if ( !IsValidClient(target) )
 	{
 		PrintToChat(client, "This player has left the server.");
 		return;
@@ -436,7 +436,7 @@ public int Menu_Clients(Menu menu, MenuAction action, client, choice)
 #if defined KV_DEBUG
 void Menu_KvDetails(client, const String:kvFileName[], bool:outOfBounds = false)
 {
-	if ( !Client_IsValid(client) || !IsClientInGame(client) )
+	if ( !IsValidClient(client) || !IsClientInGame(client) )
 		return;
 
 	if (strlen(kvFileName) < 1)

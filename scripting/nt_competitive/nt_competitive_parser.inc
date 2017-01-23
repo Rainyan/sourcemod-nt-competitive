@@ -16,7 +16,7 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 #if DEBUG
 	else
 	{
-		if ( Client_IsValid(client) )
+		if ( IsValidClient(client) )
 		{
 			decl String:clientName[MAX_NAME_LENGTH];
 			GetClientName( client, clientName, sizeof(clientName) );
@@ -201,7 +201,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			// Get amount of survivors on both teams
 			for (i = 1; i <= MaxClients; i++)
 			{
-				if ( !Client_IsValid(i) || !IsClientInGame(i) )
+				if ( !IsValidClient(i) || !IsClientInGame(i) )
 					continue;
 
 				new team = GetClientTeam(i);
@@ -240,7 +240,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 		for (i = 1; i <= MaxClients; i++)
 		{
-			if ( !Client_IsValid(i) || IsFakeClient(i) )
+			if ( !IsValidClient(i) || IsFakeClient(i) )
 				continue;
 
 			g_playerDeaths[i][g_roundNumber]	= GetEntProp(i, Prop_Data, "m_iDeaths");	// Save everyone's death count for this round

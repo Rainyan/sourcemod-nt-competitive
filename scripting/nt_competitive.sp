@@ -14,7 +14,6 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <smlib>
 #include <neotokyo>
 #include "nt_competitive/nt_competitive_base"
 #include "nt_competitive/nt_competitive_panel"
@@ -177,7 +176,7 @@ public OnClientAuthorized(client, const String:authID[])
 	if (!g_isLive)
 		return;
 
-	if ( Client_IsValid(client) && IsFakeClient(client) )
+	if ( IsValidClient(client) && IsFakeClient(client) )
 	{
 		g_assignedTeamWhenLive[client] = TEAM_NONE; // This is a bot, let them join whichever team they like
 		return;
@@ -253,7 +252,7 @@ public OnClientDisconnect(client)
 
 public OnGhostCapture(client)
 {
-	if ( !Client_IsValid(client) )
+	if ( !IsValidClient(client) )
 	{
 		LogError("Returned invalid client %i", client);
 		g_ghostCapturingTeam = TEAM_NONE;
@@ -373,7 +372,7 @@ public Action:Command_Pause(client, args)
 		return Plugin_Stop;
 	}
 
-	if ( !Client_IsValid(client) )
+	if ( !IsValidClient(client) )
 		return Plugin_Stop;
 
 	if (!g_isLive)
@@ -555,7 +554,7 @@ void CancelPauseRequest(client)
 
 void UnPauseRequest(client)
 {
-	if ( client == 0 || !Client_IsValid(client) || !IsClientInGame(client) )
+	if ( client == 0 || !IsValidClient(client) || !IsClientInGame(client) )
 	{
 		LogError("Invalid client %i called UnPauseRequest", client);
 #if DEBUG
@@ -621,7 +620,7 @@ public Action:Command_OverrideStart(client, args)
 	new playersInTeamReady;
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i))
+		if (!IsValidClient(i))
 			continue;
 
 		if (GetClientTeam(i) == team)
@@ -750,7 +749,7 @@ public Action:Command_Ready(client, args)
 
 			for (new i = 1; i <= MaxClients; i++)
 			{
-				if ( !Client_IsValid(i) )
+				if ( !IsValidClient(i) )
 					continue;
 
 				if ( team != GetClientTeam(i) )
@@ -832,7 +831,7 @@ public Action:Command_UnReady(client, args)
 		{
 			for (new i = 1; i <= MaxClients; i++)
 			{
-				if ( !Client_IsValid(i) )
+				if ( !IsValidClient(i) )
 					continue;
 
 				if ( team != GetClientTeam(i) )

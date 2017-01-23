@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.3.9.17"
+#define PLUGIN_VERSION "0.3.9.18"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -243,7 +243,7 @@ void CheckIfEveryoneIsReady()
 
 public Action:Command_ReadyList(client, args)
 {
-	if (!Client_IsValid(client))
+	if (!IsValidClient(client))
 		return Plugin_Stop;
 
 	ReplyToCommand(client, "%s List of readied players is printed in your console.", g_tag);
@@ -251,7 +251,7 @@ public Action:Command_ReadyList(client, args)
 	PrintToConsole(client, "\n%s Players and their READY state:", g_tag);
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i))
+		if (!IsValidClient(i))
 			continue;
 
 		new team = GetClientTeam(i);
@@ -275,7 +275,7 @@ public Action:Command_ReadyList(client, args)
 
 void PlayerRecord(client)
 {
-	if (!Client_IsValid(client))
+	if (!IsValidClient(client))
 		return;
 
 	new String:steamID[MAX_STEAMID_LENGTH];
@@ -326,7 +326,7 @@ void ToggleRecording()
 	{
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (!Client_IsValid(i) || IsFakeClient(i))
+			if (!IsValidClient(i) || IsFakeClient(i))
 				continue;
 
 			PlayerRecord(i);
@@ -336,7 +336,7 @@ void ToggleRecording()
 	{
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (!Client_IsValid(i) || IsFakeClient(i))
+			if (!IsValidClient(i) || IsFakeClient(i))
 				continue;
 
 			ClientCommand(i, "stop");
@@ -414,7 +414,7 @@ void ToggleLive(bool:isKvRestore = false)
 		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (!Client_IsValid(i) || IsFakeClient(i) ||!IsClientInGame(i))
+			if (!IsValidClient(i) || IsFakeClient(i) ||!IsClientInGame(i))
 				continue;
 
 			if (!IsClientAuthorized(i))
@@ -523,7 +523,7 @@ void NeoRestartThis()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i))
+		if (!IsValidClient(i))
 			continue;
 
 		SetPlayerRank(i, 0);
@@ -733,7 +733,7 @@ public Action:Command_UnpauseOther(client, args) // Pretend the other team made 
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i))
+		if (!IsValidClient(i))
 			continue;
 
 		new forLoopTeam = GetClientTeam(i);
@@ -761,7 +761,7 @@ public Action:Command_OverrideStartOther(client, args) // Pretend the other team
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i))
+		if (!IsValidClient(i))
 			continue;
 
 		new forLoopTeam = GetClientTeam(i);
@@ -798,7 +798,7 @@ void TogglePauseLoop()
 	for (new i = 1; i <= MaxClients; i++) // The server can't exec "pause" for some reason. So, instead, use the first valid client to execute it.
 	{
 		unspawnedClients[0] = unspawnedClients[1];
-		if (Client_IsValid(i))
+		if (IsValidClient(i))
 		{
 			if (IsFakeClient(i))
 			{
@@ -1085,7 +1085,7 @@ bool:IsSourceTVBotConnected()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (!Client_IsValid(i) || !IsFakeClient(i)) // We are looking for a valid fake client (bot)
+		if (!IsValidClient(i) || !IsFakeClient(i)) // We are looking for a valid fake client (bot)
 			continue;
 
 		decl String:clientName[MAX_NAME_LENGTH];
@@ -1114,7 +1114,7 @@ int GetPlayerCount()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i) )
+		if ( !IsValidClient(i) || !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 
 		new team = GetClientTeam(i);
@@ -1134,7 +1134,7 @@ int GetPlayersReady()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !g_isReady[i] || IsFakeClient(i) )
+		if ( !IsValidClient(i) || !g_isReady[i] || IsFakeClient(i) )
 			continue;
 
 		new team = GetClientTeam(i);
@@ -1199,7 +1199,7 @@ void PrintToConsoleAll(const String:message[], any ...)
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i) )
+		if ( !IsValidClient(i) || !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 
 		PrintToConsole(i, formatMsg);
@@ -1218,7 +1218,7 @@ void UpdatePlayersAlive() // Updates g_playersAlive array
 			continue;
 #endif
 
-		if (!Client_IsValid(i) || !IsClientInGame(i))
+		if (!IsValidClient(i) || !IsClientInGame(i))
 			continue;
 
 		if (!IsPlayerAlive(i))
@@ -1249,7 +1249,7 @@ void ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new ro
 			continue;
 #endif
 
-		if (!Client_IsValid(i))
+		if (!IsValidClient(i))
 			continue;
 
 		new team = GetClientTeam(i);
@@ -1337,7 +1337,7 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 
 void ShowKillInfoNextRound(client, const String:message[])
 {
-	if ( !Client_IsValid(client) )
+	if ( !IsValidClient(client) )
 		return;
 
 	strcopy(g_killInfoBuffer[client], sizeof(g_killInfoBuffer), message);
@@ -1346,7 +1346,7 @@ void ShowKillInfoNextRound(client, const String:message[])
 
 void RefereeMenu_GameInfo(client)
 {
-	if ( !Client_IsValid(client) )
+	if ( !IsValidClient(client) )
 		return;
 
 	new Handle:panel = CreatePanel();
@@ -1431,7 +1431,7 @@ void RefereeMenu_ClientActions(client)
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+		if ( !IsValidClient(i) || !IsAdmin(i) )
 			continue;
 
 		if (g_isCurrentlyEditingClients[i])
@@ -1468,7 +1468,7 @@ void RefereeMenu_Penalties(client)
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+		if ( !IsValidClient(i) || !IsAdmin(i) )
 			continue;
 
 		if (g_isCurrentlyGivingPenalty[client])
@@ -1518,7 +1518,7 @@ void RefereeMenu_ChangeRound(client)
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+		if ( !IsValidClient(i) || !IsAdmin(i) )
 			continue;
 
 		if (g_isEditingSetting[i])
@@ -1593,7 +1593,7 @@ void RefereeMenu_ManualEdit_TeamScore(client)
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+		if ( !IsValidClient(i) || !IsAdmin(i) )
 			continue;
 
 		if (g_isEditingSetting[i])
@@ -1700,7 +1700,7 @@ void ChatCvarEdit(client, Handle:cvar)
 		return;
 	}
 
-	if ( !Client_IsValid(client) )
+	if ( !IsValidClient(client) )
 		return;
 
 	if (g_isEditingSetting[client])
@@ -1713,7 +1713,7 @@ void ChatCvarEdit(client, Handle:cvar)
 	{
 		if (g_isEditingSetting[i])
 		{
-			if ( !Client_IsValid(i) )
+			if ( !IsValidClient(i) )
 			{
 				LogError("Invalid client with g_isEditingSetting bool as true.");
 				PrintToChat(client, "%s Error editing cvar via chat. Check error logs for more info.", g_tag);
@@ -1790,7 +1790,7 @@ void PrintToAdmins(bool toChat = true, bool toConsole = false, const String:mess
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+		if ( !IsValidClient(i) || !IsAdmin(i) )
 			continue;
 
 		if (toChat)
@@ -1810,7 +1810,7 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 		new bool:adminsPresent;
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if ( !Client_IsValid(i) || !Client_IsAdmin(i) )
+			if ( !IsValidClient(i) || !IsAdmin(i) )
 				continue;
 
 			adminsPresent = true;
@@ -1828,7 +1828,7 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 
 	if (isAdminTriggered)
 	{
-		if ( client == 0 || !Client_IsValid(client) || !Client_IsAdmin(client) )
+		if ( client == 0 || !IsValidClient(client) || !IsAdmin(client) )
 		{
 			LogError("Invalid client index %i for admin trigger", client);
 
@@ -1863,7 +1863,7 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 		// Only recover previous XP/ranks if restoring previous match state (unpause etc)
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if ( !Client_IsValid(i) || IsFakeClient(i) )
+			if ( !IsValidClient(i) || IsFakeClient(i) )
 				continue;
 
 			SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][roundNumber]); // Restore deaths
@@ -1914,7 +1914,7 @@ void EmptyScore()
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !IsClientInGame(i) || IsFakeClient(i) )
+		if ( !IsValidClient(i) || !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 
 		SetEntProp(i, Prop_Data, "m_iDeaths", 0); // 0 deaths
@@ -2211,7 +2211,7 @@ void LogDebug(const String:message[], any ...)
 
 bool DidPlayerReallySpawn(client)
 {
-	if ( !Client_IsValid(client) || !IsClientInGame(client) )
+	if ( !IsValidClient(client) || !IsClientInGame(client) )
 	{
 //		PrintToServer("Client is not valid %i", client);
 		return false;
@@ -2255,7 +2255,7 @@ void CenterText_DisplayRemaining()
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !IsClientInGame(i) )
+		if ( !IsValidClient(i) || !IsClientInGame(i) )
 			continue;
 
 		new team = GetClientTeam(i);
@@ -2332,7 +2332,7 @@ void Kv_LogRound(KeyValues kv)
 	new team;
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
+		if ( !IsValidClient(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
 			continue;
 
 		team = GetClientTeam(i);
@@ -2457,7 +2457,7 @@ void Kv_PopulateMeta(KeyValues kv)
 	new team;
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !Client_IsValid(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
+		if ( !IsValidClient(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
 			continue;
 
 		team = GetClientTeam(i);
@@ -2598,7 +2598,7 @@ void Kv_RestoreFromFile(const String:fileName[], bool:goLive = false)
 		new deaths;
 		for (i = 1; i <= MaxClients; i++)
 		{
-			if ( !Client_IsValid(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
+			if ( !IsValidClient(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
 				continue;
 
 			GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
@@ -2726,7 +2726,7 @@ public Action:Timer_RestoreTeamScores(Handle:timer, DataPack:pack)
 
 void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:getPrevious = false)
 {
-	if ( !Client_IsValid(client) || !IsClientInGame(client) )
+	if ( !IsValidClient(client) || !IsClientInGame(client) )
 		return;
 
 	if (strlen(kvFileName) < 1)
@@ -2896,4 +2896,19 @@ void CancelLiveCountdown()
 	g_liveTimer = g_liveTimer_OriginalValue; // Reset live countdown timer to its original value
 
 	PrintToChatAll("%s Live countdown cancelled.", g_tag);
+}
+
+bool IsAdmin(int client)
+{
+	if (!IsValidClient(client) || !IsClientAuthorized(client))
+	{
+		LogError("IsAdmin: Client %i is not valid. This shouldn't happen.", client);
+		return false;
+	}
+	AdminId adminId = GetUserAdmin(client);
+	if (adminId == INVALID_ADMIN_ID)
+	{
+		return false;
+	}
+	return GetAdminFlag(adminId, Admin_Generic);
 }
