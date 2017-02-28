@@ -159,6 +159,7 @@ new Handle:g_hSuddenDeath;
 new Handle:g_hCenteredDisplayRemaining;
 new Handle:g_hCenteredDisplayTarget;
 new Handle:g_hCompForceCamera;
+new Handle:g_hCenteredDisplayDivider;
 
 #if defined KV_DEBUG
 new Handle:g_hDebugKeyValues;
@@ -2242,12 +2243,21 @@ void CenterText_DisplayRemaining()
 
 	decl String:message[24];
 
+	char sDivider[10];
+	GetConVarString(g_hCenteredDisplayDivider, sDivider, sizeof(sDivider));
+
 	// Just display numbers remaining
 	if (GetConVarInt(g_hCenteredDisplayRemaining) == 1)
-		Format(message, sizeof(message), "%i -- %i", g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
+	{
+		Format(message, sizeof(message), "%i %s %i",
+			g_playersAlive[TEAM_JINRAI], sDivider, g_playersAlive[TEAM_NSF]);
+	}
 	// Display team name + numbers remaining
 	else
-		Format(message, sizeof(message), "JIN %i -- %i NSF", g_playersAlive[TEAM_JINRAI], g_playersAlive[TEAM_NSF]);
+	{
+		Format(message, sizeof(message), "JIN %i %s %i NSF",
+			g_playersAlive[TEAM_JINRAI], sDivider, g_playersAlive[TEAM_NSF]);
+	}
 
 	new bool:specOnly;
 	if ( GetConVarInt(g_hCenteredDisplayTarget) == 1)
