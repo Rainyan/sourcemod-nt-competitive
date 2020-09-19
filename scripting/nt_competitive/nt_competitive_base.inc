@@ -2242,6 +2242,7 @@ void CenterText_DisplayRemaining()
 		return;
 
 	decl String:message[24];
+	decl String:message_nsf[24];
 
 	char sDivider[10];
 	GetConVarString(g_hCenteredDisplayDivider, sDivider, sizeof(sDivider));
@@ -2251,17 +2252,25 @@ void CenterText_DisplayRemaining()
 	{
 		Format(message, sizeof(message), "%i %s %i",
 			g_playersAlive[TEAM_JINRAI], sDivider, g_playersAlive[TEAM_NSF]);
+		Format(message_nsf, sizeof(message_nsf), "%i %s %i",
+			g_playersAlive[TEAM_NSF], sDivider, g_playersAlive[TEAM_JINRAI]);
 	}
 	// Display team name + numbers remaining
 	else
 	{
 		Format(message, sizeof(message), "JIN %i %s %i NSF",
 			g_playersAlive[TEAM_JINRAI], sDivider, g_playersAlive[TEAM_NSF]);
+		Format(message_nsf, sizeof(message_nsf), "NSF %i %s %i JIN",
+			g_playersAlive[TEAM_NSF], sDivider, g_playersAlive[TEAM_JINRAI]);
 	}
 
 	new bool:specOnly;
-	if ( GetConVarInt(g_hCenteredDisplayTarget) == 1)
+	if (GetConVarInt(g_hCenteredDisplayTarget) == 1)
 		specOnly = true;
+
+	new bool:deadOnly;
+	if (GetConVarInt(g_hCenteredDisplayTarget) == 2)
+		deadOnly = true;
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -2273,10 +2282,13 @@ void CenterText_DisplayRemaining()
 		if (specOnly && team != TEAM_SPECTATOR)
 			continue;
 
-		else if ( team != TEAM_SPECTATOR || IsPlayerAlive(i) )
+		if (deadOnly && team != TEAM_SPECTATOR && IsPlayerAlive(i))
 			continue;
 
-		PrintCenterText(i, message);
+		if (team == TEAM_NSF)
+			PrintCenterText(i, message_nsf);
+		else
+			PrintCenterText(i, message);
 	}
 }
 
