@@ -59,7 +59,7 @@ sm_competitive_nozanshi									- Whether or not to disable timeout wins. Defaul
 sm_competitive_jinrai_score								- Competitive plugin's internal score cvar. Editing this will directly affect comp team scores. Default: 0
 sm_competitive_nsf_score								- Competitive plugin's internal score cvar. Editing this will directly affect comp team scores. Default: 0
 sm_competitive_display_remaining_players_centered		- How the number of remaining players is displayed to clients in a competitive game. 0 = disabled, 1 = show remaining player numbers, 2 = show team names and remaining player numbers. Default: 2
-sm_competitive_display_remaining_players_target  		- Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players. Default: 2
+sm_competitive_display_remaining_players_target  		- Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players, 3 = everyone. Default: 2
 sm_competitive_keyvalues_test							- Store match data into KeyValues file. Debug cvar. Default: 1
 sm_competitive_force_camera				    			- Should fade to black be forced on death when live. Can be useful to disable on pugs etc. Default: 1
 ```

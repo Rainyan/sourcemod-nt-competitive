@@ -423,6 +423,8 @@ public Event_Restart(Handle:cvar, const String:oldVal[], const String:newVal[])
 	if (StringToInt(newVal)) // If nonzero, we have a restart
 	{
 		g_roundNumber = 0; // Reset round count
+		GameRules_SetProp("m_iRoundNumber", g_roundNumber);
+
 		g_ghostCapturingTeam = TEAM_NONE; // Reset last round capper
 
 		if (g_isLive)

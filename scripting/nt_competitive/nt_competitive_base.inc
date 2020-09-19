@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.3.9.18"
+#define PLUGIN_VERSION "0.3.9.19"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -664,6 +664,7 @@ void TogglePause()
 				g_isCurrentlyUnPausing = true;
 
 				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the pause round
+				GameRules_SetProp("m_iRoundNumber", g_roundNumber);
 				SetGameState(GAMESTATE_NORMAL);
 
 				RestoreRound(g_roundNumber); // Restore everyone's XP, deaths and ranks to the state before pausing
@@ -1885,6 +1886,7 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 		Command_RefereeMenu(client, 1);
 
 		GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the round
+		GameRules_SetProp("m_iRoundNumber", roundNumber);
 
 		new Handle:endRoundTime = FindConVar("mp_chattime");
 		CreateTimer( (GetConVarFloat(endRoundTime) + 5.1), Timer_RestoreRound, roundNumber);
@@ -2242,6 +2244,7 @@ void CenterText_DisplayRemaining()
 		return;
 
 	decl String:message[24];
+	decl String:message_nsf[24];
 
 	char sDivider[10];
 	GetConVarString(g_hCenteredDisplayDivider, sDivider, sizeof(sDivider));
@@ -2251,17 +2254,25 @@ void CenterText_DisplayRemaining()
 	{
 		Format(message, sizeof(message), "%i %s %i",
 			g_playersAlive[TEAM_JINRAI], sDivider, g_playersAlive[TEAM_NSF]);
+		Format(message_nsf, sizeof(message_nsf), "%i %s %i",
+			g_playersAlive[TEAM_NSF], sDivider, g_playersAlive[TEAM_JINRAI]);
 	}
 	// Display team name + numbers remaining
 	else
 	{
 		Format(message, sizeof(message), "JIN %i %s %i NSF",
 			g_playersAlive[TEAM_JINRAI], sDivider, g_playersAlive[TEAM_NSF]);
+		Format(message_nsf, sizeof(message_nsf), "NSF %i %s %i JIN",
+			g_playersAlive[TEAM_NSF], sDivider, g_playersAlive[TEAM_JINRAI]);
 	}
 
 	new bool:specOnly;
-	if ( GetConVarInt(g_hCenteredDisplayTarget) == 1)
+	if (GetConVarInt(g_hCenteredDisplayTarget) == 1)
 		specOnly = true;
+
+	new bool:deadOnly;
+	if (GetConVarInt(g_hCenteredDisplayTarget) == 2)
+		deadOnly = true;
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -2273,10 +2284,13 @@ void CenterText_DisplayRemaining()
 		if (specOnly && team != TEAM_SPECTATOR)
 			continue;
 
-		else if ( team != TEAM_SPECTATOR || IsPlayerAlive(i) )
+		if (deadOnly && team != TEAM_SPECTATOR && IsPlayerAlive(i))
 			continue;
 
-		PrintCenterText(i, message);
+		if (team == TEAM_NSF)
+			PrintCenterText(i, message_nsf);
+		else
+			PrintCenterText(i, message);
 	}
 }
 
