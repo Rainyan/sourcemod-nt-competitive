@@ -1194,6 +1194,7 @@ void LogCompetitive(const String:message[])
 	CloseHandle(hFile);
 }
 
+#if SOURCEMOD_V_MAJOR <= 1 && SOURCEMOD_V_MINOR < 9
 void PrintToConsoleAll(const String:message[], any ...)
 {
 	decl String:formatMsg[512];
@@ -1207,6 +1208,7 @@ void PrintToConsoleAll(const String:message[], any ...)
 		PrintToConsole(i, formatMsg);
 	}
 }
+#endif
 
 void UpdatePlayersAlive() // Updates g_playersAlive array
 {
