@@ -1998,7 +1998,6 @@ void CheckMatchState()
 	}
 #endif
 	new roundLimit = GetConVarInt(g_hRoundLimit);
-	new roundsLeft = roundLimit - g_roundNumber;
 	decl String:msgBuffer[256];
 
 	// Win condition: Best of X rounds
@@ -2102,17 +2101,10 @@ void CheckMatchState()
 		}
 
 		// Match point, one team has almost won
-		else if (
-					// Jinrai is winning, and NSF can catch up exactly in the amount of rounds remaining
-					(g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] && g_nsfScore[g_roundNumber] + roundsLeft == g_jinraiScore[g_roundNumber]) ||
-					// NSF is winning, and Jinrai can catch up exactly in the amount of rounds remaining
-					(g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] && g_jinraiScore[g_roundNumber] + roundsLeft == g_nsfScore[g_roundNumber]) ||
-					// It is the last round
-					(g_roundNumber == roundLimit)
-				)
-				{
-					PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
-				}
+		else if (IsMatchPoint())
+		{
+			PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+		}
 
 		// Just another round, simply announce round number
 		else
@@ -2937,4 +2929,31 @@ bool IsAdmin(int client)
 		return false;
 	}
 	return GetAdminFlag(adminId, Admin_Generic);
+}
+
+bool IsMatchPoint()
+{
+	if (!g_isLive)
+	{
+		return false;
+	}
+
+	int rounds_remaining = GetConVarInt(g_hRoundLimit) - (g_roundNumber);
+
+	// Should never have less than 0 rounds remaining, but do a sanity check just in case.
+	if (rounds_remaining < 0) {
+		LogError("Had %d rounds remaining, but expected 0 or more (%d - %d = %d).",
+			rounds_remaining,
+			GetConVarInt(g_hRoundLimit),
+			g_roundNumber,
+			GetConVarInt(g_hRoundLimit) - (g_roundNumber));
+		return false;
+	}
+
+	int score_difference = g_jinraiScore[g_roundNumber] - g_nsfScore[g_roundNumber];
+	// Negative value means the other team is leading.
+	// Don't care which team is leading here, so get the absolute value.
+	score_difference = score_difference < 0 ? -score_difference : score_difference;
+
+	return score_difference >= rounds_remaining;
 }
