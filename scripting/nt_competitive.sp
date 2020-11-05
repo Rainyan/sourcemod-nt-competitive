@@ -15,9 +15,20 @@
 #include <sourcemod>
 #include <sdktools>
 #include <neotokyo>
+
+//#define FLATTEN_INCLUDE_PATHS 1
+
+#if defined(FLATTEN_INCLUDE_PATHS)
+#include nt_competitive_base
+#include nt_competitive_panel
+#include nt_competitive_parser
+#else
+// If you're compiling using Spider or other in-browser compiler,
+// and these include paths are failing, un-comment the FLATTEN_INCLUDE_PATHS compile flag above.
 #include "nt_competitive/nt_competitive_base"
 #include "nt_competitive/nt_competitive_panel"
 #include "nt_competitive/nt_competitive_parser"
+#endif
 
 public Plugin:myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
