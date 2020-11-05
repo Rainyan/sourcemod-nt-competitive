@@ -37,7 +37,7 @@ Plugin cvars:
 ```
 sm_competitive_round_style                              - How a match win is determined. 1 = best of X rounds, 2 = first to X points. Default: 1
 sm_competitive_round_limit								- If sm_competitive_round_style equals 1, this is the best of X rounds. If it equals 2, this is the score required to win. Default: 15
-sm_competitive_sudden_death								- If map ends in a tied scoreline, keep play going until someone wins? Default: 1"
+sm_competitive_sudden_death								- If map ends in a tied scoreline, keep play going until someone wins? Default: 1
 sm_competitive_players_total							- How many players total are expected to ready up before starting a competitive match. Default: 10
 sm_competitive_max_timeouts								- How many time-outs are allowed per match per team. Default: 1
 sm_competitive_max_pause_length							- How long can a competitive time-out last, in seconds. Default: 60
