@@ -549,7 +549,6 @@ void TogglePause()
 			{
 				if (!g_isLive)
 				{
-					LogError("Attempted to pause while match isn't live.");
 					return;
 				}
 
@@ -2034,6 +2033,7 @@ void CheckMatchState()
 			LogCompetitive(msgBuffer);
 
 			g_winner = TEAM_NSF;
+			g_isLive = false;
 		}
 
 		else if (g_isSuddenDeathRound)

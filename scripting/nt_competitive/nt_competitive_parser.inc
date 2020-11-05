@@ -151,11 +151,11 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	if (g_isPaused)
 		return Plugin_Continue;
 
+	g_fRoundTime = GetGameTime();
+
 	// Game is currently being unpaused (points being recovered etc). Stop here.
 	if (g_isCurrentlyUnPausing)
 	{
-		g_fRoundTime	= GetGameTime();
-
 		RestoreRound(g_roundNumber);
 		PrintToChatAll( "%s Round %i/%i", g_tag, g_roundNumber, GetConVarInt(g_hRoundLimit) );
 		SpamTimer();
@@ -176,7 +176,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	// Round is being edited, stop here.
 	else if (g_isCurrentlyRestoringRound)
 	{
-		g_fRoundTime	= GetGameTime();
 		g_isCurrentlyRestoringRound = false;
 
 		PrintToChatAll( "%s Round %i/%i", g_tag, g_roundNumber, GetConVarInt(g_hRoundLimit) );
@@ -225,9 +224,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			}
 		}
 	}
-
-	g_fRoundTime	= GetGameTime();
-//	PrintToServer("# # # NEW ROUND Game Time: %f", g_fRoundTime);
 
 	if (g_roundNumber > MAX_ROUNDS_PLAYED)
 	{
