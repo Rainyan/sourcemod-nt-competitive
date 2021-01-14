@@ -11,16 +11,16 @@
 #define SQL_TABLE_QUEUED "queued"
 #define SQL_TABLE_OFFER_MATCH "match_offers"
 
-new Handle:g_hMatchmaking;
-new Handle:g_hMatchSize;
+Handle g_hMatchmaking;
+Handle g_hMatchSize;
 
-new Handle:g_hTimer_CheckMMStatus = INVALID_HANDLE;
-new Handle:db = INVALID_HANDLE;
+Handle g_hTimer_CheckMMStatus = INVALID_HANDLE;
+Handle db = INVALID_HANDLE;
 
-new bool:g_isSQLInitialized;
-new bool:g_isServerOfferingMatch;
+bool g_isSQLInitialized;
+bool g_isServerOfferingMatch;
 
-public Plugin:myinfo = {
+public Plugin myinfo = {
 	name		=	"Neotokyo Competitive Plugin, Matchmaking Module",
 	description	=	"Handle queue based matchmaking",
 	author		=	"Rain",
@@ -28,7 +28,7 @@ public Plugin:myinfo = {
 	url			=	""
 };
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	g_hMatchmaking = CreateConVar("sm_competitive_matchmaking",	"1",	"Enable matchmaking mode (automated queue system instead of manual join)", _, true, 0.0, true, 1.0);
 	
@@ -37,7 +37,7 @@ public OnPluginStart()
 	HookConVarChange(g_hMatchmaking, Event_Matchmaking);
 }
 
-public OnConfigsExecuted()
+public void OnConfigsExecuted()
 {
 	if (GetConVarBool(g_hMatchmaking))
 	{
@@ -48,13 +48,13 @@ public OnConfigsExecuted()
 	}
 }
 
-GetPlayersQueued()
+int GetPlayersQueued()
 {	
-	new String:sql[MAX_SQL_LENGTH];
+	char sql[MAX_SQL_LENGTH];
 	
 	Format(sql, sizeof(sql), "SELECT players_queued FROM %s", SQL_TABLE_QUEUED);
 	
-	new Handle:query = SQL_Query(db, sql);
+	Handle query = SQL_Query(db, sql);
 	
 	if (query == INVALID_HANDLE)
 	{
@@ -62,7 +62,7 @@ GetPlayersQueued()
 		return 0;
 	}
 	
-	new playersQueued;
+	int playersQueued;
 	
 	while (SQL_FetchRow(query))
 		playersQueued = SQL_FetchInt(query, 0);
@@ -72,9 +72,9 @@ GetPlayersQueued()
 	return playersQueued;
 }
 
-InitSQL()
+void InitSQL()
 {
-	new String:sqlError[256];
+	char sqlError[256];
 	db = SQL_Connect(SQL_CONFIG, true, sqlError, sizeof(sqlError));
 	
 	if (db == INVALID_HANDLE)
@@ -83,12 +83,12 @@ InitSQL()
 		return;
 	}
 	
-	new String:sql[MAX_SQL_LENGTH];
+	char sql[MAX_SQL_LENGTH];
 	Format(sql, sizeof(sql), "CREATE TABLE IF NOT EXISTS %s( \
-		id INT(5) NOT NULL AUTO_INCREMENT, \
-		players_queued INT(2), \
-		Timestamp TIMESTAMP, \
-		PRIMARY KEY (id)) CHARACTER SET=utf8;", SQL_TABLE_QUEUED);
+id INT(5) NOT NULL AUTO_INCREMENT, \
+players_queued INT(2), \
+Timestamp TIMESTAMP, \
+PRIMARY KEY (id)) CHARACTER SET=utf8;", SQL_TABLE_QUEUED);
 	
 	if (!SQL_FastQuery(db, sql))
 	{
@@ -97,13 +97,13 @@ InitSQL()
 	}
 	
 	Format(sql, sizeof(sql), "CREATE TABLE IF NOT EXISTS %s( \
-		id INT(5) NOT NULL AUTO_INCREMENT, \
-		server_ip VARCHAR(16), \
-		server_port INT(5), \
-		server_password VARCHAR(32), \
-		server_name VARCHAR(128), \
-		Timestamp TIMESTAMP, \
-		PRIMARY KEY (id)) CHARACTER SET=utf8;", SQL_TABLE_OFFER_MATCH);
+id INT(5) NOT NULL AUTO_INCREMENT, \
+server_ip VARCHAR(16), \
+server_port INT(5), \
+server_password VARCHAR(32), \
+server_name VARCHAR(128), \
+Timestamp TIMESTAMP, \
+PRIMARY KEY (id)) CHARACTER SET=utf8;", SQL_TABLE_OFFER_MATCH);
 	
 	if (!SQL_FastQuery(db, sql))
 	{
@@ -116,20 +116,20 @@ InitSQL()
 	return;
 }
 
-public Action:OfferMatch()
+public Action OfferMatch()
 {
 	if (!g_isSQLInitialized || g_isServerOfferingMatch)
 		return Plugin_Stop;
 	
-	new String:serverIP[16];
+	char serverIP[16];
 	Server_GetIPString(serverIP, sizeof(serverIP));
-	new serverPort = Server_GetPort();
+	int serverPort = Server_GetPort();
 	
-	new String:sql[MAX_SQL_LENGTH];
+	char sql[MAX_SQL_LENGTH];
 	Format(sql, sizeof(sql), "SELECT * FROM %s WHERE server_ip=? AND server_port=?, ", SQL_TABLE_OFFER_MATCH);
 	
-	new String:sqlError[256];
-	new Handle:stmt = SQL_PrepareQuery(db, sql, sqlError, sizeof(sqlError));
+	char sqlError[256];
+	Handle stmt = SQL_PrepareQuery(db, sql, sqlError, sizeof(sqlError));
 	
 	if (stmt == INVALID_HANDLE)
 	{
@@ -145,27 +145,27 @@ public Action:OfferMatch()
 		LogError("SQL error: %s", sqlError);
 	}
 	
-	new entries;
+	int entries;
 	
 	while (SQL_FetchRow(stmt))
 	{
 		entries = SQL_FetchInt(stmt, 0);
 	}
 	
-	CloseHandle(stmt);
+	delete stmt;
 	
 	PrintToServer("Found entries: %i", entries);
 	
 	return Plugin_Handled;
 }
 
-public Event_Matchmaking(Handle:cvar, const String:oldVal[], const String:newVal[])
+public void Event_Matchmaking(Handle cvar, const char[] oldVal, const char[] newVal)
 {
 	if (StringToInt(newVal) == 1)
 		InitSQL();
 }
 
-public Action:Timer_CheckMMStatus(Handle:timer)
+public Action Timer_CheckMMStatus(Handle timer)
 {
 	if (!GetConVarBool(g_hMatchmaking)) // We're not in "matchmaking" mode anymore, stop this timer
 	{

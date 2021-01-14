@@ -10,7 +10,7 @@
 
 #define PLUGIN_VERSION "0.1"
 
-public Plugin:myinfo = {
+public Plugin myinfo = {
 	name		=	"Neotokyo Competitive Plugin, Overlay Module",
 	description	=	"Transfer live competitive data to SQL server for overlay use",
 	author		=	"Rain",
@@ -18,7 +18,7 @@ public Plugin:myinfo = {
 	url			=	""
 };
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	RegAdminCmd("sm_caster", Command_CasterMenu, ADMFLAG_GENERIC, "Open the casters overlay menu");
 	
@@ -35,19 +35,19 @@ public OnPluginStart()
 	HookEvent("game_round_start", Event_RoundStart);
 }
 
-public OnConfigsExecuted()
+public void OnConfigsExecuted()
 {
 	SQL_Init();
 }
 
-public OnClientDisconnect(client)
+public void OnClientDisconnect(int client)
 {
 	g_IsSettingCasterMsg[client] = false;
 }
 
-public Action:Command_CasterMenu(client, args)
+public Action Command_CasterMenu(int client, int args)
 {
-	new Handle:panel = CreatePanel();
+	Handle panel = CreatePanel();
 	
 	SetPanelTitle(panel, "Caster Overlay");
 	
@@ -60,7 +60,7 @@ public Action:Command_CasterMenu(client, args)
 	}
 	else
 	{
-		new String:castMsgBuffer[sizeof(casterMessage) + 4];
+		char castMsgBuffer[sizeof(casterMessage) + 4];
 		Format(castMsgBuffer, sizeof(castMsgBuffer), "\"%s\"", casterMessage);
 		DrawPanelText(panel, castMsgBuffer);
 	}

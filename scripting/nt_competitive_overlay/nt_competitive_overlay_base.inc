@@ -21,26 +21,26 @@
 #define SQL_CONFIG "nt_competitive_overlay"
 #define SQL_TABLE_NAME "competitive_overlay"
 
-new Handle:hTimer_UpdateData = INVALID_HANDLE;
-new Handle:db = INVALID_HANDLE;
+Handle hTimer_UpdateData = INVALID_HANDLE;
+Handle db = INVALID_HANDLE;
 
-new Handle:hJinraiName;
-new Handle:hNSFName;
-new Handle:hRoundTime;
-new Handle:hFreezeTime;
+Handle hJinraiName;
+Handle hNSFName;
+Handle hRoundTime;
+Handle hFreezeTime;
 
-new bool:IsSQLInitialized;
-new bool:g_ShowOverlayMsg;
-new bool:g_IsSettingCasterMsg[MAXPLAYERS+1];
+bool IsSQLInitialized;
+bool g_ShowOverlayMsg;
+bool g_IsSettingCasterMsg[NEO_MAX_PLAYERS+1];
 
-new Float:g_fGameTime_LastRound;
+float g_fGameTime_LastRound;
  
-new String:casterMessage[MAX_DATA_LENGTH];
-new String:g_winner[12];
+char casterMessage[MAX_DATA_LENGTH];
+char g_winner[12];
 
-SQL_Init()
+stock void SQL_Init()
 {
-	new String:error[MAX_DATA_LENGTH];
+	char error[MAX_DATA_LENGTH];
 	db = SQL_Connect(SQL_CONFIG, true, error, sizeof(error));
 	
 	if (db == INVALID_HANDLE)
@@ -50,12 +50,12 @@ SQL_Init()
 		IsSQLInitialized = true;
 }
 
-bool:CheckTableExistsInSQL()
+bool CheckTableExistsInSQL()
 {
-	new String:sqlError[MAX_DATA_LENGTH]; // Buffer for SQL related errors
+	char sqlError[MAX_DATA_LENGTH]; // Buffer for SQL related errors
 	
 	// Make sure the table exists
-	new String:sql[MAX_SQL_LENGTH];
+	char sql[MAX_SQL_LENGTH];
 	Format(sql, sizeof(sql), "CREATE TABLE IF NOT EXISTS %s( \
 		id INT(5) NOT NULL AUTO_INCREMENT, \
 		Score_Jinrai INT(2), \
@@ -83,7 +83,7 @@ bool:CheckTableExistsInSQL()
 	
 	Format(sql, sizeof(sql), "SELECT COUNT(*) FROM %s", SQL_TABLE_NAME);
 	
-	new Handle:query = SQL_Query(db, sql);
+	Handle query = SQL_Query(db, sql);
 	if (query == INVALID_HANDLE)
 	{
 		SQL_GetError(db, sqlError, sizeof(sqlError));
@@ -95,20 +95,20 @@ bool:CheckTableExistsInSQL()
 		SetFailState("SQL error: no result set returned");
 	}
 	
-	new rows = SQL_GetRowCount(query);
+	int rows = SQL_GetRowCount(query);
 	
 	if (rows != 1)
 	{
 		SetFailState("SQL error: error returning result");
 	}
 	
-	new String:result[MAX_DATA_LENGTH];
+	char result[MAX_DATA_LENGTH];
 	SQL_FetchRow(query);
 	SQL_FetchString(query, 0, result, sizeof(result));
 	
-	CloseHandle(query);
+	delete query;
 	
-	new iResult = StringToInt(result);
+	int iResult = StringToInt(result);
 	
 	if (iResult > 1)
 		SetFailState("SQL error: multiple data rows found, expected only 1");
@@ -133,16 +133,16 @@ bool:CheckTableExistsInSQL()
 	return true;
 }
 
-public Action:SetCasterMessage(client)
+public Action SetCasterMessage(int client)
 {
 	if (!Client_IsValid(client))
 		return Plugin_Stop;
 	
-	for (new i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (g_IsSettingCasterMsg[i] == true)
 		{
-			new String:otherClientName[MAX_NAME_LENGTH];
+			char otherClientName[MAX_NAME_LENGTH];
 			GetClientName(i, otherClientName, sizeof(otherClientName));
 			PrintToChat(client, "User \"%s\" is currently editing the caster message. Please wait.", otherClientName);
 			return Plugin_Stop;
@@ -160,7 +160,7 @@ public Action:SetCasterMessage(client)
 	return Plugin_Handled;
 }
 
-public Action:ToggleCasterMessage(client)
+public Action ToggleCasterMessage(int client)
 {
 	if (!Client_IsValid(client))
 		return Plugin_Stop;

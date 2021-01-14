@@ -7,16 +7,16 @@
 /****
 	* Returns competitive match's live state.
 	*
-	* @return	bool	True if game is live, false otherwise.
+	* @return	int		1 if game is live, 0 otherwise.
 ****/
-native bool:Competitive_IsLive();
+native int Competitive_IsLive();
 
 /****
 	* Returns competitive match's pause state.
 	*
-	* @return	bool	True if game is paused, false otherwise.
+	* @return	int		1 if game is paused, 0 otherwise.
 ****/
-native bool:Competitive_IsPaused();
+native int Competitive_IsPaused();
 
 /****
 	* Returns competitive match's team score.
@@ -24,11 +24,11 @@ native bool:Competitive_IsPaused();
 	* @param	int		Team index.
 	* @return	int		Team score. Returns -1 if error occurs.
 ****/
-native Competitive_GetTeamScore(team);
+native int Competitive_GetTeamScore(int team);
 
 /****
 	* Returns competitive match's winner.
 	*
 	* @return	int		Winner team index. Returns 0 if there is no winner.
 ****/
-native Competitive_GetWinner();
+native int Competitive_GetWinner();

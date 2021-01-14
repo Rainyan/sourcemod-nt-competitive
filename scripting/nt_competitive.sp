@@ -4,8 +4,6 @@
 		- SourceTV recording functions borrowed from Stevo.TVR's Auto Recorder plugin: http://forums.alliedmods.net/showthread.php?t=92072
 */
 
-#pragma semicolon 1
-
 //#define DEBUG 0 // Release
 //#define DEBUG 1 // Basic debug
 #define DEBUG 2 // Extended debug
@@ -14,7 +12,11 @@
 
 #include <sourcemod>
 #include <sdktools>
+
 #include <neotokyo>
+
+#pragma semicolon 1
+#pragma newdecls required
 
 //#define FLATTEN_INCLUDE_PATHS 1
 
@@ -30,7 +32,7 @@
 #include "nt_competitive/nt_competitive_parser"
 #endif
 
-public Plugin:myinfo = {
+public Plugin myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
 	description	=	"Count score, announce winner, perform other competitive tasks",
 	author		=	"Rain",
@@ -38,7 +40,7 @@ public Plugin:myinfo = {
 	url			=	"https://github.com/Rainyan/sourcemod-nt-competitive"
 };
 
-public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	CreateNative("Competitive_IsLive",			Competitive_IsLive);
 	CreateNative("Competitive_IsPaused",		Competitive_IsPaused);
@@ -48,7 +50,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	return APLRes_Success;
 }
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	RegConsoleCmd("sm_ready",		Command_Ready,				"Mark yourself as ready for a competitive match.");
 
@@ -92,7 +94,7 @@ public OnPluginStart()
 	g_hMaxPauseLength					= CreateConVar("sm_competitive_max_pause_length",					"60",					"How long can a competitive time-out last, in seconds.", _, true, 0.0);
 	g_hMaxPauseLength_Technical		= CreateConVar("sm_competitive_max_pause_length_technical",	"300",				"How long can a pause last when team experiences technical difficulties.", _, true, 0.0);
 	g_hSourceTVEnabled					= CreateConVar("sm_competitive_sourcetv_enabled",					"1",					"Should the competitive plugin automatically record SourceTV demos.", _, true, 0.0, true, 1.0);
-	g_hSourceTVPath						= CreateConVar("sm_competitive_sourcetv_path",						"replays_competitive",	"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
+	g_hCvar_SourceTVPath						= CreateConVar("sm_competitive_sourcetv_path",						"replays_competitive",	"Directory to save SourceTV demos into. Relative to NeotokyoSource folder. Will be created if possible.");
 	g_hJinraiName						= CreateConVar("sm_competitive_jinrai_name",						"Jinrai",				"Jinrai team's name. Will use \"Jinrai\" if left empty.");
 	g_hNSFName							= CreateConVar("sm_competitive_nsf_name",							"NSF",					"NSF team's name. Will use \"NSF\" if left empty.");
 	g_hCompetitionName					= CreateConVar("sm_competitive_title",								"",						"Name of the tournament/competition. Also used for replay filenames. 32 characters max. Use only alphanumerics and spaces.");
@@ -110,7 +112,7 @@ public OnPluginStart()
 	g_hNSFScore							= CreateConVar("sm_competitive_nsf_score",						"0",					"Competitive plugin's internal score cvar. Editing this will directly affect comp team scores.", _, true, 0.0);
 	g_hSuddenDeath						= CreateConVar("sm_competitive_sudden_death",				"1",					"Whether or not to allow match to end in a tie. Otherwise, game proceeds to sudden death until one team scores a point.", _, true, 0.0, true, 1.0);
 	g_hCenteredDisplayRemaining	= CreateConVar("sm_competitive_display_remaining_players_centered",	"2", "How the number of remaining players is displayed to clients in a competitive game. 0 = disabled, 1 = show remaining player numbers, 2 = show team names and remaining player numbers", _, true, 0.0, true, 2.0);
-	g_hCenteredDisplayTarget			= CreateConVar("sm_competitive_display_remaining_players_target",	"2", "Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players, 3 = everyone", _, true, 1.0, true, 3.0);
+	g_hCvar_CenteredDisplayTarget			= CreateConVar("sm_competitive_display_remaining_players_target",	"2", "Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players, 3 = everyone", _, true, 1.0, true, 3.0);
 	g_hCenteredDisplayDivider	= CreateConVar("sm_competitive_display_remaining_players_divider", "—", "What kind of divider to use between the scores (eg. 3 vs 2, 3 v 2, 3--2)");
 	g_hCompForceCamera				= CreateConVar("sm_competitive_force_camera",				"1",				"Should fade to black be forced on death when live. Can be useful to disable on pugs etc.", _, true, 0.0, true, 1.0);
 #if defined KV_DEBUG
@@ -126,7 +128,7 @@ public OnPluginStart()
 
 	HookConVarChange(g_hNeoRestartThis,					Event_Restart);
 	HookConVarChange(g_hSourceTVEnabled,				Event_SourceTVEnabled);
-	HookConVarChange(g_hSourceTVPath,					Event_SourceTVPath);
+	HookConVarChange(g_hCvar_SourceTVPath,					Event_SourceTVPath);
 	HookConVarChange(g_hJinraiName,						Event_TeamNameJinrai);
 	HookConVarChange(g_hNSFName,						Event_TeamNameNSF);
 	HookConVarChange(g_hCommsBehaviour,					Event_CommsBehaviour);
@@ -138,13 +140,13 @@ public OnPluginStart()
 	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 
 	// Initialize SourceTV path
-	new String:sourceTVPath[PLATFORM_MAX_PATH];
-	GetConVarString(g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath));
+	char sourceTVPath[PLATFORM_MAX_PATH];
+	g_hCvar_SourceTVPath.GetString(sourceTVPath, sizeof(sourceTVPath));
 	if (!DirExists(sourceTVPath))
 		InitDirectory(sourceTVPath);
 
 	// Initialize logs path
-	decl String:loggingPath[PLATFORM_MAX_PATH];
+	char loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
@@ -166,24 +168,24 @@ public OnPluginStart()
 	AutoExecConfig(true);
 }
 
-public OnAllPluginsLoaded()
+public void OnAllPluginsLoaded()
 {
 	CheckGhostcapPlugin();
 }
 
-public OnMapStart()
+public void OnMapStart()
 {
 	SetGameState(GAMESTATE_WARMUP);
 	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
 
-public OnConfigsExecuted()
+public void OnConfigsExecuted()
 {
 	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
 	SetConVarInt(g_hNeoScoreLimit, 99); // Set Neotokyo's own round max round count to highest value
 }
 
-public OnClientAuthorized(client, const String:authID[])
+public void OnClientAuthorized(int client, const char[] authID)
 {
 	if (!g_isLive)
 		return;
@@ -195,10 +197,10 @@ public OnClientAuthorized(client, const String:authID[])
 	}
 
 	// ** Check for competitor status below **
-	new bool:isPlayerCompeting;
-	new earlierUserid;
+	bool isPlayerCompeting;
+	int earlierUserid;
 
-	for (new i = 0; i < sizeof(g_livePlayers); i++)
+	for (int i = 0; i < sizeof(g_livePlayers); i++)
 	{
 #if DEBUG > 1
 		LogDebug("Checking array index %i, array size %i", i, sizeof(g_livePlayers));
@@ -237,11 +239,11 @@ public OnClientAuthorized(client, const String:authID[])
 #endif
 }
 
-public bool OnClientConnect(client)
+public bool OnClientConnect(int client)
 {
 	if ( g_isPaused && GetConVarInt(g_hPauseMode) == PAUSEMODE_NORMAL )
 	{
-		decl String:clientName[MAX_NAME_LENGTH];
+		char clientName[MAX_NAME_LENGTH];
 		GetClientName(client, clientName, sizeof(clientName));
 #if DEBUG
 		LogDebug("[COMP] Pause join detected!");
@@ -254,7 +256,7 @@ public bool OnClientConnect(client)
 	return true;
 }
 
-public OnClientDisconnect(client)
+public void OnClientDisconnect(int client)
 {
 	g_isReady[client] = false;
 	g_survivedLastRound[client] = false;
@@ -262,7 +264,7 @@ public OnClientDisconnect(client)
 	g_isRecording[client] = false;
 }
 
-public OnGhostCapture(client)
+public void OnGhostCapture(int client)
 {
 	if ( !IsValidClient(client) )
 	{
@@ -271,7 +273,7 @@ public OnGhostCapture(client)
 		return;
 	}
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
 		LogError("Returned client %i does not belong to team Jinrai or NSF, returned team id %i", client, team);
@@ -282,9 +284,9 @@ public OnGhostCapture(client)
 	g_ghostCapturingTeam = team;
 }
 
-public Action:Command_RefereeMenu(client, args)
+public Action Command_RefereeMenu(int client, int args)
 {
-	new Handle:panel = CreatePanel();
+	Handle panel = CreatePanel();
 	SetPanelTitle(panel, "Comp Admin Menu");
 
 	DrawPanelItem(panel, "Game information");
@@ -322,13 +324,13 @@ public Action:Command_RefereeMenu(client, args)
 
 	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME_FOREVER);
 
-	CloseHandle(panel);
+	delete panel;
 
 	return Plugin_Handled;
 }
 
 #if DEBUG
-public Action:Command_ResetPauseBool(client, args)
+public Action Command_ResetPauseBool(int client, int args)
 {
 	g_isPaused = false;
 	ReplyToCommand(client, "g_isPaused reset to FALSE");
@@ -337,7 +339,7 @@ public Action:Command_ResetPauseBool(client, args)
 }
 #endif
 
-public Action:Command_ForceLive(client, args)
+public Action Command_ForceLive(int client, int args)
 {
 	if (!g_isLive)
 	{
@@ -376,7 +378,7 @@ public Action:Command_ForceLive(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_Pause(client, args)
+public Action Command_Pause(int client, int args)
 {
 	if (client == 0)
 	{
@@ -393,7 +395,7 @@ public Action:Command_Pause(client, args)
 		return Plugin_Stop;
 	}
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 
 	if (team != TEAM_JINRAI && team != TEAM_NSF) // Not in a team, ignore
 		return Plugin_Stop;
@@ -408,7 +410,7 @@ public Action:Command_Pause(client, args)
 
 		else
 		{
-			new Handle:panel = CreatePanel();
+			Handle panel = CreatePanel();
 			SetPanelTitle(panel, "Cancel pause request?");
 
 			DrawPanelItem(panel, "Yes, cancel");
@@ -416,7 +418,7 @@ public Action:Command_Pause(client, args)
 
 			SendPanelToClient(panel, client, PanelHandler_CancelPause, MENU_TIME_FOREVER);
 
-			CloseHandle(panel);
+			delete panel;
 
 			return Plugin_Handled;
 		}
@@ -424,7 +426,7 @@ public Action:Command_Pause(client, args)
 
 	else if (g_isPaused)
 	{
-		new otherTeam = GetOtherTeam(team);
+		int otherTeam = GetOtherTeam(team);
 
 		if (!g_isTeamReadyForUnPause[g_pausingTeam] && team != g_pausingTeam)
 		{
@@ -434,7 +436,7 @@ public Action:Command_Pause(client, args)
 
 		if (!g_isTeamReadyForUnPause[team])
 		{
-			new Handle:panel = CreatePanel();
+			Handle panel = CreatePanel();
 			SetPanelTitle(panel, "Unpause?");
 
 			DrawPanelItem(panel, "Team is ready, request unpause");
@@ -442,7 +444,7 @@ public Action:Command_Pause(client, args)
 
 			SendPanelToClient(panel, client, PanelHandler_UnPause, MENU_TIME_FOREVER);
 
-			CloseHandle(panel);
+			delete panel;
 
 			return Plugin_Handled;
 		}
@@ -453,7 +455,7 @@ public Action:Command_Pause(client, args)
 		return Plugin_Handled;
 	}
 
-	new Handle:panel = CreatePanel();
+	Handle panel = CreatePanel();
 	SetPanelTitle(panel, "Request pause");
 
 	DrawPanelText(panel, "Please select pause reason");
@@ -476,10 +478,10 @@ public Action:Command_Pause(client, args)
 			{
 				DrawPanelItem(panel, "Time-outs are not allowed.");
 
-				decl String:cvarValue[128];
+				char cvarValue[128];
 				GetConVarString( g_hMaxTimeouts, cvarValue, sizeof(cvarValue) );
 
-				new tempFixValue = 0;
+				int tempFixValue = 0;
 				SetConVarInt( g_hMaxTimeouts, tempFixValue );
 
 				LogError("sm_competitive_max_timeouts had invalid value: %s. Value has been changed to: %i", cvarValue, tempFixValue);
@@ -497,12 +499,12 @@ public Action:Command_Pause(client, args)
 
 	SendPanelToClient(panel, client, PanelHandler_Pause, MENU_TIME_FOREVER);
 
-	CloseHandle(panel);
+	delete panel;
 
 	return Plugin_Handled;
 }
 
-void PauseRequest(client, reason)
+void PauseRequest(int client, int reason)
 {
 	// Gamedata is outdated, fall back to normal pausemode as stop clock mode would cause an error
 	if (g_isGamedataOutdated && ( GetConVarInt(g_hPauseMode) == PAUSEMODE_STOP_CLOCK) )
@@ -512,7 +514,7 @@ void PauseRequest(client, reason)
 		PrintToAdmins(true, true, "See SM error logs for more info.");
 	}
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 
 	if (g_shouldPause)
 	{
@@ -539,7 +541,7 @@ void PauseRequest(client, reason)
 		}
 	}
 
-	new Float:currentTime = GetGameTime();
+	float currentTime = GetGameTime();
 
 	if (currentTime - g_fRoundTime < 15) // We are in a freezetime, it's safe to pause
 		TogglePause();
@@ -551,7 +553,7 @@ void PauseRequest(client, reason)
 	}
 }
 
-void CancelPauseRequest(client)
+void CancelPauseRequest(int client)
 {
 	// Already cancelled, nothing to do
 	if (!g_shouldPause)
@@ -560,11 +562,11 @@ void CancelPauseRequest(client)
 	// We check for client & team validity in Command_Pause already before calling this
 	g_shouldPause = false;
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 	PrintToChatAll("%s %s have cancelled their pause request for the next freezetime.", g_tag, g_teamName[team]);
 }
 
-void UnPauseRequest(client)
+void UnPauseRequest(int client)
 {
 	if ( client == 0 || !IsValidClient(client) || !IsClientInGame(client) )
 	{
@@ -575,7 +577,7 @@ void UnPauseRequest(client)
 		return;
 	}
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
 		LogError("Client %i with invalid team %i attempted calling UnPauseRequest", client, team);
@@ -595,12 +597,12 @@ void UnPauseRequest(client)
 	}
 	else
 	{
-		new otherTeam = GetOtherTeam(team);
+		int otherTeam = GetOtherTeam(team);
 		PrintToChatAll("Waiting for %s to confirm unpause.", g_teamName[otherTeam]);
 	}
 }
 
-public Action:Command_OverrideStart(client, args)
+public Action Command_OverrideStart(int client, int args)
 {
 	if (g_isLive)
 		return Plugin_Stop;
@@ -611,7 +613,7 @@ public Action:Command_OverrideStart(client, args)
 		return Plugin_Stop;
 	}
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
@@ -625,12 +627,12 @@ public Action:Command_OverrideStart(client, args)
 		return Plugin_Stop;
 	}
 
-	new bool:bothTeamsWantOverride;
+	bool bothTeamsWantOverride;
 
 	// Check if everyone in the team is still ready
-	new playersInTeam;
-	new playersInTeamReady;
-	for (new i = 1; i <= MaxClients; i++)
+	int playersInTeam;
+	int playersInTeamReady;
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsValidClient(i))
 			continue;
@@ -676,7 +678,7 @@ public Action:Command_OverrideStart(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_UnOverrideStart(client, args)
+public Action Command_UnOverrideStart(int client, int args)
 {
 	if (g_isLive)
 		return Plugin_Stop;
@@ -687,7 +689,7 @@ public Action:Command_UnOverrideStart(client, args)
 		return Plugin_Stop;
 	}
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
@@ -716,7 +718,7 @@ public Action:Command_UnOverrideStart(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_Ready(client, args)
+public Action Command_Ready(int client, int args)
 {
 	if (client == 0)
 	{
@@ -724,7 +726,7 @@ public Action:Command_Ready(client, args)
 		return Plugin_Stop;
 	}
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
 		ReplyToCommand(client, "%s You are not in a team.", g_tag);
@@ -749,17 +751,17 @@ public Action:Command_Ready(client, args)
 
 			g_isReady[client] = true;
 
-			decl String:clientName[MAX_NAME_LENGTH];
+			char clientName[MAX_NAME_LENGTH];
 			GetClientName(client, clientName, sizeof(clientName));
 			PrintToChatAll("%s Player %s is READY.", g_tag, clientName);
 		}
 
 		case 1: // Collective readying
 		{
-			new teamPlayers;
-			new teamPlayersReady;
+			int teamPlayers;
+			int teamPlayersReady;
 
-			for (new i = 1; i <= MaxClients; i++)
+			for (int i = 1; i <= MaxClients; i++)
 			{
 				if ( !IsValidClient(i) )
 					continue;
@@ -794,7 +796,7 @@ public Action:Command_Ready(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_UnReady(client, args)
+public Action Command_UnReady(int client, int args)
 {
 	if (client == 0)
 	{
@@ -802,7 +804,7 @@ public Action:Command_UnReady(client, args)
 		return Plugin_Stop;
 	}
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
 		g_isReady[client] = false;
@@ -828,7 +830,7 @@ public Action:Command_UnReady(client, args)
 
 			g_isReady[client] = false;
 
-			decl String:clientName[MAX_NAME_LENGTH];
+			char clientName[MAX_NAME_LENGTH];
 			GetClientName(client, clientName, sizeof(clientName));
 			PrintToChatAll("%s Player %s is NOT READY.", g_tag, clientName);
 
@@ -841,7 +843,7 @@ public Action:Command_UnReady(client, args)
 
 		case 1: // Collective readying
 		{
-			for (new i = 1; i <= MaxClients; i++)
+			for (int i = 1; i <= MaxClients; i++)
 			{
 				if ( !IsValidClient(i) )
 					continue;
@@ -863,7 +865,7 @@ public Action:Command_UnReady(client, args)
 }
 
 #if DEBUG
-public Action:Command_LoggingTest(client, args)
+public Action Command_LoggingTest(int client, int args)
 {
 	if (args != 1)
 	{
@@ -872,7 +874,7 @@ public Action:Command_LoggingTest(client, args)
 		return Plugin_Stop;
 	}
 
-	new String:message[128];
+	char message[128];
 	GetCmdArg(1, message, sizeof(message));
 	LogCompetitive(message);
 
@@ -881,7 +883,7 @@ public Action:Command_LoggingTest(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_ManualRoundEdit(client, args)
+public Action Command_ManualRoundEdit(int client, int args)
 {
 	if (GetCmdArgs() != 1)
 	{
@@ -889,10 +891,10 @@ public Action:Command_ManualRoundEdit(client, args)
 		return Plugin_Stop;
 	}
 
-	decl String:sBuffer[6];
+	char sBuffer[6];
 	GetCmdArg( 1, sBuffer, sizeof(sBuffer) );
 
-	new round = StringToInt(sBuffer);
+	int round = StringToInt(sBuffer);
 	if (round < 1 || round > MAX_ROUNDS_PLAYED)
 	{
 		ReplyToCommand(client, "Invalid target round");
@@ -908,22 +910,22 @@ public Action:Command_ManualRoundEdit(client, args)
 }
 #endif
 
-public Competitive_IsLive(Handle:plugin, numParams)
+public int Competitive_IsLive(Handle plugin, int numParams)
 {
-	return g_isLive;
+	return g_isLive ? 1 : 0;
 }
 
-public Competitive_IsPaused(Handle:plugin, numParams)
+public int Competitive_IsPaused(Handle plugin, int numParams)
 {
-	return g_isPaused;
+	return g_isPaused ? 1 : 0;
 }
 
-public Competitive_GetTeamScore(Handle:plugin, numParams)
+public int Competitive_GetTeamScore(Handle plugin, int numParams)
 {
 	if (numParams != 1)
 		return -1;
 
-	new team = GetNativeCell(1);
+	int team = GetNativeCell(1);
 
 	if (team == TEAM_JINRAI)
 		return g_jinraiScore[g_roundNumber];
@@ -934,7 +936,7 @@ public Competitive_GetTeamScore(Handle:plugin, numParams)
 	return -1;
 }
 
-public Competitive_GetWinner(Handle:plugin, numParams)
+public int Competitive_GetWinner(Handle plugin, int numParams)
 {
 	return g_winner;
 }

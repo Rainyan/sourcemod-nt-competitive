@@ -4,7 +4,7 @@
 #endif
 #define _overlay_panel_included_
 
-public PanelHandler_CasterMenu(Handle:menu, MenuAction:action, client, choice)
+public PanelHandler_CasterMenu(Handle menu, MenuAction action, int client, int choice)
 {
 	if (action != MenuAction_Select)
 		return;
