@@ -663,7 +663,7 @@ void TogglePause()
 				g_isCurrentlyUnPausing = true;
 
 				GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the pause round
-				GameRules_SetProp("m_iRoundNumber", g_roundNumber);
+				GameRules_SetProp("m_iRoundNumber", g_roundNumber - 1);
 				SetGameState(GAMESTATE_NORMAL);
 
 				RestoreRound(g_roundNumber); // Restore everyone's XP, deaths and ranks to the state before pausing
@@ -1887,7 +1887,7 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 		Command_RefereeMenu(client, 1);
 
 		GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the round
-		GameRules_SetProp("m_iRoundNumber", roundNumber);
+		GameRules_SetProp("m_iRoundNumber", roundNumber - 1);
 
 		new Handle:endRoundTime = FindConVar("mp_chattime");
 		CreateTimer( (GetConVarFloat(endRoundTime) + 5.1), Timer_RestoreRound, roundNumber);
