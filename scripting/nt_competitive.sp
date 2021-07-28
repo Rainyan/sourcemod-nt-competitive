@@ -113,6 +113,7 @@ public OnPluginStart()
 	g_hCenteredDisplayTarget			= CreateConVar("sm_competitive_display_remaining_players_target",	"2", "Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players, 3 = everyone", _, true, 1.0, true, 3.0);
 	g_hCenteredDisplayDivider	= CreateConVar("sm_competitive_display_remaining_players_divider", "—", "What kind of divider to use between the scores (eg. 3 vs 2, 3 v 2, 3--2)");
 	g_hCompForceCamera				= CreateConVar("sm_competitive_force_camera",				"1",				"Should fade to black be forced on death when live. Can be useful to disable on pugs etc.", _, true, 0.0, true, 1.0);
+	g_hGhostOvertime				= CreateConVar("sm_competitive_ghost_overtime",				"15",					"Freeze the round timer at this many seconds while the ghost is held. 0 = disabled", _, true, 0.0, true, 30.0);
 #if defined KV_DEBUG
 	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Store match data into KeyValues file. Debug cvar.", _, true, 0.0, true, 1.0);
 #endif
@@ -280,6 +281,47 @@ public OnGhostCapture(client)
 	}
 
 	g_ghostCapturingTeam = team;
+}
+
+public OnGhostPickUp(client)
+{
+	int gameState = GameRules_GetProp("m_iGameState");
+	if (gameState == 2 && g_isLive && !g_isPaused && GetConVarInt(g_hGhostOvertime) > 0)
+	{
+		g_hTimer_GhostOvertime = CreateTimer(0.9, CheckGhostOvertime, _, TIMER_REPEAT);
+		CheckGhostOvertime(g_hTimer_GhostOvertime);
+	}
+}
+
+public OnGhostDrop(client)
+{
+	if (g_hTimer_GhostOvertime != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_GhostOvertime);
+		g_hTimer_GhostOvertime = INVALID_HANDLE;
+	}
+}
+
+public Action:CheckGhostOvertime(Handle:timer)
+{
+	int gameState = GameRules_GetProp("m_iGameState");
+	if (gameState != 2)
+	{
+		g_hTimer_GhostOvertime = INVALID_HANDLE;
+		return Plugin_Stop;
+	}
+
+	float timeLeft = GameRules_GetPropFloat("m_fRoundTimeLeft");
+	// + 1.0 will make the hud timer freeze at the actual value. The interval is 0.9 to prevent flickering.
+	float ghostOvertime = GetConVarFloat(g_hGhostOvertime) + 1.0;
+
+	if (timeLeft < ghostOvertime)
+	{
+		GameRules_SetPropFloat("m_fRoundTimeLeft", ghostOvertime);
+		g_fRoundTime += ghostOvertime - timeLeft;
+	}
+
+	return Plugin_Continue;
 }
 
 public Action:Command_RefereeMenu(client, args)
@@ -739,7 +781,7 @@ public Action:Command_Ready(client, args)
 
 	switch ( GetConVarBool(g_hCollectiveReady) )
 	{
-		case 0: // Individual readying
+		case false: // Individual readying
 		{
 			if (g_isReady[client])
 			{
@@ -754,7 +796,7 @@ public Action:Command_Ready(client, args)
 			PrintToChatAll("%s Player %s is READY.", g_tag, clientName);
 		}
 
-		case 1: // Collective readying
+		case true: // Collective readying
 		{
 			new teamPlayers;
 			new teamPlayersReady;
@@ -818,7 +860,7 @@ public Action:Command_UnReady(client, args)
 
 	switch ( GetConVarBool(g_hCollectiveReady) )
 	{
-		case 0: // Individual readying
+		case false: // Individual readying
 		{
 			if (!g_isReady[client])
 			{
@@ -839,7 +881,7 @@ public Action:Command_UnReady(client, args)
 			}
 		}
 
-		case 1: // Collective readying
+		case true: // Collective readying
 		{
 			for (new i = 1; i <= MaxClients; i++)
 			{

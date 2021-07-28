@@ -159,6 +159,7 @@ new Handle:g_hSuddenDeath;
 new Handle:g_hCenteredDisplayRemaining;
 new Handle:g_hCenteredDisplayTarget;
 new Handle:g_hCompForceCamera;
+new Handle:g_hGhostOvertime;
 new Handle:g_hCenteredDisplayDivider;
 
 #if defined KV_DEBUG
@@ -170,6 +171,7 @@ new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
+new Handle:g_hTimer_GhostOvertime		= INVALID_HANDLE;
 
 #if defined KV_DEBUG
 KeyValues g_kv;
