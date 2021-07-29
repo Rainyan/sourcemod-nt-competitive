@@ -94,8 +94,10 @@ new g_furthestPlayedRound;
 new g_penalizedTeam;
 new g_ghostCapturingTeam;
 new g_epoch;
+new g_ghostCarrier;
 
 new Float:g_fRoundTime;
+new Float:g_fGhostOvertime;
 
 new bool:g_isAlltalkByDefault;
 new bool:g_isExpectingOverride;
@@ -160,6 +162,7 @@ new Handle:g_hCenteredDisplayRemaining;
 new Handle:g_hCenteredDisplayTarget;
 new Handle:g_hCompForceCamera;
 new Handle:g_hGhostOvertime;
+new Handle:g_hGhostOvertimeDecay;
 new Handle:g_hCenteredDisplayDivider;
 
 #if defined KV_DEBUG

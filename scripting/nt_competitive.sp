@@ -114,6 +114,7 @@ public OnPluginStart()
 	g_hCenteredDisplayDivider	= CreateConVar("sm_competitive_display_remaining_players_divider", "—", "What kind of divider to use between the scores (eg. 3 vs 2, 3 v 2, 3--2)");
 	g_hCompForceCamera				= CreateConVar("sm_competitive_force_camera",				"1",				"Should fade to black be forced on death when live. Can be useful to disable on pugs etc.", _, true, 0.0, true, 1.0);
 	g_hGhostOvertime				= CreateConVar("sm_competitive_ghost_overtime",				"15",					"Freeze the round timer at this many seconds while the ghost is held. 0 = disabled", _, true, 0.0, true, 30.0);
+	g_hGhostOvertimeDecay			= CreateConVar("sm_competitive_ghost_overtime_decay",		"60",					"Decay the overtime over this many seconds. I.e. if the overtime is 15 seconds and it decays over 60 seconds, one overtime second will be 4 real seconds.", _, true, 0.0, true, 120.0);
 #if defined KV_DEBUG
 	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Store match data into KeyValues file. Debug cvar.", _, true, 0.0, true, 1.0);
 #endif
@@ -261,6 +262,11 @@ public OnClientDisconnect(client)
 	g_survivedLastRound[client] = false;
 	g_isSpawned[client] = false;
 	g_isRecording[client] = false;
+
+	if (client == g_ghostCarrier)
+	{
+		OnGhostDrop(client);
+	}
 }
 
 public OnGhostCapture(client)
@@ -285,9 +291,11 @@ public OnGhostCapture(client)
 
 public OnGhostPickUp(client)
 {
+	g_ghostCarrier = client;
 	int gameState = GameRules_GetProp("m_iGameState");
 	if (gameState == 2 && g_isLive && !g_isPaused && GetConVarInt(g_hGhostOvertime) > 0)
 	{
+		// Inverval of 0.9 to tick before the second flips over to prevent HUD flicker
 		g_hTimer_GhostOvertime = CreateTimer(0.9, CheckGhostOvertime, _, TIMER_REPEAT);
 		CheckGhostOvertime(g_hTimer_GhostOvertime);
 	}
@@ -295,6 +303,7 @@ public OnGhostPickUp(client)
 
 public OnGhostDrop(client)
 {
+	g_ghostCarrier = 0;
 	if (g_hTimer_GhostOvertime != INVALID_HANDLE)
 	{
 		CloseHandle(g_hTimer_GhostOvertime);
@@ -312,13 +321,18 @@ public Action:CheckGhostOvertime(Handle:timer)
 	}
 
 	float timeLeft = GameRules_GetPropFloat("m_fRoundTimeLeft");
-	// + 1.0 will make the hud timer freeze at the actual value. The interval is 0.9 to prevent flickering.
-	float ghostOvertime = GetConVarFloat(g_hGhostOvertime) + 1.0;
-
-	if (timeLeft < ghostOvertime)
+	if (timeLeft < g_fGhostOvertime)
 	{
-		GameRules_SetPropFloat("m_fRoundTimeLeft", ghostOvertime);
-		g_fRoundTime += ghostOvertime - timeLeft;
+		float decayTime = GetConVarFloat(g_hGhostOvertimeDecay);
+		float roundTime = GetConVarFloat(g_hRoundTime) * 60;
+		float overtime = GetGameTime() - (g_fRoundTime + roundTime);
+		if (decayTime > 0 && overtime > 0)
+		{
+			float ghostOvertime = GetConVarFloat(g_hGhostOvertime) + 1;
+			g_fGhostOvertime = ghostOvertime - Pow(ghostOvertime, overtime / decayTime);
+		}
+		// Round up to nearest int to prevent HUD flicker
+		GameRules_SetPropFloat("m_fRoundTimeLeft", float(RoundToCeil(g_fGhostOvertime)));
 	}
 
 	return Plugin_Continue;
