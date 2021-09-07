@@ -40,11 +40,6 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	if (gameState == 2)
 		g_survivedLastRound[victim] = false;
 
-	// Was the victim carrying the ghost?
-	if (victim == g_ghostCarrier) {
-		OnGhostDrop(victim);
-	}
-
 	if ( GetConVarInt(g_hKillVersobity) == 0 ) // Do nothing
 		return Plugin_Continue;
 
@@ -156,7 +151,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 	g_fRoundTime = GetGameTime();
 	g_fGhostOvertime = GetConVarFloat(g_hGhostOvertime) + 1;
-	g_ghostCarrier = 0;
 
 	// Game is currently being unpaused (points being recovered etc). Stop here.
 	if (g_isCurrentlyUnPausing)

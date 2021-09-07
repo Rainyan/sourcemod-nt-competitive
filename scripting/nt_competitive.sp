@@ -262,11 +262,6 @@ public OnClientDisconnect(client)
 	g_survivedLastRound[client] = false;
 	g_isSpawned[client] = false;
 	g_isRecording[client] = false;
-
-	if (client == g_ghostCarrier)
-	{
-		OnGhostDrop(client);
-	}
 }
 
 public OnGhostCapture(client)
@@ -291,7 +286,6 @@ public OnGhostCapture(client)
 
 public OnGhostPickUp(client)
 {
-	g_ghostCarrier = client;
 	int gameState = GameRules_GetProp("m_iGameState");
 	if (gameState == 2 && g_isLive && !g_isPaused && GetConVarInt(g_hGhostOvertime) > 0)
 	{
@@ -303,7 +297,6 @@ public OnGhostPickUp(client)
 
 public OnGhostDrop(client)
 {
-	g_ghostCarrier = 0;
 	if (g_hTimer_GhostOvertime != INVALID_HANDLE)
 	{
 		CloseHandle(g_hTimer_GhostOvertime);

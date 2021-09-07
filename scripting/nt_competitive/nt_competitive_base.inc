@@ -94,7 +94,6 @@ new g_furthestPlayedRound;
 new g_penalizedTeam;
 new g_ghostCapturingTeam;
 new g_epoch;
-new g_ghostCarrier;
 
 new Float:g_fRoundTime;
 new Float:g_fGhostOvertime;
