@@ -900,7 +900,7 @@ public Action:Command_ManualRoundEdit(client, args)
 	}
 
 	g_roundNumber = round;
-	GameRules_SetProp("m_iRoundNumber", g_roundNumber);
+	GameRules_SetProp("m_iRoundNumber", g_roundNumber - 1);
 
 	ReplyToCommand(client, "Set round int to %i", round);
 
