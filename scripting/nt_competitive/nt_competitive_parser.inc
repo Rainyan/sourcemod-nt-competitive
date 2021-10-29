@@ -150,7 +150,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		return Plugin_Continue;
 
 	g_fRoundTime = GetGameTime();
-	g_fGhostOvertime = GetConVarFloat(g_hGhostOvertime) + 1;
+	g_fGhostOvertime = g_fGhostOvertimeTick = GetConVarFloat(g_hGhostOvertimeGrace);
 
 	// Game is currently being unpaused (points being recovered etc). Stop here.
 	if (g_isCurrentlyUnPausing)

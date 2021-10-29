@@ -97,6 +97,7 @@ new g_epoch;
 
 new Float:g_fRoundTime;
 new Float:g_fGhostOvertime;
+new Float:g_fGhostOvertimeTick;
 
 new bool:g_isAlltalkByDefault;
 new bool:g_isExpectingOverride;
@@ -160,8 +161,10 @@ new Handle:g_hSuddenDeath;
 new Handle:g_hCenteredDisplayRemaining;
 new Handle:g_hCenteredDisplayTarget;
 new Handle:g_hCompForceCamera;
-new Handle:g_hGhostOvertime;
 new Handle:g_hGhostOvertimeDecay;
+new Handle:g_hGhostOvertimeGrace;
+new Handle:g_hGhostOvertimeDecayExp;
+new Handle:g_hGhostOvertimeGraceReset;
 new Handle:g_hCenteredDisplayDivider;
 
 #if defined KV_DEBUG
