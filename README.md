@@ -31,7 +31,7 @@ Server requirements:
 
 Some optional features also require:
   - Up-to-date <a target="_blank" href="https://github.com/alliedmodders/sourcemod/tree/master/gamedata">Neotokyo gamedata</a>
-  - <a target="_blank" href="https://github.com/softashell/nt-sourcemod-plugins">Ghostcap event plugin</a> 1.5.4 or later
+  - <a target="_blank" href="https://github.com/softashell/nt-sourcemod-plugins">Ghostcap event plugin</a> 1.9.0 or later
 
 Plugin cvars:
 ```
@@ -64,3 +64,21 @@ sm_competitive_display_remaining_players_target  		- Who to center display remai
 sm_competitive_keyvalues_test							- Store match data into KeyValues file. Debug cvar. Default: 1
 sm_competitive_force_camera				    			- Should fade to black be forced on death when live. Can be useful to disable on pugs etc. Default: 1
 ```
+
+The overtime is controlled by four new cvars
+
+    * sm_competitive_ghost_overtime (Default: 45)
+        * Controls in seconds the maximum amount of overtime that can be added to the base clock.
+    * sm_competitive_ghost_overtime_grace (Default: 15)
+        * Controls at how many seconds on the clock the overtime kicks in.
+    * sm_competitive_ghost_overtime_grace_reset (Default: 1)
+        * Controls whether the grace time should be reset when picking up the ghost. The grace time will never be reset fully, but instead set to what the timer would have been at if the ghost had been held from when the timer showed sm_competitive_ghost_overtime_grace. I.e. a round can never be extended by more than what sm_competitive_ghost_overtime is set to.
+    * sm_competitive_ghost_overtime_decay_exp (Default: 0)
+        * There are two modes for the timer decay. By default the decay is linear, but by setting this cvar to 1 the time will decay exponentially, moving slowly to begin with and then faster and faster as the timer reaches 0. This means that the grace period will remain long for longer which may make sense in conjuction with the setting above.
+
+To illustrate how the timer behaves with default settings:
+Ghost overtime kicks in at 15 seconds on the clock and will add a maximum of 45 seconds to the round. This gives us a total of 15 + 45 = 60 seconds for the timer of 15 seconds to decay. 60 / 15 = 4, meaning each second on the clock during ghost overtime will last for 4 real seconds.
+
+    * Ghost is picked up at 15 seconds and is held for 16 seconds. The timer shows 10 (15 - 16/4 = 11, rounded down to 10 for simplicity).
+    * The ghost is dropped, making the timer speed up.
+    * 8 seconds later the ghost is picked up again. Since grace reset is enabled, the timer jumps from 2 to 8 seconds (10 - 8/4 = 8).
