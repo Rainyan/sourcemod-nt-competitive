@@ -113,6 +113,10 @@ public OnPluginStart()
 	g_hCenteredDisplayTarget			= CreateConVar("sm_competitive_display_remaining_players_target",	"2", "Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players, 3 = everyone", _, true, 1.0, true, 3.0);
 	g_hCenteredDisplayDivider	= CreateConVar("sm_competitive_display_remaining_players_divider", "—", "What kind of divider to use between the scores (eg. 3 vs 2, 3 v 2, 3--2)");
 	g_hCompForceCamera				= CreateConVar("sm_competitive_force_camera",				"1",				"Should fade to black be forced on death when live. Can be useful to disable on pugs etc.", _, true, 0.0, true, 1.0);
+	g_hGhostOvertimeDecay			= CreateConVar("sm_competitive_ghost_overtime",				"45",					"Add up to this many seconds to the round time while the ghost is held.", _, true, 0.0, true, 120.0);
+	g_hGhostOvertimeGrace			= CreateConVar("sm_competitive_ghost_overtime_grace",		"15",					"Freeze the round timer at this many seconds while the ghost is held. Will decay and end at 0 when the overtime runs out. 0 = disabled", _, true, 0.0, true, 30.0);
+	g_hGhostOvertimeDecayExp		= CreateConVar("sm_competitive_ghost_overtime_decay_exp",	"0",					"Whether ghost overtime decay should be exponential or linear. Exponential requires grace reset to be enabled. 0 = linear, 1 = exponential", _, true, 0.0, true, 1.0);
+	g_hGhostOvertimeGraceReset		= CreateConVar("sm_competitive_ghost_overtime_grace_reset", "1", 					"When the ghost is picked up, reset the timer to where it would be on the decay curve if the ghost was never dropped. This means the full overtime can be used even when juggling.", _, true, 0.0, true, 1.0);
 #if defined KV_DEBUG
 	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Store match data into KeyValues file. Debug cvar.", _, true, 0.0, true, 1.0);
 #endif
@@ -280,6 +284,78 @@ public OnGhostCapture(client)
 	}
 
 	g_ghostCapturingTeam = team;
+}
+
+public OnGhostPickUp(client)
+{
+	int gameState = GameRules_GetProp("m_iGameState");
+	if (gameState == 2 && g_isLive && !g_isPaused && GetConVarInt(g_hGhostOvertimeDecay) > 0)
+	{
+		bool graceReset = GetConVarBool(g_hGhostOvertimeGraceReset);
+		if (!graceReset)
+		{
+			float timeLeft = GameRules_GetPropFloat("m_fRoundTimeLeft");
+			if (timeLeft < g_fGhostOvertime)
+			{
+				g_fGhostOvertime = g_fGhostOvertimeTick = timeLeft;
+			}
+		}
+		// Inverval of 0.5 to tick before the second flips over to prevent HUD flicker
+		g_hTimer_GhostOvertime = CreateTimer(0.5, CheckGhostOvertime, _, TIMER_REPEAT);
+		CheckGhostOvertime(g_hTimer_GhostOvertime);
+	}
+}
+
+public OnGhostDrop(client)
+{
+	if (g_hTimer_GhostOvertime != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_GhostOvertime);
+		g_hTimer_GhostOvertime = INVALID_HANDLE;
+	}
+}
+
+public Action:CheckGhostOvertime(Handle:timer)
+{
+	int gameState = GameRules_GetProp("m_iGameState");
+	if (gameState != 2)
+	{
+		g_hTimer_GhostOvertime = INVALID_HANDLE;
+		return Plugin_Stop;
+	}
+
+	float timeLeft = GameRules_GetPropFloat("m_fRoundTimeLeft");
+	float graceTime = GetConVarFloat(g_hGhostOvertimeGrace);
+	if (timeLeft < graceTime)
+	{
+		float decayTime = GetConVarFloat(g_hGhostOvertimeDecay) + graceTime;
+		bool graceReset = GetConVarBool(g_hGhostOvertimeGraceReset);
+		if (graceReset)
+		{
+			float roundTime = GetConVarFloat(g_hRoundTime) * 60;
+			float overtime = GetGameTime() - (g_fRoundTime + roundTime - graceTime);
+			bool decayExp = GetConVarBool(g_hGhostOvertimeDecayExp);
+			if (decayExp)
+			{
+				graceTime = graceTime + 1;
+				g_fGhostOvertime = graceTime - Pow(graceTime, overtime / decayTime);
+			}
+			else
+			{
+				g_fGhostOvertime = graceTime - graceTime * overtime / decayTime;
+			}
+		}
+		else
+		{
+			float timePassed = g_fGhostOvertimeTick - timeLeft;
+			g_fGhostOvertime -= timePassed * graceTime / decayTime;
+			g_fGhostOvertimeTick = float(RoundToCeil(g_fGhostOvertime));
+		}
+		// Round up to nearest int to prevent HUD flicker
+		GameRules_SetPropFloat("m_fRoundTimeLeft", float(RoundToCeil(g_fGhostOvertime)));
+	}
+
+	return Plugin_Continue;
 }
 
 public Action:Command_RefereeMenu(client, args)
@@ -739,7 +815,7 @@ public Action:Command_Ready(client, args)
 
 	switch ( GetConVarBool(g_hCollectiveReady) )
 	{
-		case 0: // Individual readying
+		case false: // Individual readying
 		{
 			if (g_isReady[client])
 			{
@@ -754,7 +830,7 @@ public Action:Command_Ready(client, args)
 			PrintToChatAll("%s Player %s is READY.", g_tag, clientName);
 		}
 
-		case 1: // Collective readying
+		case true: // Collective readying
 		{
 			new teamPlayers;
 			new teamPlayersReady;
@@ -818,7 +894,7 @@ public Action:Command_UnReady(client, args)
 
 	switch ( GetConVarBool(g_hCollectiveReady) )
 	{
-		case 0: // Individual readying
+		case false: // Individual readying
 		{
 			if (!g_isReady[client])
 			{
@@ -839,7 +915,7 @@ public Action:Command_UnReady(client, args)
 			}
 		}
 
-		case 1: // Collective readying
+		case true: // Collective readying
 		{
 			for (new i = 1; i <= MaxClients; i++)
 			{

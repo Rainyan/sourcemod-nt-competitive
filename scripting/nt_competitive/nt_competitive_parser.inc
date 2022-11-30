@@ -35,11 +35,9 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 {
 	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
 
-	// Did the death happen after round time ran out?
-	new Float:roundTimeSecs = GetConVarFloat(g_hRoundTime) * 60;
-	new Float:currentTime = GetGameTime();
-
-	if (currentTime - g_fRoundTime < roundTimeSecs)
+	// Did the death happen before round time ran out?
+	new gameState = GameRules_GetProp("m_iGameState");
+	if (gameState == 2)
 		g_survivedLastRound[victim] = false;
 
 	if ( GetConVarInt(g_hKillVersobity) == 0 ) // Do nothing
@@ -152,6 +150,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 		return Plugin_Continue;
 
 	g_fRoundTime = GetGameTime();
+	g_fGhostOvertime = g_fGhostOvertimeTick = GetConVarFloat(g_hGhostOvertimeGrace);
 
 	// Game is currently being unpaused (points being recovered etc). Stop here.
 	if (g_isCurrentlyUnPausing)

@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.3.9.21"
+#define PLUGIN_VERSION "0.4.0"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -96,6 +96,8 @@ new g_ghostCapturingTeam;
 new g_epoch;
 
 new Float:g_fRoundTime;
+new Float:g_fGhostOvertime;
+new Float:g_fGhostOvertimeTick;
 
 new bool:g_isAlltalkByDefault;
 new bool:g_isExpectingOverride;
@@ -159,6 +161,10 @@ new Handle:g_hSuddenDeath;
 new Handle:g_hCenteredDisplayRemaining;
 new Handle:g_hCenteredDisplayTarget;
 new Handle:g_hCompForceCamera;
+new Handle:g_hGhostOvertimeDecay;
+new Handle:g_hGhostOvertimeGrace;
+new Handle:g_hGhostOvertimeDecayExp;
+new Handle:g_hGhostOvertimeGraceReset;
 new Handle:g_hCenteredDisplayDivider;
 
 #if defined KV_DEBUG
@@ -170,6 +176,7 @@ new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
+new Handle:g_hTimer_GhostOvertime		= INVALID_HANDLE;
 
 #if defined KV_DEBUG
 KeyValues g_kv;
