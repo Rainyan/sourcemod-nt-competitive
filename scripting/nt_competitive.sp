@@ -300,6 +300,7 @@ public OnGhostPickUp(client)
 				g_fGhostOvertime = g_fGhostOvertimeTick = timeLeft;
 			}
 		}
+		g_bGhostOvertimeFirstTick = true;
 		// Inverval of 0.5 to tick before the second flips over to prevent HUD flicker
 		g_hTimer_GhostOvertime = CreateTimer(0.5, CheckGhostOvertime, _, TIMER_REPEAT);
 		CheckGhostOvertime(g_hTimer_GhostOvertime);
@@ -328,6 +329,7 @@ public Action:CheckGhostOvertime(Handle:timer)
 	float graceTime = GetConVarFloat(g_hGhostOvertimeGrace);
 	if (timeLeft < graceTime)
 	{
+		float realTimeLeft;
 		float decayTime = GetConVarFloat(g_hGhostOvertimeDecay) + graceTime;
 		bool graceReset = GetConVarBool(g_hGhostOvertimeGraceReset);
 		if (graceReset)
@@ -337,22 +339,33 @@ public Action:CheckGhostOvertime(Handle:timer)
 			bool decayExp = GetConVarBool(g_hGhostOvertimeDecayExp);
 			if (decayExp)
 			{
-				graceTime = graceTime + 1;
-				g_fGhostOvertime = graceTime - Pow(graceTime, overtime / decayTime);
+				g_fGhostOvertime = graceTime + 1 - Pow(graceTime + 1, overtime / decayTime);
 			}
 			else
 			{
 				g_fGhostOvertime = graceTime - graceTime * overtime / decayTime;
 			}
+			realTimeLeft = decayTime - overtime;
 		}
 		else
 		{
 			float timePassed = g_fGhostOvertimeTick - timeLeft;
 			g_fGhostOvertime -= timePassed * graceTime / decayTime;
 			g_fGhostOvertimeTick = float(RoundToCeil(g_fGhostOvertime));
+			realTimeLeft = g_fGhostOvertime * decayTime / graceTime;
 		}
 		// Round up to nearest int to prevent HUD flicker
 		GameRules_SetPropFloat("m_fRoundTimeLeft", float(RoundToCeil(g_fGhostOvertime)));
+
+		// Everything's multiplied by 2 because we want to tick every second, but the interval is 0.5
+		bool printTick = g_bGhostOvertimeFirstTick
+			|| (RoundToCeil(realTimeLeft * 2) % RoundToCeil(graceTime * 2) == 0) // Divisible by graceTime
+			|| (realTimeLeft < graceTime && RoundToCeil(realTimeLeft * 2) % 10 == 0) // Divisible by 5
+			|| (realTimeLeft < 5 && RoundToCeil(realTimeLeft * 2) % 2 == 0); // Every second for the last 5
+		if (printTick) {
+			PrintToChatAll("Ghost overtime engaged. %d seconds remaining.", RoundToCeil(realTimeLeft));
+			g_bGhostOvertimeFirstTick = false;
+		}
 	}
 
 	return Plugin_Continue;
