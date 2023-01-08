@@ -98,6 +98,7 @@ new g_epoch;
 new Float:g_fRoundTime;
 new Float:g_fGhostOvertime;
 new Float:g_fGhostOvertimeTick;
+new bool:g_bGhostOvertimeFirstTick;
 
 new bool:g_isAlltalkByDefault;
 new bool:g_isExpectingOverride;
