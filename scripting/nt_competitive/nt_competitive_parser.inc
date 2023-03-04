@@ -553,17 +553,6 @@ public Event_SourceTVPath(Handle:cvar, const String:oldVal[], const String:newVa
 		InitDirectory(newVal);
 }
 
-public Action:Hook_Fade(UserMsg:msg_id, Handle:bf, const players[], playersNum, bool:reliable, bool:init)
-{
-	if (GetConVarInt(g_hForceCamera))
-	{
-		if (BfReadShort(bf) == 640 && !IsPlayerAlive(players[0]))
-			return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
 public Action:SayCallback(client, const String:command[], argc)
 {
 	// This player is not editing a cvar via chat, let the chat message through normally.
