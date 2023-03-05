@@ -417,7 +417,7 @@ Menu BuildClientMenu()
 public int Menu_Clients(Menu menu, MenuAction action, client, choice)
 {
 	if (action != MenuAction_Select)
-		return;
+		return 0;
 
 	decl String:targetString[32];
 	menu.GetItem( choice, targetString, sizeof(targetString) );
@@ -427,10 +427,11 @@ public int Menu_Clients(Menu menu, MenuAction action, client, choice)
 	if ( !IsValidClient(target) )
 	{
 		PrintToChat(client, "This player has left the server.");
-		return;
+		return 0;
 	}
 
 	RefereeMenu_ClientActions(client);
+	return 0;
 }
 
 #if defined KV_DEBUG
