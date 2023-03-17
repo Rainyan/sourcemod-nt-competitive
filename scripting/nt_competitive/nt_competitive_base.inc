@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.4.3"
+#define PLUGIN_VERSION "0.5.0"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -161,7 +161,6 @@ new Handle:g_hNSFScore;
 new Handle:g_hSuddenDeath;
 new Handle:g_hCenteredDisplayRemaining;
 new Handle:g_hCenteredDisplayTarget;
-new Handle:g_hCompForceCamera;
 new Handle:g_hGhostOvertimeDecay;
 new Handle:g_hGhostOvertimeGrace;
 new Handle:g_hGhostOvertimeDecayExp;
@@ -469,7 +468,7 @@ void ToggleLive(bool:isKvRestore = false)
 		// Set convars for competitive
 		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
 		SetConVarBool(g_hPausable, false);
-		SetConVarBool( g_hForceCamera, GetConVarBool(g_hCompForceCamera) );
+		SetConVarBool( g_hForceCamera, true );
 		SetConVarInt(g_hNeoScoreLimit, 99); // Make sure Neotokyo's own max round count is maxed out so it won't interfere
 
 		// Only reset team/player scores if we're not restoring a previous game from KeyValues

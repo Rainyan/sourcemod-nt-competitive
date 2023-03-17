@@ -1,6 +1,5 @@
 /*
 	GPLv3
-		- Fade-to-black function borrowed from Agiel's nt_fadetoblack plugin.
 		- SourceTV recording functions borrowed from Stevo.TVR's Auto Recorder plugin: http://forums.alliedmods.net/showthread.php?t=92072
 */
 
@@ -112,7 +111,6 @@ public OnPluginStart()
 	g_hCenteredDisplayRemaining	= CreateConVar("sm_competitive_display_remaining_players_centered",	"2", "How the number of remaining players is displayed to clients in a competitive game. 0 = disabled, 1 = show remaining player numbers, 2 = show team names and remaining player numbers", _, true, 0.0, true, 2.0);
 	g_hCenteredDisplayTarget			= CreateConVar("sm_competitive_display_remaining_players_target",	"2", "Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players, 3 = everyone", _, true, 1.0, true, 3.0);
 	g_hCenteredDisplayDivider	= CreateConVar("sm_competitive_display_remaining_players_divider", "—", "What kind of divider to use between the scores (eg. 3 vs 2, 3 v 2, 3--2)");
-	g_hCompForceCamera				= CreateConVar("sm_competitive_force_camera",				"1",				"Should fade to black be forced on death when live. Can be useful to disable on pugs etc.", _, true, 0.0, true, 1.0);
 	g_hGhostOvertimeDecay			= CreateConVar("sm_competitive_ghost_overtime",				"45",					"Add up to this many seconds to the round time while the ghost is held.", _, true, 0.0, true, 120.0);
 	g_hGhostOvertimeGrace			= CreateConVar("sm_competitive_ghost_overtime_grace",		"15",					"Freeze the round timer at this many seconds while the ghost is held. Will decay and end at 0 when the overtime runs out. 0 = disabled", _, true, 0.0, true, 30.0);
 	g_hGhostOvertimeDecayExp		= CreateConVar("sm_competitive_ghost_overtime_decay_exp",	"0",					"Whether ghost overtime decay should be exponential or linear. Exponential requires grace reset to be enabled. 0 = linear, 1 = exponential", _, true, 0.0, true, 1.0);
@@ -138,8 +136,6 @@ public OnPluginStart()
 	HookConVarChange(g_hPreventZanshiStrats,			Event_ZanshiStrats);
 	HookConVarChange(g_hJinraiScore,						Event_JinraiScore);
 	HookConVarChange(g_hNSFScore,						Event_NSFScore);
-
-	HookUserMessage(GetUserMessageId("Fade"), Hook_Fade, true); // Hook fade to black (on death)
 
 	// Initialize SourceTV path
 	new String:sourceTVPath[PLATFORM_MAX_PATH];
