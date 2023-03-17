@@ -2945,22 +2945,47 @@ bool IsMatchPoint()
 		return false;
 	}
 
-	int rounds_remaining = GetConVarInt(g_hRoundLimit) - (g_roundNumber);
+	// TODO: unimplemented for other modes
+	if (GetConVarInt(g_hRoundStyle) != 1)
+	{
+		return false;
+	}
+
+	if (g_isSuddenDeathRound)
+	{
+		return true;
+	}
+
+	// Subtract 1 because rounds are one-indexed
+	int rounds_remaining = GetConVarInt(g_hRoundLimit) - (g_roundNumber - 1);
 
 	// Should never have less than 0 rounds remaining, but do a sanity check just in case.
-	if (rounds_remaining < 0) {
+	if (rounds_remaining < 0)
+	{
 		LogError("Had %d rounds remaining, but expected 0 or more (%d - %d = %d).",
 			rounds_remaining,
 			GetConVarInt(g_hRoundLimit),
 			g_roundNumber,
-			GetConVarInt(g_hRoundLimit) - (g_roundNumber));
+			rounds_remaining);
+		return false;
+	}
+	// Can't be match point because the match is over.
+	else if (rounds_remaining == 0)
+	{
 		return false;
 	}
 
-	int score_difference = g_jinraiScore[g_roundNumber] - g_nsfScore[g_roundNumber];
-	// Negative value means the other team is leading.
-	// Don't care which team is leading here, so get the absolute value.
-	score_difference = score_difference < 0 ? -score_difference : score_difference;
+	int jin_score = g_jinraiScore[g_roundNumber];
+	int nsf_score = g_nsfScore[g_roundNumber];
 
-	return score_difference >= rounds_remaining;
+	// If a team's potential max score cannot catch up to the
+	// score of the other team winning the current round,
+	// consider it a match point.
+	if ((jin_score + rounds_remaining) - (nsf_score + 1) <= 0 ||
+		(nsf_score + rounds_remaining) - (jin_score + 1) <= 0)
+	{
+		return true;
+	}
+
+	return false;
 }
