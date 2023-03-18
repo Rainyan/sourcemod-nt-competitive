@@ -3,8 +3,10 @@ sourcemod-nt-competitive
 
 SourceMod plugin for competitive Neotokyo. WIP.
 
-## Recommended additional plugins for competitive
+### Recommended additional plugins for competitive
 * [nt_fadefix](https://github.com/Rainyan/sourcemod-nt-fadefix) - Block any unintended un-fade user messages. Hide new round vision to block "ghosting" for opposing team's loadouts.
+
+---
 
 Features:
   - Automatic demo recording
