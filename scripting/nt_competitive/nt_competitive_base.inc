@@ -1290,6 +1290,16 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	SetConVarInt(g_hJinraiScore, correctInt);
 	SetConVarInt(g_hNSFScore, correctInt);
 
+	for (i = 1; i < MaxClients; ++i)
+	{
+		g_playerSteamID[i] = 0;
+		for (int j = 0; j < sizeof(g_playerXP[]); ++j)
+		{
+			g_playerXP[i][j] = correctInt;
+			g_playerDeaths[i][j] = correctInt;
+		}
+	}
+
 	for (i = 0; i < MAX_ROUNDS_PLAYED; i++)
 	{
 		g_jinraiScore[i]	= correctInt;
