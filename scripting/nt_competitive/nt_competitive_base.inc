@@ -1292,7 +1292,7 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 
 	for (i = 1; i < MaxClients; ++i)
 	{
-		g_playerSteamID[i] = 0;
+		g_playerSteamID[i] = correctInt;
 		for (int j = 0; j < sizeof(g_playerXP[]); ++j)
 		{
 			g_playerXP[i][j] = correctInt;
