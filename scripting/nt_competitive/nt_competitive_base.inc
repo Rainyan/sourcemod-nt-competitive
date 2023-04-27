@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.5.0"
+#define PLUGIN_VERSION "0.5.1"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -21,11 +21,11 @@ new String:g_teamName[][64] = {
 	"Jinrai",
 	"NSF"
 };
-new String:g_livePlayers[MAXPLAYERS+1][MAX_STEAMID_LENGTH]; // Array for storing SteamIDs to allow disconnected players rejoining when live
+new String:g_livePlayers[NEO_MAXPLAYERS+1][MAX_STEAMID_LENGTH]; // Array for storing SteamIDs to allow disconnected players rejoining when live
 new const String:g_menuSoundOk[] = "buttons/button14.wav";
 new const String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new const String:g_soundLive[] = "buttons/button17.wav";
-new String:g_killInfoBuffer[MAXPLAYERS+1][512];
+new String:g_killInfoBuffer[NEO_MAXPLAYERS+1][512];
 new String:g_convarBeingEdited[128];
 
 #if DEBUG
@@ -35,7 +35,7 @@ new String:g_path_logDebug[PLATFORM_MAX_PATH] = "logs/competitive";
 #if defined KV_DEBUG
 new String:g_kvPath[PLATFORM_MAX_PATH] = "data/competitive/matches";
 new String:g_kvName[128];
-new String:g_kvName_Temp[MAXPLAYERS+1][sizeof(g_kvName)];
+new String:g_kvName_Temp[NEO_MAXPLAYERS+1][sizeof(g_kvName)];
 
 new const String:g_kvKey_jinraiName[] = "jinrai_name";
 new const String:g_kvKey_nsfName[] = "nsf_name";
@@ -70,7 +70,7 @@ new const String:g_kvKey_jinraiPauses[] = "jinrai_pauses_used";
 new const String:g_kvKey_nsfPauses[] = "nsf_pauses_used";
 #endif
 
-new g_assignedTeamWhenLive[MAXPLAYERS+1];
+new g_assignedTeamWhenLive[NEO_MAXPLAYERS+1];
 new g_jinraiScore[MAX_ROUNDS_PLAYED];
 new g_liveTimer = 5;
 new g_liveTimer_OriginalValue;
@@ -85,10 +85,11 @@ new g_unpauseTimer_OriginalValue;
 new g_usedTimeouts[sizeof(g_teamName)];
 new g_playersAlive[sizeof(g_teamName)];
 new g_winner;
-new g_health[MAXPLAYERS+1];
-new g_damageDealt[MAXPLAYERS+1][MAXPLAYERS+1];
-new g_playerDeaths[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];	// Players' deaths for each round
-new g_playerXP[MAXPLAYERS+1][MAX_ROUNDS_PLAYED];		// Players' XP for each round
+new g_health[NEO_MAXPLAYERS+1];
+new g_damageDealt[NEO_MAXPLAYERS+1][NEO_MAXPLAYERS+1];
+new g_playerDeaths[NEO_MAXPLAYERS+1][MAX_ROUNDS_PLAYED];	// Players' deaths for each round
+new g_playerXP[NEO_MAXPLAYERS+1][MAX_ROUNDS_PLAYED];		// Players' XP for each round
+new g_playerSteamID[NEO_MAXPLAYERS+1];						// Players' SteamID as int32
 new g_targetRound;
 new g_furthestPlayedRound;
 new g_penalizedTeam;
@@ -105,28 +106,28 @@ new bool:g_isExpectingOverride;
 new bool:g_isExpectingUnPauseTimer;
 new bool:g_isLive;
 new bool:g_isPaused;
-new bool:g_isReady[MAXPLAYERS+1];
+new bool:g_isReady[NEO_MAXPLAYERS+1];
 new bool:g_isSourceTVRecording;
-new bool:g_isSpawned[MAXPLAYERS+1];
+new bool:g_isSpawned[NEO_MAXPLAYERS+1];
 new bool:g_isTeamReadyForUnPause[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, nsf
 new bool:g_shouldPause;
-new bool:g_shouldShowKillInfo[MAXPLAYERS+1];
+new bool:g_shouldShowKillInfo[NEO_MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
-new bool:g_isEditingSetting[MAXPLAYERS+1];
+new bool:g_isEditingSetting[NEO_MAXPLAYERS+1];
 new bool:g_confirmLiveEnd;
 new bool:g_isGamedataOutdated;
 new bool:g_isCurrentlyUnPausing;
 new bool:g_confirmRoundChange;
 new bool:g_isCurrentlyRestoringRound;
-new bool:g_isCurrentlyEditingClients[MAXPLAYERS+1];
-new bool:g_isCurrentlyGivingPenalty[MAXPLAYERS+1];
-new bool:g_survivedLastRound[MAXPLAYERS+1];
+new bool:g_isCurrentlyEditingClients[NEO_MAXPLAYERS+1];
+new bool:g_isCurrentlyGivingPenalty[NEO_MAXPLAYERS+1];
+new bool:g_survivedLastRound[NEO_MAXPLAYERS+1];
 new bool:g_isSuddenDeathRound;
-new bool:g_isRecording[MAXPLAYERS+1];
+new bool:g_isRecording[NEO_MAXPLAYERS+1];
 
 #if defined KV_DEBUG
-new bool:g_goLiveAfterKvRestore[MAXPLAYERS+1] = true;
+new bool:g_goLiveAfterKvRestore[NEO_MAXPLAYERS+1] = true;
 #endif
 
 new Handle:g_hAlltalk;

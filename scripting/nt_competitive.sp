@@ -237,6 +237,87 @@ public OnClientAuthorized(client, const String:authID[])
 #endif
 }
 
+// For a valid, authorized client, check if we hold their previous XP/deaths info,
+// and recover it if so.
+void PostAuthXpRecovery(int client)
+{
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	int acc_id = GetSteamAccountID(client);
+	if (acc_id == 0)
+	{
+		LogError("In OnClientAuthorized but GetSteamAccountID returned 0 for non-bot client %N", client);
+	}
+	g_playerSteamID[client] = acc_id;
+
+	// Recover XP & deaths
+	for (int i = 1; i <= MaxClients; ++i)
+	{
+		// If this player had an entry at some (probably different) client index before,
+		// we gotta move the data over.
+		if (g_playerSteamID[i] == acc_id)
+		{
+			// Set XP & deaths for any upcoming un-pause recovery
+			g_playerXP[client] = g_playerXP[i];
+			g_playerDeaths[client] = g_playerDeaths[i];
+
+			// Only reset the previous index occupied by this player
+			// if it's actually different from our current index
+			// (because otherwise we would zero our real data here).
+			if (client != i)
+			{
+				g_playerSteamID[i] = 0;
+				for (int j = 0; j < sizeof(g_playerXP[]); ++j)
+				{
+					g_playerXP[i][j] = 0;
+					g_playerDeaths[i][j] = 0;
+				}
+			}
+
+			// Set the actual XP & deaths
+			SetPlayerXP(client, g_playerXP[client][g_roundNumber]);
+			SetPlayerDeaths(client, g_playerDeaths[client][g_roundNumber]);
+			break;
+		}
+	}
+}
+
+public Action Timer_PostAuthXpRecovery(Handle timer, int userid)
+{
+	int client = GetClientOfUserId(userid);
+	// If userid->client == 0, this client has disconnected again.
+	if (client == 0)
+	{
+		return Plugin_Stop;
+	}
+	// Not authorized yet, keep trying
+	if (!IsClientAuthorized(client))
+	{
+		return Plugin_Continue;
+	}
+	PostAuthXpRecovery(client);
+	return Plugin_Stop;
+}
+
+public void OnClientPutInServer(int client)
+{
+	// Can't do this directly in OnClientAuthorized because whether the player
+	// actually joins the game before or after the authorization is indeterminate,
+	// and trying to modify client XP/deaths too soon results in an error.
+	if (IsClientAuthorized(client))
+	{
+		PostAuthXpRecovery(client);
+	}
+	else
+	{
+		// Repeated because this can fail if the client hasn't yet been SteamID authorized
+		CreateTimer(1.0, Timer_PostAuthXpRecovery, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
 public bool OnClientConnect(client)
 {
 	if ( g_isPaused && GetConVarInt(g_hPauseMode) == PAUSEMODE_NORMAL )
