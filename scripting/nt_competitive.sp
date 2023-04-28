@@ -249,7 +249,7 @@ void PostAuthXpRecovery(int client)
 	int acc_id = GetSteamAccountID(client);
 	if (acc_id == 0)
 	{
-		LogError("In OnClientAuthorized but GetSteamAccountID returned 0 for non-bot client %N", client);
+		LogError("GetSteamAccountID returned 0 for non-bot client %N", client);
 	}
 	g_playerSteamID[client] = acc_id;
 
