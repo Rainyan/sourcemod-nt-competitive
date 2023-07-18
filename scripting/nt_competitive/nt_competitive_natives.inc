@@ -12,6 +12,13 @@
 native bool:Competitive_IsLive();
 
 /****
+	* Returns whether the current match round is match point.
+	*
+	* @return	bool	True if match point, false otherwise.
+****/
+native bool:Competitive_IsMatchPoint();
+
+/****
 	* Returns competitive match's pause state.
 	*
 	* @return	bool	True if game is paused, false otherwise.
