@@ -251,38 +251,56 @@ void PostAuthXpRecovery(int client)
 	{
 		LogError("GetSteamAccountID returned 0 for non-bot client %N", client);
 	}
-	g_playerSteamID[client] = acc_id;
 
-	// Recover XP & deaths
+	// Recover XP & deaths.
+	// If this player had an entry at some (probably different) client index,
+	// we gotta move the data over.
 	for (int i = 1; i <= MaxClients; ++i)
 	{
-		// If this player had an entry at some (probably different) client index before,
-		// we gotta move the data over.
-		if (g_playerSteamID[i] == acc_id)
+		if (g_playerSteamID[i] != acc_id)
 		{
-			// Set XP & deaths for any upcoming un-pause recovery
-			g_playerXP[client] = g_playerXP[i];
-			g_playerDeaths[client] = g_playerDeaths[i];
+			continue;
+		}
 
-			// Only reset the previous index occupied by this player
-			// if it's actually different from our current index
-			// (because otherwise we would zero our real data here).
-			if (client != i)
+		int xp, deaths;
+		for (int round = g_roundNumber; round > 0; --round)
+		{
+			// Copy the previous values for this client index
+			g_playerXP[client][round] = g_playerXP[i][round];
+			g_playerDeaths[client][round] = g_playerDeaths[i][round];
+
+			if (xp == 0 && deaths == 0)
 			{
-				g_playerSteamID[i] = 0;
-				for (int j = 0; j < sizeof(g_playerXP[]); ++j)
-				{
-					g_playerXP[i][j] = 0;
-					g_playerDeaths[i][j] = 0;
-				}
+				// The most recent values; we'll use these to set the
+				// player's actual XP/deaths after this
+				xp = g_playerXP[i][round];
+				deaths = g_playerDeaths[i][round];
 			}
 
-			// Set the actual XP & deaths
-			SetPlayerXP(client, g_playerXP[client][g_roundNumber]);
-			SetPlayerDeaths(client, g_playerDeaths[client][g_roundNumber]);
-			break;
+			// If indices differed, clean them up
+			if (client != i)
+			{
+				g_playerXP[i][round] = 0;
+				g_playerDeaths[i][round] = 0;
+			}
+		}
+
+		// Set the actual XP & deaths
+		SetPlayerXP(client, xp);
+		SetPlayerDeaths(client, deaths);
+		break;
+	}
+
+	// Remove any duplicates
+	for (int i = 1; i <= MaxClients; ++i)
+	{
+		if (g_playerSteamID[i] == acc_id)
+		{
+			g_playerSteamID[i] = 0;
 		}
 	}
+	// Store accid to latest index
+	g_playerSteamID[client] = acc_id;
 }
 
 public Action Timer_PostAuthXpRecovery(Handle timer, int userid)
