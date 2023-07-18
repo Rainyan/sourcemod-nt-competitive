@@ -4,7 +4,7 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.5.1"
+#define PLUGIN_VERSION "0.5.2"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -460,6 +460,14 @@ void ToggleLive(bool:isKvRestore = false)
 				LogDebug("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
 				foundPlayers++;
 #endif
+
+				int acc_id = GetSteamAccountID(i);
+				if (acc_id == 0)
+				{
+					LogError("acc_id was zero for %N (%d), this should never happen", i, i);
+					continue;
+				}
+				g_playerSteamID[i] = acc_id;
 			}
 		}
 #if DEBUG
