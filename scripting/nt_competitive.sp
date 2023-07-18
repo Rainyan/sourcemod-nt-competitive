@@ -40,6 +40,7 @@ public Plugin:myinfo = {
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
 	CreateNative("Competitive_IsLive",			Competitive_IsLive);
+	CreateNative("Competitive_IsMatchPoint",	Competitive_IsMatchPoint);
 	CreateNative("Competitive_IsPaused",		Competitive_IsPaused);
 	CreateNative("Competitive_GetTeamScore",	Competitive_GetTeamScore);
 	CreateNative("Competitive_GetWinner",		Competitive_GetWinner);
@@ -1095,6 +1096,11 @@ public Action:Command_ManualRoundEdit(client, args)
 public Competitive_IsLive(Handle:plugin, numParams)
 {
 	return g_isLive;
+}
+
+public Competitive_IsMatchPoint(Handle:plugin, numParams)
+{
+	return g_isLive && !g_isPaused && IsMatchPoint();
 }
 
 public Competitive_IsPaused(Handle:plugin, numParams)
