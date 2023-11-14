@@ -2040,6 +2040,7 @@ void CheckMatchState()
 			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 
 			PrintToChatAll(msgBuffer);
+			PrintToConsoleAll(msgBuffer);
 			LogCompetitive(msgBuffer);
 
 			g_winner = TEAM_JINRAI;
@@ -2056,6 +2057,7 @@ void CheckMatchState()
 			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 
 			PrintToChatAll(msgBuffer);
+			PrintToConsoleAll(msgBuffer);
 			LogCompetitive(msgBuffer);
 
 			g_winner = TEAM_NSF;
@@ -2069,6 +2071,7 @@ void CheckMatchState()
 				Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 
 				PrintToChatAll(msgBuffer);
+				PrintToConsoleAll(msgBuffer);
 				LogCompetitive(msgBuffer);
 
 				g_winner = TEAM_JINRAI;
@@ -2078,6 +2081,7 @@ void CheckMatchState()
 				Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 
 				PrintToChatAll(msgBuffer);
+				PrintToConsoleAll(msgBuffer);
 				LogCompetitive(msgBuffer);
 
 				g_winner = TEAM_NSF;
@@ -2130,6 +2134,7 @@ void CheckMatchState()
 		else if (IsMatchPoint())
 		{
 			PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+			PrintToConsoleAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
 		}
 
 		// Just another round, simply announce round number
@@ -2137,7 +2142,10 @@ void CheckMatchState()
 		{
 			// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
 			if (g_spamTimerCount <= 1)
+			{
+				PrintToConsoleAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
 				PrintToChatAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
+			}
 		}
 	}
 	// Win condition: First to X rounds
@@ -2151,6 +2159,7 @@ void CheckMatchState()
 				g_nsfScore[g_roundNumber]);
 
 			PrintToChatAll(msgBuffer);
+			PrintToConsoleAll(msgBuffer);
 			LogCompetitive(msgBuffer);
 			g_winner = TEAM_JINRAI;
 
@@ -2165,6 +2174,7 @@ void CheckMatchState()
 				g_jinraiScore[g_roundNumber]);
 
 			PrintToChatAll(msgBuffer);
+			PrintToConsoleAll(msgBuffer);
 			LogCompetitive(msgBuffer);
 			g_winner = TEAM_NSF;
 
@@ -2185,6 +2195,7 @@ Jinrai %i - NSF %i, round %i in a first to %i points game.",
 			decl String:message[24];
 			Format(message, sizeof(message), "%s Round %i", g_tag, g_roundNumber);
 			PrintToChatAll(message);
+			PrintToConsoleAll(message);
 			LogCompetitive(message);
 		}
 	}
