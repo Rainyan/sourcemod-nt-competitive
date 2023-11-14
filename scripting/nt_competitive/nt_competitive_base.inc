@@ -2059,7 +2059,6 @@ void CheckMatchState()
 			LogCompetitive(msgBuffer);
 
 			g_winner = TEAM_NSF;
-			g_isLive = false;
 		}
 
 		else if (g_isSuddenDeathRound)
