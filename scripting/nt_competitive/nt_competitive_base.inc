@@ -1212,7 +1212,7 @@ void LogCompetitive(const String:message[])
 #if SOURCEMOD_V_MAJOR <= 1 && SOURCEMOD_V_MINOR < 9
 void PrintToConsoleAll(const String:message[], any ...)
 {
-	decl String:formatMsg[512];
+	decl String:formatMsg[256];
 	VFormat(formatMsg, sizeof(formatMsg), message, 2);
 
 	for (new i = 1; i <= MaxClients; i++)
@@ -2013,6 +2013,16 @@ void ApplyPenalty(admin, team)
 	Command_RefereeMenu(admin, 1);
 }
 
+static void Notify(const String:message[], any ...)
+{
+	decl String:formatMsg[256];
+	VFormat(formatMsg, sizeof(formatMsg), message, 2);
+
+	PrintToChatAll(formatMsg);
+	PrintToConsoleAll(formatMsg);
+	LogCompetitive(formatMsg);
+}
+
 void CheckMatchState()
 {
 #if defined KV_DEBUG
@@ -2023,7 +2033,6 @@ void CheckMatchState()
 	}
 #endif
 	new roundLimit = GetConVarInt(g_hRoundLimit);
-	decl String:msgBuffer[256];
 
 	// Win condition: Best of X rounds
 	if (GetConVarInt(g_hRoundStyle) == 1)
@@ -2036,12 +2045,7 @@ void CheckMatchState()
 			LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 			LogDebug("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
 	#endif
-
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-
-			PrintToChatAll(msgBuffer);
-			PrintToConsoleAll(msgBuffer);
-			LogCompetitive(msgBuffer);
+			Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 
 			g_winner = TEAM_JINRAI;
 		}
@@ -2053,12 +2057,7 @@ void CheckMatchState()
 			LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 			LogDebug("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber], roundLimit, g_roundNumber);
 	#endif
-
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-
-			PrintToChatAll(msgBuffer);
-			PrintToConsoleAll(msgBuffer);
-			LogCompetitive(msgBuffer);
+			Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 
 			g_winner = TEAM_NSF;
 			g_isLive = false;
@@ -2068,30 +2067,17 @@ void CheckMatchState()
 		{
 			if (g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber])
 			{
-				Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-
-				PrintToChatAll(msgBuffer);
-				PrintToConsoleAll(msgBuffer);
-				LogCompetitive(msgBuffer);
-
+				Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 				g_winner = TEAM_JINRAI;
 			}
 			else if (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber])
 			{
-				Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-
-				PrintToChatAll(msgBuffer);
-				PrintToConsoleAll(msgBuffer);
-				LogCompetitive(msgBuffer);
-
+				Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 				g_winner = TEAM_NSF;
 			}
 			else
 			{
-				Format(msgBuffer, sizeof(msgBuffer), "%s SUDDEN DEATH. Next team to score wins.", g_tag);
-				PrintToChatAll(msgBuffer);
-				LogCompetitive(msgBuffer);
-
+				Notify("%s SUDDEN DEATH. Next team to score wins.", g_tag);
 				return;
 			}
 		}
@@ -2105,10 +2091,7 @@ void CheckMatchState()
 				if (!g_isSuddenDeathRound)
 				{
 					g_isSuddenDeathRound = true;
-					Format(msgBuffer, sizeof(msgBuffer), "%s SUDDEN DEATH. Next team to score wins.", g_tag);
-					PrintToChatAll(msgBuffer);
-					LogCompetitive(msgBuffer);
-
+					Notify("%s SUDDEN DEATH. Next team to score wins.", g_tag);
 					return;
 				}
 			}
@@ -2116,11 +2099,8 @@ void CheckMatchState()
 			// No sudden death. End match in a tie.
 			else
 			{
-				Format(msgBuffer, sizeof(msgBuffer), "%s MATCH TIED %i - %i", g_tag, g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-				PrintToChatAll(msgBuffer);
+				Notify("%s MATCH TIED %i - %i", g_tag, g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 			}
-
-			LogCompetitive(msgBuffer);
 		}
 
 		// Check if game ended, and toggle off live mode if appropriate
@@ -2133,8 +2113,7 @@ void CheckMatchState()
 		// Match point, one team has almost won
 		else if (IsMatchPoint())
 		{
-			PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
-			PrintToConsoleAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+			Notify("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
 		}
 
 		// Just another round, simply announce round number
@@ -2143,8 +2122,7 @@ void CheckMatchState()
 			// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
 			if (g_spamTimerCount <= 1)
 			{
-				PrintToConsoleAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
-				PrintToChatAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
+				Notify("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
 			}
 		}
 	}
@@ -2154,13 +2132,10 @@ void CheckMatchState()
 		// Jinrai reached score required to win
 		if (g_jinraiScore[g_roundNumber] == roundLimit)
 		{
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i",
+			Notify("%s %s WINS %i - %i",
 				g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber],
 				g_nsfScore[g_roundNumber]);
 
-			PrintToChatAll(msgBuffer);
-			PrintToConsoleAll(msgBuffer);
-			LogCompetitive(msgBuffer);
 			g_winner = TEAM_JINRAI;
 
 			ToggleLive();
@@ -2169,13 +2144,10 @@ void CheckMatchState()
 		// NSF reached score required to win
 		else if (g_nsfScore[g_roundNumber] == roundLimit)
 		{
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i",
+			Notify("%s %s WINS %i - %i",
 				g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber],
 				g_jinraiScore[g_roundNumber]);
 
-			PrintToChatAll(msgBuffer);
-			PrintToConsoleAll(msgBuffer);
-			LogCompetitive(msgBuffer);
 			g_winner = TEAM_NSF;
 
 			ToggleLive();
@@ -2192,11 +2164,7 @@ Jinrai %i - NSF %i, round %i in a first to %i points game.",
 		}
 		else if (g_roundNumber > 1)
 		{
-			decl String:message[24];
-			Format(message, sizeof(message), "%s Round %i", g_tag, g_roundNumber);
-			PrintToChatAll(message);
-			PrintToConsoleAll(message);
-			LogCompetitive(message);
+			Notify("%s Round %i", g_tag, g_roundNumber);
 		}
 	}
 }
