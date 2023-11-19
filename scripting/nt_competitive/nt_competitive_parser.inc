@@ -33,8 +33,6 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
 	int victimTeam = GetClientTeam(victim);
 
 	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
-	char attackerName[MAX_NAME_LENGTH];
-	GetClientName( attacker, attackerName, sizeof(attackerName) );
 
 	switch ( GetConVarInt(g_hKillVersobity) )
 	{
@@ -51,7 +49,7 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
 		case 2: // Only show the victim how much damage they dealt to their killer (CSGO style)
 		{
 			char msgBuffer[sizeof(g_tag) + MAX_NAME_LENGTH + 53];
-			Format(msgBuffer, sizeof(msgBuffer), "%s Player \"%s\" killed you. Damage dealt: %i", g_tag, attackerName, g_damageDealt[victim][attacker]);
+			Format(msgBuffer, sizeof(msgBuffer), "%s Player \"%N\" killed you. Damage dealt: %i", g_tag, attacker, g_damageDealt[victim][attacker]);
 
 			if ( GetConVarBool(g_hVerbosityDelay) )
 				ShowKillInfoNextRound(victim, msgBuffer);
@@ -62,7 +60,7 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
 		case 3: // Only show the victim their killer's remaining health
 		{
 			char msgBuffer[sizeof(g_tag) + MAX_NAME_LENGTH + 53];
-			Format(msgBuffer, sizeof(msgBuffer), "%s Player \"%s\" killed you with %i health remaining.", g_tag, attackerName, g_health[attacker]);
+			Format(msgBuffer, sizeof(msgBuffer), "%s Player \"%N\" killed you with %i health remaining.", g_tag, attacker, g_health[attacker]);
 
 			if ( GetConVarBool(g_hVerbosityDelay) )
 				ShowKillInfoNextRound(victim, msgBuffer);
