@@ -60,8 +60,6 @@ public OnPluginStart()
 
 	RegConsoleCmd("jointeam",		Command_JoinTeam); // There's no pick team event for NT, so we do this instead
 
-	RegAdminCmd("sm_referee",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel.");
-	RegAdminCmd("sm_ref",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel. Alternative for sm_referee.");
 	RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start.");
 
 	HookEvent("game_round_start",	Event_RoundStart);
@@ -428,47 +426,6 @@ public Action:CheckGhostOvertime(Handle:timer)
 	}
 
 	return Plugin_Continue;
-}
-
-public Action:Command_RefereeMenu(client, args)
-{
-	new Handle:panel = CreatePanel();
-	SetPanelTitle(panel, "Comp Admin Menu");
-
-	DrawPanelItem(panel, "Game information");
-	DrawPanelItem(panel, "Team penalties");
-	DrawPanelItem(panel, "Rollback rounds");
-
-	if (g_isLiveCountdown)
-	{
-		DrawPanelItem(panel, "Cancel live countdown");
-	}
-	else if (!g_isLive)
-	{
-		DrawPanelItem(panel, "Force live");
-	}
-	else
-	{
-		if (!g_confirmLiveEnd)
-		{
-			DrawPanelItem(panel, "Force end match");
-		}
-		else
-		{
-			DrawPanelItem(panel, "Force end match (are you sure?)");
-		}
-	}
-
-	DrawPanelItem(panel, "Manually edit team score");
-	DrawPanelItem(panel, "Manually edit player score (does not work yet)");
-	DrawPanelItem(panel, "Load previous match (experimental, disabled)");
-	DrawPanelItem(panel, "Exit");
-
-	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME_FOREVER);
-
-	CloseHandle(panel);
-
-	return Plugin_Handled;
 }
 
 public Action:Command_ForceLive(client, args)

@@ -22,7 +22,6 @@ new const String:g_menuSoundOk[] = "buttons/button14.wav";
 new const String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new const String:g_soundLive[] = "buttons/button17.wav";
 new String:g_killInfoBuffer[NEO_MAXPLAYERS+1][512];
-new String:g_convarBeingEdited[128];
 
 new g_assignedTeamWhenLive[NEO_MAXPLAYERS+1];
 new g_jinraiScore[MAX_ROUNDS_PLAYED];
@@ -44,9 +43,7 @@ new g_damageDealt[NEO_MAXPLAYERS+1][NEO_MAXPLAYERS+1];
 new g_playerDeaths[NEO_MAXPLAYERS+1][MAX_ROUNDS_PLAYED];	// Players' deaths for each round
 new g_playerXP[NEO_MAXPLAYERS+1][MAX_ROUNDS_PLAYED];		// Players' XP for each round
 new g_playerSteamID[NEO_MAXPLAYERS+1];						// Players' SteamID as int32
-new g_targetRound;
 new g_furthestPlayedRound;
-new g_penalizedTeam;
 new g_ghostCapturingTeam;
 new g_epoch;
 
@@ -68,14 +65,10 @@ new bool:g_isWantingOverride[sizeof(g_teamName)]; // Unassigned, spec, jinrai, n
 new bool:g_shouldPause;
 new bool:g_shouldShowKillInfo[NEO_MAXPLAYERS+1];
 new bool:g_isLiveCountdown;
-new bool:g_isEditingSetting[NEO_MAXPLAYERS+1];
 new bool:g_confirmLiveEnd;
 new bool:g_isGamedataOutdated;
 new bool:g_isCurrentlyUnPausing;
-new bool:g_confirmRoundChange;
 new bool:g_isCurrentlyRestoringRound;
-new bool:g_isCurrentlyEditingClients[NEO_MAXPLAYERS+1];
-new bool:g_isCurrentlyGivingPenalty[NEO_MAXPLAYERS+1];
 new bool:g_survivedLastRound[NEO_MAXPLAYERS+1];
 new bool:g_isSuddenDeathRound;
 new bool:g_isRecording[NEO_MAXPLAYERS+1];
@@ -124,8 +117,6 @@ new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
 new Handle:g_hTimer_GhostOvertime		= INVALID_HANDLE;
-
-Menu g_clientMenu = null;
 
 enum {
 	CVAR_NONE = 0,
@@ -573,7 +564,7 @@ void TogglePause()
 				GameRules_SetProp("m_iRoundNumber", g_roundNumber - 1);
 				SetGameState(GAMESTATE_NORMAL);
 
-				RestoreRound(g_roundNumber); // Restore everyone's XP, deaths and ranks to the state before pausing
+				RestoreRound(g_roundNumber, false); // Restore everyone's XP, deaths and ranks to the state before pausing
 
 				g_isTeamReadyForUnPause[TEAM_JINRAI] = false;
 				g_isTeamReadyForUnPause[TEAM_NSF] = false;
@@ -1107,7 +1098,7 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 
 	for (i = 0; i <= MaxClients; i++)
 	{
-		strcopy(g_killInfoBuffer[i], sizeof(g_killInfoBuffer), "");
+		g_killInfoBuffer[i][0] = '\0';
 	}
 
 	// Reset global bools
@@ -1120,7 +1111,6 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	g_isSourceTVRecording		= correctBool;
 	g_shouldPause				= correctBool;
 	g_confirmLiveEnd			= correctBool;
-	g_confirmRoundChange	= correctBool;
 	g_isSuddenDeathRound	= correctBool;
 
 	for (i = 0; i <= MaxClients; i++)
@@ -1144,348 +1134,6 @@ void ShowKillInfoNextRound(client, const String:message[])
 
 	strcopy(g_killInfoBuffer[client], sizeof(g_killInfoBuffer), message);
 	g_shouldShowKillInfo[client] = true;
-}
-
-void RefereeMenu_GameInfo(client)
-{
-	if ( !IsValidClient(client) )
-		return;
-
-	new Handle:panel = CreatePanel();
-
-	SetPanelTitle(panel, "Game Information");
-	DrawPanelText(panel, " ");
-
-	// Show the live status
-	if (g_isLiveCountdown)
-		DrawPanelText(panel, "Live: COUNTDOWN...");
-	else if (g_isLive)
-		DrawPanelText(panel, "Live: LIVE");
-	else
-		DrawPanelText(panel, "Live: NOT LIVE");
-
-	// Show the current competition name
-	decl String:competitionName_Cvar[64];
-	GetConVarString( g_hCompetitionName, competitionName_Cvar, sizeof(competitionName_Cvar) );
-
-	if (strlen(competitionName_Cvar) < 1) // If no competition name set, use the generic "Competitive Neotokyo" name instead
-		strcopy(competitionName_Cvar, sizeof(competitionName_Cvar), "Competitive Neotokyo");
-
-	decl String:competitionName[128];
-	Format( competitionName, sizeof(competitionName), "Competition name: %s", competitionName_Cvar );
-	DrawPanelItem(panel, competitionName);
-
-	// Show the current Jinrai name
-	decl String:jinraiName_Cvar[64];
-	GetConVarString( g_hJinraiName, jinraiName_Cvar, sizeof(jinraiName_Cvar) );
-
-	if (strlen(jinraiName_Cvar) < 1) // Use default Jinrai name "Jinrai" if none is set
-		strcopy(jinraiName_Cvar, sizeof(jinraiName_Cvar), "Jinrai");
-
-	decl String:jinraiName[128];
-	Format(jinraiName, sizeof(jinraiName), "Jinrai name: %s", jinraiName_Cvar);
-	DrawPanelItem(panel, jinraiName);
-
-	// Show the current NSF name
-	decl String:nsfName_Cvar[64];
-	GetConVarString( g_hNSFName, nsfName_Cvar, sizeof(nsfName_Cvar) );
-
-	if (strlen(nsfName_Cvar) < 1) // Use default NSF name "NSF" if none is set
-		strcopy(nsfName_Cvar, sizeof(nsfName_Cvar), "NSF");
-
-	decl String:nsfName[128];
-	Format(nsfName, sizeof(nsfName), "NSF name: %s", nsfName_Cvar);
-	DrawPanelItem(panel, nsfName);
-
-	// Show how many rounds are played
-	decl String:boRounds[128];
-	if (GetConVarInt(g_hRoundStyle) == 1)
-	{
-		Format( boRounds, sizeof(boRounds), "Best of %i rounds", GetConVarInt(g_hRoundLimit) );
-	}
-	else
-	{
-		Format( boRounds, sizeof(boRounds), "First to %i rounds", GetConVarInt(g_hRoundLimit) );
-	}
-
-	DrawPanelItem(panel, boRounds);
-
-	// Show how many (time-out) pauses are allowed per team per map
-	decl String:pauseAmount[128];
-	Format( pauseAmount, sizeof(pauseAmount), "Pausing: %i time-outs allowed per team per map.", GetConVarInt(g_hMaxTimeouts) );
-	DrawPanelItem(panel, pauseAmount);
-
-	// Go back to previous menu
-	DrawPanelItem(panel, "Back");
-
-	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_GameInfo, MENU_TIME_FOREVER);
-
-	CloseHandle(panel);
-}
-
-void RefereeMenu_ClientActions(client)
-{
-	if (g_isCurrentlyEditingClients[client])
-	{
-		g_isCurrentlyEditingClients[client] = false;
-		LogError("g_isCurrentlyEditingClients was already enabled for client %i before accessing RefereeMenu_ClientActions. This should never happen.", client);
-	}
-
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if ( !IsValidClient(i) || !IsAdmin(i) )
-			continue;
-
-		if (g_isCurrentlyEditingClients[i])
-		{
-			decl String:clientName[MAX_NAME_LENGTH];
-			GetClientName( i, clientName, sizeof(clientName) );
-			PrintToChat(client, "Admin %s is currently using the menu. Please wait.", clientName);
-
-			return;
-		}
-	}
-
-	g_isCurrentlyEditingClients[client] = true;
-
-	if (g_clientMenu != INVALID_HANDLE)
-	{
-		delete(g_clientMenu);
-		g_clientMenu = null;
-	}
-
-	g_clientMenu = BuildClientMenu();
-
-	g_clientMenu.Display(client, MENU_TIME_FOREVER);
-}
-
-void RefereeMenu_Penalties(client)
-{
-	if (!g_isLive)
-	{
-		PrintToChat(client, "Game is not live, cannot give penalties.");
-		Command_RefereeMenu(client, 1);
-		return;
-	}
-
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if ( !IsValidClient(i) || !IsAdmin(i) )
-			continue;
-
-		if (g_isCurrentlyGivingPenalty[client])
-		{
-			g_isCurrentlyGivingPenalty[client] = false;
-			LogError("g_isCurrentlyGivingPenalty was already enabled for client %i before accessing RefereeMenu_Penalties. This should never happen.", client);
-		}
-
-		if (g_isCurrentlyGivingPenalty[i])
-		{
-			decl String:clientName[MAX_NAME_LENGTH];
-			GetClientName( i, clientName, sizeof(clientName) );
-			PrintToChat(client, "Admin %s is currently using the penalty menu. Please wait.", clientName);
-
-			return;
-		}
-	}
-
-	g_isCurrentlyGivingPenalty[client] = true;
-
-	new Handle:panel = CreatePanel();
-
-	SetPanelTitle(panel, "Penalty Menu");
-
-	DrawPanelItem(panel, "Jinrai");
-	DrawPanelItem(panel, "NSF");
-
-	SendPanelToClient(panel, client, PanelHandler_PenaltyMenu, MENU_TIME_FOREVER);
-
-	CloseHandle(panel);
-}
-
-void RefereeMenu_ChangeRound(client)
-{
-	if (!g_isLive)
-	{
-		PrintToChat(client, "Game is not live, cannot change rounds.");
-		Command_RefereeMenu(client, 1);
-		return;
-	}
-
-	if (g_isEditingSetting[client])
-	{
-		g_isEditingSetting[client] = false;
-		LogError("g_isEditingSetting was already enabled for client %i before accessing RefereeMenu_ChangeRound. This should never happen.", client);
-	}
-
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if ( !IsValidClient(i) || !IsAdmin(i) )
-			continue;
-
-		if (g_isEditingSetting[i])
-		{
-			decl String:clientName[MAX_NAME_LENGTH];
-			GetClientName( i, clientName, sizeof(clientName) );
-			PrintToChat(client, "Admin %s is currently editing a setting. Please wait.", clientName);
-
-			return;
-		}
-	}
-
-	g_isEditingSetting[client] = true;
-
-	new Handle:panel = CreatePanel();
-
-	SetPanelTitle(panel, "Change current round");
-	DrawPanelText(panel, " ");
-
-	decl String:currentRound[24];
-	Format(currentRound, sizeof(currentRound), "Current round: %i", g_roundNumber);
-	DrawPanelText(panel, currentRound);
-
-	decl String:teamScores[24];
-	Format(teamScores, sizeof(teamScores), "Jinrai: %i -- %i :NSF", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-	DrawPanelText(panel, teamScores);
-
-	DrawPanelText(panel, " ");
-
-	decl String:targetRound[24];
-	Format(targetRound, sizeof(targetRound), "Target round: %i", g_targetRound);
-	DrawPanelText(panel, targetRound);
-
-	decl String:teamScores_target[24];
-	Format(teamScores_target, sizeof(teamScores_target), "Jinrai: %i -- %i :NSF", g_jinraiScore[g_targetRound], g_nsfScore[g_targetRound]);
-	DrawPanelText(panel, teamScores_target);
-
-	DrawPanelText(panel, " ");
-
-	DrawPanelItem(panel, "<---"); // Previous round
-	DrawPanelItem(panel, "--->"); // Next round
-
-	DrawPanelText(panel, " ");
-
-	// Accept round change
-	if (!g_confirmRoundChange)
-		DrawPanelItem(panel, "Restore round");
-	else
-		DrawPanelItem(panel, "Restore round (confirm)");
-
-	DrawPanelItem(panel, "Cancel"); // Go back
-
-	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_ChangeRound, MENU_TIME_FOREVER);
-
-	CloseHandle(panel);
-}
-
-void RefereeMenu_ManualEdit_TeamScore(client)
-{
-	if (!g_isLive)
-	{
-		PrintToChat(client, "Game is not live, can't edit score!");
-		Command_RefereeMenu(client, 1);
-		return;
-	}
-
-	if (g_isEditingSetting[client])
-	{
-		g_isEditingSetting[client] = false;
-		LogError("g_isEditingSetting was already enabled for client %i before accessing RefereeMenu_ManualEdit_TeamScore. This should never happen.", client);
-	}
-
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if ( !IsValidClient(i) || !IsAdmin(i) )
-			continue;
-
-		if (g_isEditingSetting[i])
-		{
-			decl String:clientName[MAX_NAME_LENGTH];
-			GetClientName( i, clientName, sizeof(clientName) );
-			PrintToChat(client, "Admin %s is currently editing a setting. Please wait.", clientName);
-
-			return;
-		}
-	}
-
-	new Handle:panel = CreatePanel();
-
-	SetPanelTitle(panel, "Manually edit team score");
-	DrawPanelText(panel, " ");
-
-	decl String:teamScores[24];
-	Format(teamScores, sizeof(teamScores), "Jinrai: %i -- %i :NSF", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-	DrawPanelText(panel, teamScores);
-
-	DrawPanelText(panel, " ");
-
-	DrawPanelItem(panel, "Edit Jinrai score");
-	DrawPanelItem(panel, "Edit NSF score");
-	DrawPanelItem(panel, "Cancel");
-
-	SendPanelToClient(panel, client, PanelHandler_ManualEdit_TeamScore, MENU_TIME_FOREVER);
-
-	CloseHandle(panel);
-}
-
-// Todo: add functionality
-void RefereeMenu_ManualEdit_PlayerScore(client)
-{
-	PrintToChat(client, "The goggles, they do nothing!");
-	Command_RefereeMenu(client, 1);
-}
-
-void RefereeMenu_LoadMatch(client)
-{
-	PrintToChat(client, "This is a disabled experimental feature.");
-	Command_RefereeMenu(client, 1);
-}
-
-void ChatCvarEdit(client, Handle:cvar)
-{
-	if (cvar == INVALID_HANDLE)
-	{
-		LogError("Attempted to edit an invalid cvar handle.");
-		return;
-	}
-
-	if ( !IsValidClient(client) )
-		return;
-
-	if (g_isEditingSetting[client])
-	{
-		g_isEditingSetting[client] = false;
-		LogError("g_isEditingSetting was already enabled for client %i before accessing ChatCvarEdit. This should never happen.", client);
-	}
-
-	for (new i = 0; i <= MaxClients; i++)
-	{
-		if (g_isEditingSetting[i])
-		{
-			if ( !IsValidClient(i) )
-			{
-				LogError("Invalid client with g_isEditingSetting bool as true.");
-				PrintToChat(client, "%s Error editing cvar via chat. Check error logs for more info.", g_tag);
-				return;
-			}
-
-			decl String:clientName[MAX_NAME_LENGTH];
-			GetClientName(i, clientName, sizeof(clientName));
-
-			PrintToChat(client, "%s \"%s\" is currently editing a game setting. Please wait.", g_tag, clientName);
-			return;
-		}
-	}
-
-	g_isEditingSetting[client] = true;
-	GetConVarName( cvar, g_convarBeingEdited, sizeof(g_convarBeingEdited) );
-
-	AddCommandListener(SayCallback, "say");
-	AddCommandListener(SayCallback, "say_team");
-
-	PrintToChat(client, "%s Please enter a new value in the chat.", g_tag);
-	PrintToChat(client, "To cancel this action, type \"cancel\".");
-	PrintToChat(client, "For text values, you can also type \"default\" to revert the changes.");
 }
 
 // Make sure Neotokyo gamedata file is up to date, as some of the plugin features require it.
@@ -1550,7 +1198,7 @@ void PrintToAdmins(bool toChat = true, bool toConsole = false, const String:mess
 	}
 }
 
-void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:isZanshiRestore = false)
+void RestoreRound(int roundNumber, bool isZanshiRestore)
 {
 	if (roundNumber > g_furthestPlayedRound || roundNumber <= 0)
 	{
@@ -1570,38 +1218,7 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 			PrintToAdmins(_, _, "Failed restoring round %i. Check SM error logs for details.", roundNumber);
 		else
 			PrintToChatAll("Round restore failed. Contact server admins for help.");
-
-		g_confirmRoundChange = false;
 		return;
-	}
-
-	if (isAdminTriggered)
-	{
-		if ( client == 0 || !IsValidClient(client) || !IsAdmin(client) )
-		{
-			LogError("Invalid client index %i for admin trigger", client);
-
-			g_confirmRoundChange = false;
-			return;
-		}
-
-		if (g_isPaused)
-		{
-			PrintToChat(client, "This command cannot be used while paused.");
-			PrintToChat(client, "Please unpause the game first.");
-			return;
-		}
-
-		if (!g_confirmRoundChange)
-		{
-			PrintToChat(client, "Restoring match from round %i, are you sure? Please press again to confirm.", roundNumber);
-
-			g_confirmRoundChange = true;
-			RefereeMenu_ChangeRound(client);
-
-			CreateTimer(10.0, Timer_ConfirmRoundChange);
-			return;
-		}
 	}
 
 	if (isZanshiRestore == false)
@@ -1623,33 +1240,11 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 
 	SetTeamScore(TEAM_JINRAI, g_jinraiScore[roundNumber]); // Set Jinrai score
 	SetTeamScore(TEAM_NSF, g_nsfScore[roundNumber]); // Set NFS score
-
-	if (isAdminTriggered)
-	{
-		g_confirmRoundChange = false;
-		Command_RefereeMenu(client, 1);
-
-		GameRules_SetPropFloat( "m_fRoundTimeLeft", 0.0 ); // Stop the round
-		GameRules_SetProp("m_iRoundNumber", roundNumber - 1);
-
-		new Handle:endRoundTime = FindConVar("mp_chattime");
-		CreateTimer( (GetConVarFloat(endRoundTime) + 5.1), Timer_RestoreRound, roundNumber);
-		CloseHandle(endRoundTime);
-
-		g_isCurrentlyRestoringRound = true;
-
-		PrintToChatAll("%s Round changed by admin.", g_tag);
-	}
 }
 
 public Action:Timer_RestoreRound(Handle:timer, any:roundNumber)
 {
-	RestoreRound(roundNumber);
-}
-
-public Action:Timer_ConfirmRoundChange(Handle:timer)
-{
-	g_confirmRoundChange = false;
+	RestoreRound(roundNumber, false);
 }
 
 public Action:Timer_ClearGhostCapper(Handle:timer)
@@ -1661,73 +1256,13 @@ void EmptyScore()
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !IsValidClient(i) || !IsClientInGame(i) || IsFakeClient(i) )
+		if (!IsClientInGame(i))
+		{
 			continue;
-
-		SetEntProp(i, Prop_Data, "m_iDeaths", 0); // 0 deaths
-		SetEntProp(i, Prop_Data, "m_iFrags", 0); // 0 kills
-		SetEntProp(i, Prop_Send, "m_iRank", 1); // Private rank
+		}
+		SetPlayerDeaths(i, 0);
+		SetPlayerXP(i, 0);
 	}
-}
-
-void PenalizeTeam(admin, team)
-{
-	if (team != TEAM_JINRAI && team != TEAM_NSF)
-	{
-		LogError("Invalid team %i", team);
-		Command_RefereeMenu(admin, 1);
-		return;
-	}
-
-	g_penalizedTeam = team;
-
-	new Handle:panel = CreatePanel();
-
-	SetPanelTitle(panel, "Give team penalty");
-	DrawPanelText(panel, " ");
-
-	decl String:penaltyDescription[128];
-	Format( penaltyDescription, sizeof(penaltyDescription), "Penalize team %s?", g_teamName[team] );
-
-	DrawPanelText(panel, penaltyDescription);
-	DrawPanelText(panel, "This will give 1 point to the opposing team.");
-
-	DrawPanelItem(panel, "Yes, give penalty.");
-	DrawPanelItem(panel, "Cancel");
-
-	SendPanelToClient(panel, admin, PanelHandler_PenalizeTeam, MENU_TIME_FOREVER);
-
-	CloseHandle(panel);
-}
-
-void ApplyPenalty(admin, team)
-{
-	if (team != TEAM_JINRAI && team != TEAM_NSF)
-	{
-		LogError("Invalid team %i", team);
-		Command_RefereeMenu(admin, 1);
-		return;
-	}
-
-	if (team == TEAM_JINRAI)
-	{
-		g_nsfScore[g_roundNumber]++;
-		SetTeamScore(TEAM_NSF, g_nsfScore[g_roundNumber]);
-	}
-	else
-	{
-		g_jinraiScore[g_roundNumber]++;
-		SetTeamScore(TEAM_JINRAI, g_jinraiScore[g_roundNumber]);
-	}
-
-	PrintToChatAll("%s Penalty given to team \"%s\" by admin.", g_tag, g_teamName[team]);
-	PrintToChatAll("The opposing team gains +1 point.");
-
-	PlayLiveBeep(); // Sound notification about the penalty
-
-	CheckMatchState();
-
-	Command_RefereeMenu(admin, 1);
 }
 
 static void Notify(const String:message[], any ...)

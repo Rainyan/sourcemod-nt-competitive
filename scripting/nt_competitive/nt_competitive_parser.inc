@@ -139,7 +139,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	// Game is currently being unpaused (points being recovered etc). Stop here.
 	if (g_isCurrentlyUnPausing)
 	{
-		RestoreRound(g_roundNumber);
+		RestoreRound(g_roundNumber, false);
 		PrintToChatAll( "%s Round %i/%i", g_tag, g_roundNumber, GetConVarInt(g_hRoundLimit) );
 		SpamTimer();
 
@@ -152,7 +152,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	else if (!g_isCurrentlyRestoringRound)
 	{
 		g_roundNumber++;
-		g_targetRound				= g_roundNumber;
 		g_furthestPlayedRound	= g_roundNumber;
 	}
 
@@ -192,7 +191,7 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			if (survivors[TEAM_JINRAI] > 0 && survivors[TEAM_NSF] > 0)
 			{
 				// Roll back team scores to previous round's state
-				RestoreRound(g_roundNumber - 1, _, _, true);
+				RestoreRound(g_roundNumber - 1, true);
 				PrintToChatAll("%s Round timed out. No team point awarded.", g_tag);
 			}
 		}
@@ -483,63 +482,4 @@ public Event_SourceTVPath(Handle:cvar, const String:oldVal[], const String:newVa
 {
 	if (!DirExists(newVal))
 		InitDirectory(newVal);
-}
-
-public Action:SayCallback(client, const String:command[], argc)
-{
-	// This player is not editing a cvar via chat, let the chat message through normally.
-	if (!g_isEditingSetting[client])
-		return Plugin_Continue;
-
-	new Handle:cvar = FindConVar(g_convarBeingEdited);
-	if (cvar == INVALID_HANDLE)
-	{
-		LogError("Attempted to edit an invalid cvar handle.");
-		PrintToChat(client, "%s Error editing the value. See error logs.", g_tag);
-
-		RemoveCommandListener(SayCallback, "say");
-		RemoveCommandListener(SayCallback, "say_team");
-
-		g_isEditingSetting[client] = false;
-
-		RefereeMenu_GameInfo(client);
-
-		return Plugin_Stop;
-	}
-
-	decl String:message[256];
-	GetCmdArgString( message, sizeof(message) );
-
-	StripQuotes(message);
-	TrimString(message);
-
-	// Player wishes to cancel editing cvar via chat hook
-	if ( StrEqual(message, "cancel") )
-	{
-		PrintToChat(client, "%s Cancelled editing the value.", g_tag);
-	}
-	// Player wishes to empty a text var
-	// Todo: Run a default values config instead, so this works for all types of cvars without fancy tricks
-	else if ( StrEqual(message, "default") || strlen(message) < 1 || StrEqual(message, " ") )
-	{
-		SetConVarString(cvar, "");
-		PrintToChat(client, "%s Reset the value back to defaults.", g_tag);
-	}
-	// Player entered a valid chat message, changing cvar value accordingly
-	else
-	{
-		SetConVarString(cvar, message);
-		PrintToChat(client, "%s Set the value of \"%s\" to \"%s\"", g_tag, g_convarBeingEdited, message);
-	}
-
-	RemoveCommandListener(SayCallback, "say");
-	RemoveCommandListener(SayCallback, "say_team");
-
-	CloseHandle(cvar);
-
-	g_isEditingSetting[client] = false;
-
-	Command_RefereeMenu(client, 1);
-
-	return Plugin_Handled;
 }
