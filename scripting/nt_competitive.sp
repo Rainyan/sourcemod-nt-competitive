@@ -915,7 +915,7 @@ public Action Command_UnReady(int client, int argc)
 
 			g_isReady[client] = false;
 
-			PrintToChatAll("%s Player %s is NOT READY.", g_tag, client);
+			PrintToChatAll("%s Player %N is NOT READY.", g_tag, client);
 
 			if (g_isExpectingOverride && g_isWantingOverride[team])
 			{
