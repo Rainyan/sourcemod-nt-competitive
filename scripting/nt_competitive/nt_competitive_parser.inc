@@ -13,22 +13,6 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 		g_isSpawned[client] = true;
 		g_survivedLastRound[client] = true; // This will be checked on next round event, thus the variable name
 	}
-#if DEBUG
-	else
-	{
-		if ( IsValidClient(client) )
-		{
-			decl String:clientName[MAX_NAME_LENGTH];
-			GetClientName( client, clientName, sizeof(clientName) );
-			new team = GetClientTeam(client);
-			LogDebug("Client %i \"%s\" (team %i) triggered Event_PlayerSpawn without actually spawning. g_isSpawned[client] = %b, g_survivedLastRound[client] = %b", client, clientName, team, g_isSpawned[client], g_survivedLastRound[client]);
-		}
-		else
-		{
-			LogDebug("Invalid client %i triggered Event_PlayerSpawn", client);
-		}
-	}
-#endif
 }
 
 public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
@@ -185,15 +169,9 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	// Should we disallow wins by timeout?
 	if ( g_roundNumber > 1 && GetConVarBool(g_hPreventZanshiStrats) )
 	{
-#if DEBUG
-		LogDebug("Anti-Zanshi strats mode is enabled!");
-#endif
 		// Nobody captured the ghost last round
 		if (g_ghostCapturingTeam != TEAM_JINRAI && g_ghostCapturingTeam != TEAM_NSF)
 		{
-#if DEBUG
-			LogDebug("Nobody captured the ghost last round");
-#endif
 			new survivors[sizeof(g_teamName)];
 
 			// Get amount of survivors on both teams
@@ -213,10 +191,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 			// Both teams had players still alive when the time ran out
 			if (survivors[TEAM_JINRAI] > 0 && survivors[TEAM_NSF] > 0)
 			{
-#if DEBUG
-				LogDebug("Both teams had players still alive when the time ran out");
-				LogDebug("Rolling back to scores: Jin %i -- NSF %i", g_jinraiScore[g_roundNumber - 1], g_nsfScore[g_roundNumber - 1]);
-#endif
 				// Roll back team scores to previous round's state
 				RestoreRound(g_roundNumber - 1, _, _, true);
 				PrintToChatAll("%s Round timed out. No team point awarded.", g_tag);
@@ -240,10 +214,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 			g_playerDeaths[i][g_roundNumber]	= GetEntProp(i, Prop_Data, "m_iDeaths");	// Save everyone's death count for this round
 			g_playerXP[i][g_roundNumber]		= GetEntProp(i, Prop_Data, "m_iFrags");	// Save everyone's XP for this round
-
-#if DEBUG > 1
-			LogDebug("Client %i has %i XP and %i deaths for round %i.", i, g_playerXP[i][g_roundNumber], g_playerDeaths[i][g_roundNumber], g_roundNumber);
-#endif
 		}
 	}
 
@@ -266,9 +236,6 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 	decl String:roundBuffer[64];
 	Format(roundBuffer, sizeof(roundBuffer), "***** Round %i *****", g_roundNumber);
 	LogCompetitive(roundBuffer);
-#if DEBUG
-	LogDebug(roundBuffer);
-#endif
 	if (g_shouldPause)
 	{
 		g_shouldPause = false;
@@ -441,28 +408,16 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 	if (StrEqual(newVal, "NSF", false)) // Make sure we don't use the other team's default name
 	{
 		SetConVarString(g_hJinraiName, oldVal);
-
-#if DEBUG
-		LogDebug("Jinrai tried using \"NSF\" as their name. This is blocked because it's reserved as NSF's fallback default name.");
-#endif
 	}
 
 	else if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "Jinrai"
 	{
 		strcopy(g_teamName[TEAM_JINRAI], sizeof(g_teamName[]), "Jinrai");
-
-#if DEBUG
-		LogDebug("Jinrai to default name.");
-#endif
 	}
 
 	else if (StrEqual(newVal, nsfName)) // Jinrai tried using NSF's current name
 	{
 		SetConVarString(g_hJinraiName, oldVal);
-
-#if DEBUG
-		LogDebug("Jinrai tried using NSF's current name, blocked.");
-#endif
 	}
 
 	else // Name change ok
@@ -476,10 +431,6 @@ public Event_TeamNameJinrai(Handle:cvar, const String:oldVal[], const String:new
 
 			LogCompetitive(msgBuffer);
 		}
-
-#if DEBUG
-		LogDebug("Jinrai name: %s", newVal);
-#endif
 	}
 }
 
@@ -491,28 +442,16 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 	if (StrEqual(newVal, "Jinrai", false)) // Make sure we don't use the other team's default name
 	{
 		SetConVarString(g_hJinraiName, oldVal);
-
-#if DEBUG
-		LogDebug("NSF tried using \"Jinrai\" as their name. This is blocked because it's reserved as Jinrai's fallback default name.");
-#endif
 	}
 
 	else if (strlen(newVal) == 0 || StrEqual(newVal, oldVal)) // No cvar value, use default name "NSF"
 	{
 		strcopy(g_teamName[TEAM_NSF], sizeof(g_teamName[]), "NSF");
-
-#if DEBUG
-		LogDebug("NSF to default name.");
-#endif
 	}
 
 	else if (StrEqual(newVal, jinraiName)) // NSF tried using Jinrai's current name
 	{
 		SetConVarString(g_hNSFName, oldVal);
-
-#if DEBUG
-		LogDebug("NSF tried using Jinrai's current name, blocked.");
-#endif
 	}
 
 	else // Name change ok
@@ -526,10 +465,6 @@ public Event_TeamNameNSF(Handle:cvar, const String:oldVal[], const String:newVal
 
 			LogCompetitive(msgBuffer);
 		}
-
-#if DEBUG
-		LogDebug("NSF name: %s", newVal);
-#endif
 	}
 }
 
@@ -537,9 +472,6 @@ public Event_SourceTVEnabled(Handle:cvar, const String:oldVal[], const String:ne
 {
 	if (StringToInt(newVal) && !IsSourceTVBotConnected())
 	{
-#if DEBUG
-		LogDebug("Event_SourceTVEnabled: No SourceTV bot found.");
-#endif
 		PrintToChatAll("%s SourceTV bot doesn't appear to be connected. Global replay won't be recorded.", g_tag);
 	}
 

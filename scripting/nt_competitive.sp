@@ -5,10 +5,6 @@
 
 #pragma semicolon 1
 
-//#define DEBUG 0 // Release
-//#define DEBUG 1 // Basic debug
-#define DEBUG 2 // Extended debug
-
 #include <sourcemod>
 #include <sdktools>
 #include <neotokyo>
@@ -67,14 +63,6 @@ public OnPluginStart()
 	RegAdminCmd("sm_referee",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel.");
 	RegAdminCmd("sm_ref",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel. Alternative for sm_referee.");
 	RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start.");
-
-#if DEBUG
-	RegAdminCmd("sm_pause_resetbool",	Command_ResetPauseBool,		ADMFLAG_GENERIC,	"Reset g_isPaused to FALSE. Debug command.");
-	RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Logs the cmd argument. Debug command.");
-	RegAdminCmd("sm_unpause_other",		Command_UnpauseOther,		ADMFLAG_GENERIC,	"Pretend the other team requested unpause. Debug command.");
-	RegAdminCmd("sm_start_other",		Command_OverrideStartOther,	ADMFLAG_GENERIC,	"Pretend the other team requested force start. Debug command.");
-	RegAdminCmd("sm_manual_round_edit", Command_ManualRoundEdit, ADMFLAG_GENERIC, "Manually edit round int. Debug command.");
-#endif
 
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_death",		Event_PlayerDeath);
@@ -145,10 +133,6 @@ public OnPluginStart()
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
 
-#if DEBUG
-	PrepareDebugLogFolder();
-#endif
-
 	g_liveTimer_OriginalValue = g_liveTimer;
 	g_unpauseTimer_OriginalValue = g_unpauseTimer;
 
@@ -191,10 +175,6 @@ public OnClientAuthorized(client, const String:authID[])
 
 	for (new i = 0; i < sizeof(g_livePlayers); i++)
 	{
-#if DEBUG > 1
-		LogDebug("Checking array index %i, array size %i", i, sizeof(g_livePlayers));
-		LogDebug("Contents: %s", g_livePlayers[i]);
-#endif
 		if ( StrEqual(authID, g_livePlayers[i]) )
 		{
 			isPlayerCompeting = true;
@@ -222,10 +202,6 @@ public OnClientAuthorized(client, const String:authID[])
 	{
 		g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
 	}
-
-#if DEBUG
-	LogDebug("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
-#endif
 }
 
 // For a valid, authorized client, check if we hold their previous XP/deaths info,
@@ -333,9 +309,6 @@ public bool OnClientConnect(client)
 	{
 		decl String:clientName[MAX_NAME_LENGTH];
 		GetClientName(client, clientName, sizeof(clientName));
-#if DEBUG
-		LogDebug("[COMP] Pause join detected!");
-#endif
 		PrintToChatAll("%s Player \"%s\" is attempting to join.", g_tag, clientName);
 		PrintToChatAll("The server needs to be unpaused for joining to finish.");
 		PrintToChatAll("If you wish to unpause now, type !pause in chat.");
@@ -497,16 +470,6 @@ public Action:Command_RefereeMenu(client, args)
 
 	return Plugin_Handled;
 }
-
-#if DEBUG
-public Action:Command_ResetPauseBool(client, args)
-{
-	g_isPaused = false;
-	ReplyToCommand(client, "g_isPaused reset to FALSE");
-
-	return Plugin_Handled;
-}
-#endif
 
 public Action:Command_ForceLive(client, args)
 {
@@ -740,9 +703,6 @@ void UnPauseRequest(client)
 	if ( client == 0 || !IsValidClient(client) || !IsClientInGame(client) )
 	{
 		LogError("Invalid client %i called UnPauseRequest", client);
-#if DEBUG
-		PrintToAdmins(true, true, "Comp plugin error: Invalid client %i called UnPauseRequest", client);
-#endif
 		return;
 	}
 
@@ -1032,52 +992,6 @@ public Action:Command_UnReady(client, args)
 
 	return Plugin_Handled;
 }
-
-#if DEBUG
-public Action:Command_LoggingTest(client, args)
-{
-	if (args != 1)
-	{
-		ReplyToCommand(client, "Expected 1 argument.");
-
-		return Plugin_Stop;
-	}
-
-	new String:message[128];
-	GetCmdArg(1, message, sizeof(message));
-	LogCompetitive(message);
-
-	ReplyToCommand(client, "Debug log message sent.");
-
-	return Plugin_Handled;
-}
-
-public Action:Command_ManualRoundEdit(client, args)
-{
-	if (GetCmdArgs() != 1)
-	{
-		ReplyToCommand(client, "Usage: <round int>");
-		return Plugin_Stop;
-	}
-
-	decl String:sBuffer[6];
-	GetCmdArg( 1, sBuffer, sizeof(sBuffer) );
-
-	new round = StringToInt(sBuffer);
-	if (round < 1 || round > MAX_ROUNDS_PLAYED)
-	{
-		ReplyToCommand(client, "Invalid target round");
-		return Plugin_Stop;
-	}
-
-	g_roundNumber = round;
-	GameRules_SetProp("m_iRoundNumber", g_roundNumber - 1);
-
-	ReplyToCommand(client, "Set round int to %i", round);
-
-	return Plugin_Handled;
-}
-#endif
 
 public Competitive_IsLive(Handle:plugin, numParams)
 {
