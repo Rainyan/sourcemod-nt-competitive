@@ -13,14 +13,11 @@ public PanelHandler_Pause(Handle:menu, MenuAction:action, client, choice)
 
 	switch (choice)
 	{
-		// Native button sounds are generally already precached by engine, but we're using PrecacheSound here jic
-
 		case 1: // Pause requested for timeout
 		{
 			// No more timeouts allowed for this team
 			if (g_usedTimeouts[team] >= GetConVarInt(g_hMaxTimeouts))
 			{
-				PrecacheSound(g_menuSoundCancel);
 				EmitSoundToClient(client, g_menuSoundCancel);
 
 				if (GetConVarInt(g_hMaxTimeouts) > 0)
@@ -32,7 +29,6 @@ public PanelHandler_Pause(Handle:menu, MenuAction:action, client, choice)
 
 			else
 			{
-				PrecacheSound(g_menuSoundOk);
 				EmitSoundToClient(client, g_menuSoundOk);
 				PauseRequest(client, REASON_TIMEOUT);
 			}
@@ -40,14 +36,12 @@ public PanelHandler_Pause(Handle:menu, MenuAction:action, client, choice)
 
 		case 2: // Pause requested for technical difficulties
 		{
-			PrecacheSound(g_menuSoundOk);
 			EmitSoundToClient(client, g_menuSoundOk);
 			PauseRequest(client, REASON_TECHNICAL);
 		}
 
 		case 3: // Exit menu
 		{
-			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
@@ -62,14 +56,12 @@ public PanelHandler_UnPause(Handle:menu, MenuAction:action, client, choice)
 	{
 		case 1: // Pause requested for technical difficulties
 		{
-			PrecacheSound(g_menuSoundOk);
 			EmitSoundToClient(client, g_menuSoundOk);
 			UnPauseRequest(client);
 		}
 
 		case 2: // Exit menu
 		{
-			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
@@ -84,14 +76,12 @@ public PanelHandler_CancelPause(Handle:menu, MenuAction:action, client, choice)
 	{
 		case 1: // Cancel pause requested
 		{
-			PrecacheSound(g_menuSoundOk);
 			EmitSoundToClient(client, g_menuSoundOk);
 			CancelPauseRequest(client);
 		}
 
 		case 2: // Exit menu
 		{
-			PrecacheSound(g_menuSoundCancel);
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}

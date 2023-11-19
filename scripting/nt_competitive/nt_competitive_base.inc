@@ -866,7 +866,6 @@ void PlayLiveBeep()
 	new Float:volume	= 0.5;	// Volume between 0.0 - 1.0 (original volume is 1.0)
 	new pitch				= 175;	// Pitch between 0 - 255 (original pitch is 100)
 
-	PrecacheSound(g_soundLive);
 	EmitSoundToAll(g_soundLive, _, _, _, _, volume, pitch);
 }
 

@@ -146,6 +146,10 @@ public OnAllPluginsLoaded()
 
 public OnMapStart()
 {
+	PrecacheSound(g_menuSoundOk);
+	PrecacheSound(g_menuSoundCancel);
+	PrecacheSound(g_soundLive);
+
 	SetGameState(GAMESTATE_WARMUP);
 	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
