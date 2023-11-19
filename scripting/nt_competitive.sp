@@ -9,8 +9,6 @@
 //#define DEBUG 1 // Basic debug
 #define DEBUG 2 // Extended debug
 
-//#define KV_DEBUG 1 // Don't enable outside dev testing
-
 #include <sourcemod>
 #include <sdktools>
 #include <neotokyo>
@@ -116,9 +114,6 @@ public OnPluginStart()
 	g_hGhostOvertimeGrace			= CreateConVar("sm_competitive_ghost_overtime_grace",		"15",					"Freeze the round timer at this many seconds while the ghost is held. Will decay and end at 0 when the overtime runs out. 0 = disabled", _, true, 0.0, true, 30.0);
 	g_hGhostOvertimeDecayExp		= CreateConVar("sm_competitive_ghost_overtime_decay_exp",	"0",					"Whether ghost overtime decay should be exponential or linear. Exponential requires grace reset to be enabled. 0 = linear, 1 = exponential", _, true, 0.0, true, 1.0);
 	g_hGhostOvertimeGraceReset		= CreateConVar("sm_competitive_ghost_overtime_grace_reset", "1", 					"When the ghost is picked up, reset the timer to where it would be on the decay curve if the ghost was never dropped. This means the full overtime can be used even when juggling.", _, true, 0.0, true, 1.0);
-#if defined KV_DEBUG
-	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Store match data into KeyValues file. Debug cvar.", _, true, 0.0, true, 1.0);
-#endif
 
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -149,11 +144,6 @@ public OnPluginStart()
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
-
-#if defined KV_DEBUG
-	if (!DirExists(g_kvPath))
-		InitDirectory(g_kvPath);
-#endif
 
 #if DEBUG
 	PrepareDebugLogFolder();
@@ -498,11 +488,7 @@ public Action:Command_RefereeMenu(client, args)
 
 	DrawPanelItem(panel, "Manually edit team score");
 	DrawPanelItem(panel, "Manually edit player score (does not work yet)");
-#if defined KV_DEBUG
-	DrawPanelItem(panel, "Load previous match");
-#else
 	DrawPanelItem(panel, "Load previous match (experimental, disabled)");
-#endif
 	DrawPanelItem(panel, "Exit");
 
 	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME_FOREVER);
