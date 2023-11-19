@@ -338,7 +338,9 @@ void ToggleLive()
 			{
 				char clientName[MAX_NAME_LENGTH];
 				GetClientName(i, clientName, sizeof(clientName));
-				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
+				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.",
+					g_tag, clientName
+				);
 				g_isLive = false;
 
 				return;
