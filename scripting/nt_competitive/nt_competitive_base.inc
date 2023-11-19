@@ -186,7 +186,7 @@ public Action Command_ReadyList(int client, int argc)
 	PrintToConsole(client, "\n%s Players and their READY state:", g_tag);
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsValidClient(i))
+		if (!IsClientInGame(i))
 			continue;
 
 		int team = GetClientTeam(i);
@@ -194,14 +194,10 @@ public Action Command_ReadyList(int client, int argc)
 		if (team != TEAM_JINRAI && team != TEAM_NSF)
 			continue;
 
-		char clientName[MAX_NAME_LENGTH];
-		GetClientName(i, clientName, sizeof(clientName));
-
-		if (g_isReady[i])
-			PrintToConsole(client, "[READY]\t%s", clientName);
-
-		else
-			PrintToConsole(client, "[NOT READY]\t%s", clientName);
+		PrintToConsole(client, "[%s]\t%N",
+			g_isReady[i] ? "READY" : "NOT READY",
+			i
+		);
 	}
 	PrintToConsole(client, "\n");
 

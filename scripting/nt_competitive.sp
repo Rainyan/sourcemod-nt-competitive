@@ -310,9 +310,7 @@ public bool OnClientConnect(int client, char[] rejectmsg, int maxlen)
 {
 	if ( g_isPaused && GetConVarInt(g_hPauseMode) == PAUSEMODE_NORMAL )
 	{
-		char clientName[MAX_NAME_LENGTH];
-		GetClientName(client, clientName, sizeof(clientName));
-		PrintToChatAll("%s Player \"%s\" is attempting to join.", g_tag, clientName);
+		PrintToChatAll("%s Player \"%N\" is attempting to join.", g_tag, client);
 		PrintToChatAll("The server needs to be unpaused for joining to finish.");
 		PrintToChatAll("If you wish to unpause now, type !pause in chat.");
 	}
@@ -839,12 +837,8 @@ public Action Command_Ready(int client, int argc)
 				ReplyToCommand(client, "%s You are already marked as ready. Use !unready to revert this.", g_tag);
 				return Plugin_Continue;
 			}
-
 			g_isReady[client] = true;
-
-			char clientName[MAX_NAME_LENGTH];
-			GetClientName(client, clientName, sizeof(clientName));
-			PrintToChatAll("%s Player %s is READY.", g_tag, clientName);
+			PrintToChatAll("%s Player %N is READY.", g_tag, client);
 		}
 
 		case true: // Collective readying
@@ -921,9 +915,7 @@ public Action Command_UnReady(int client, int argc)
 
 			g_isReady[client] = false;
 
-			char clientName[MAX_NAME_LENGTH];
-			GetClientName(client, clientName, sizeof(clientName));
-			PrintToChatAll("%s Player %s is NOT READY.", g_tag, clientName);
+			PrintToChatAll("%s Player %s is NOT READY.", g_tag, client);
 
 			if (g_isExpectingOverride && g_isWantingOverride[team])
 			{
