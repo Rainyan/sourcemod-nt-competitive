@@ -4,12 +4,15 @@
 #endif
 #define _panel_included_
 
-public PanelHandler_Pause(Handle:menu, MenuAction:action, client, choice)
+#pragma semicolon 1
+#pragma newdecls required
+
+public int PanelHandler_Pause(Menu menu, MenuAction action, int client, int choice)
 {
 	if (action != MenuAction_Select)
-		return;
+		return 0;
 
-	new team = GetClientTeam(client);
+	int team = GetClientTeam(client);
 
 	switch (choice)
 	{
@@ -45,12 +48,14 @@ public PanelHandler_Pause(Handle:menu, MenuAction:action, client, choice)
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
+
+	return 0;
 }
 
-public PanelHandler_UnPause(Handle:menu, MenuAction:action, client, choice)
+public int PanelHandler_UnPause(Menu menu, MenuAction action, int client, int choice)
 {
 	if (action != MenuAction_Select)
-		return;
+		return 0;
 
 	switch (choice)
 	{
@@ -65,12 +70,14 @@ public PanelHandler_UnPause(Handle:menu, MenuAction:action, client, choice)
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
+
+	return 0;
 }
 
-public PanelHandler_CancelPause(Handle:menu, MenuAction:action, client, choice)
+public int PanelHandler_CancelPause(Menu menu, MenuAction action, int client, int choice)
 {
 	if (action != MenuAction_Select)
-		return;
+		return 0;
 
 	switch (choice)
 	{
@@ -85,4 +92,6 @@ public PanelHandler_CancelPause(Handle:menu, MenuAction:action, client, choice)
 			EmitSoundToClient(client, g_menuSoundCancel);
 		}
 	}
+
+	return 0;
 }
