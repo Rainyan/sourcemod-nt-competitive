@@ -17,8 +17,8 @@ Features:
   - Handle dis/reconnecting players and teams
   - Pausing system
   - Ready up system
-  - Panel menus for admins
-  - Ability to fall back to previous rounds
+  - ~~Panel menus for admins~~
+  - ~~Ability to fall back to previous rounds~~
   - Option to disable timeout round wins
 
 To-do:
