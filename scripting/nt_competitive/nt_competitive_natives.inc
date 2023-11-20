@@ -28,7 +28,7 @@ native bool Competitive_IsPaused();
 /****
 	* Returns competitive match's team score.
 	*
-	* @param	int		Team index.
+	* @param	team	Team index.
 	* @return	int		Team score. Returns -1 if error occurs.
 ****/
 native int Competitive_GetTeamScore(int team);
