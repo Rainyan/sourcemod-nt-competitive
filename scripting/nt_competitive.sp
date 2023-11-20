@@ -8,6 +8,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+
 #include <neotokyo>
 
 //#define FLATTEN_INCLUDE_PATHS 1
@@ -217,7 +218,7 @@ void PostAuthXpRecovery(int client)
 	int acc_id = GetSteamAccountID(client);
 	if (acc_id == 0)
 	{
-		LogError("GetSteamAccountID returned 0 for non-bot client %N", client);
+		LogError("GetSteamAccountID returned 0 for non-bot client: %L", client);
 	}
 
 	// Recover XP & deaths.
@@ -300,7 +301,8 @@ public void OnClientPutInServer(int client)
 	else
 	{
 		// Repeated because this can fail if the client hasn't yet been SteamID authorized
-		CreateTimer(1.0, Timer_PostAuthXpRecovery, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(1.0, Timer_PostAuthXpRecovery, GetClientUserId(client),
+			TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
@@ -377,7 +379,7 @@ public void OnGhostDrop(int client)
 public Action CheckGhostOvertime(Handle timer)
 {
 	int gameState = GameRules_GetProp("m_iGameState");
-	if (gameState != 2)
+	if (gameState != GAMESTATE_ROUND_ACTIVE)
 	{
 		g_hTimer_GhostOvertime = INVALID_HANDLE;
 		return Plugin_Stop;
