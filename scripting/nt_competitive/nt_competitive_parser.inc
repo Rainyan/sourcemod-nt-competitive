@@ -82,8 +82,7 @@ public Action Event_PlayerHurt(Event event, const char[] name, bool dontBroadcas
 	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
 
-	int damage;
-	int health;
+	int damage, health;
 
 	if ( !IsPlayerAlive(victim) ) // todo: is this called too fast for IsPlayerAlive to be reliable?
 	{
@@ -107,8 +106,7 @@ public Action Event_PlayerHurt(Event event, const char[] name, bool dontBroadcas
 
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-	int i;
-	for (i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_isSpawned[i] = false;
 		g_health[i] = 100;
@@ -175,7 +173,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 			int survivors[sizeof(g_teamName)];
 
 			// Get amount of survivors on both teams
-			for (i = 1; i <= MaxClients; i++)
+			for (int i = 1; i <= MaxClients; i++)
 			{
 				if ( !IsValidClient(i) || !IsClientInGame(i) )
 					continue;
@@ -207,7 +205,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 		g_jinraiScore[g_roundNumber]	= GetTeamScore(TEAM_JINRAI);
 		g_nsfScore[g_roundNumber]	= GetTeamScore(TEAM_NSF);
 
-		for (i = 1; i <= MaxClients; i++)
+		for (int i = 1; i <= MaxClients; i++)
 		{
 			if ( !IsValidClient(i) || IsFakeClient(i) )
 				continue;
@@ -223,11 +221,8 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 	{
 		char tournamentName[128];
 		GetConVarString(g_hCompetitionName, tournamentName, sizeof(tournamentName));
-
-		if (strlen(tournamentName) > 0)
-			LogCompetitive(tournamentName); // Log tournament name, if any
-
-		LogCompetitive("Competitive match started: %s vs %s",
+		LogCompetitive("%s\nCompetitive match started: %s vs %s",
+			tournamentName,
 			g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
 	}
 
