@@ -11,7 +11,6 @@
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
-#define MAX_CVAR_LENGTH 64
 
 char g_tag[] = "[COMP]";
 char g_teamName[][64] = {
@@ -297,12 +296,11 @@ void ToggleLive()
 		SetGameState(GAMESTATE_ROUND_ACTIVE);
 		GenerateEpoch();
 
-		// Cancel both teams' override preference
 		g_isWantingOverride[TEAM_JINRAI] = false;
 		g_isWantingOverride[TEAM_NSF] = false;
 		g_isExpectingOverride = false;
 		g_isLiveCountdown = false;
-		g_winner = 0; // Reset winner (overlay module queries this value)
+		g_winner = 0;
 
 		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		for (int i = 1; i <= MaxClients; i++)
@@ -444,7 +442,7 @@ void TogglePause()
 					fPauseLength = GetConVarFloat(g_hMaxPauseLength);
 				}
 
-				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
+				PrintToChatAll("%s Pause maximum duration: %i seconds.", g_tag, RoundToNearest(fPauseLength));
 				PrintToChatAll("%s Use !unpause when ready.", g_tag);
 
 				g_hTimer_UnPause = CreateTimer( (1.0 + fPauseLength ), Timer_Unpause ); // Add 1 second to timer for messages to appear in correct order during countdown
@@ -938,10 +936,10 @@ void LogCompetitive(const char[] message)
 	char loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 
-	char debugFile[] = "logfile.log"; // Static debug file for logging. We later want to use keyvalues using match IDs etc
+	char debugFile[] = "logfile.log";
 	Format(loggingPath, sizeof(loggingPath), "%s/%s", loggingPath, debugFile);
 
-	Handle hFile = OpenFile(loggingPath, "a"); // C++ fopen modes
+	Handle hFile = OpenFile(loggingPath, "a");
 
 	WriteFileLine(hFile, message);
 

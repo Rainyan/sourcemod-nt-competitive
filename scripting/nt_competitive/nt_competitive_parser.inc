@@ -253,8 +253,6 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
 public Action Command_JoinTeam(int client, int argc)
 {
-	char clientName[MAX_NAME_LENGTH];
-	GetClientName(client, clientName, sizeof(clientName));
 	// This client should be recording their gameplay
 	if (g_isLive && !g_isRecording[client] && GetConVarBool(g_hClientRecording))
 	{
@@ -265,7 +263,7 @@ public Action Command_JoinTeam(int client, int argc)
 		if (g_isReady[client])
 		{
 			g_isReady[client] = false;
-			PrintToChatAll("%s Player %s is NOT READY.", g_tag, clientName);
+			PrintToChatAll("%s Player %N is NOT READY.", g_tag, client);
 		}
 
 		return Plugin_Continue;
@@ -274,7 +272,7 @@ public Action Command_JoinTeam(int client, int argc)
 	char steamID[MAX_STEAMID_LENGTH];
 	if (!GetClientAuthId(client, AuthId_Steam2, steamID, sizeof(steamID)))
 	{
-		LogError("Failed fetching auth string for %s (client %i)", clientName, client);
+		LogError("Failed fetching auth string for %L", client);
 		return Plugin_Continue;
 	}
 
@@ -287,14 +285,14 @@ public Action Command_JoinTeam(int client, int argc)
 	// Team joining is not restricted by cvar, allow and log the team change
 	if ( GetConVarInt(g_hLimitLiveTeams) == 0 )
 	{
-		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
+		Format(msgBuffer, sizeof(msgBuffer), "%L joined team %s", client, g_teamName[g_assignedTeamWhenLive[client]]);
 		LogCompetitive(msgBuffer);
 		return Plugin_Continue;
 	}
 	// Team not explicitly restricted for this player, let them join (substitutes after going live etc)
 	if (g_assignedTeamWhenLive[client] == TEAM_NONE)
 	{
-		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
+		Format(msgBuffer, sizeof(msgBuffer), "%L joined team %s", client, g_teamName[g_assignedTeamWhenLive[client]]);
 		LogCompetitive(msgBuffer);
 
 		return Plugin_Continue;
@@ -302,7 +300,7 @@ public Action Command_JoinTeam(int client, int argc)
 	// Player attempts to join their correct team, let them
 	else if (iTeam == g_assignedTeamWhenLive[client])
 	{
-		Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> joined team %s", clientName, steamID, g_teamName[g_assignedTeamWhenLive[client]]);
+		Format(msgBuffer, sizeof(msgBuffer), "%L joined team %s", client, g_teamName[g_assignedTeamWhenLive[client]]);
 		LogCompetitive(msgBuffer);
 
 		return Plugin_Continue;
@@ -322,7 +320,7 @@ public Action Command_JoinTeam(int client, int argc)
 			strcopy(tempTeamName, sizeof(tempTeamName), "as spectator");
 	}
 
-	Format(msgBuffer, sizeof(msgBuffer), "Player \"%s\" <%s> attempted to join team %s instead of their assigned team %s. Blocked.", clientName, steamID, g_teamName[iTeam], g_teamName[g_assignedTeamWhenLive[client]]);
+	Format(msgBuffer, sizeof(msgBuffer), "%L attempted to join team \"%s\" instead of their assigned team \"%s\". Blocked.", client, g_teamName[iTeam], g_teamName[g_assignedTeamWhenLive[client]]);
 	LogCompetitive(msgBuffer);
 
 	PrintToChat(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
