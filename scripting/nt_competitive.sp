@@ -154,6 +154,15 @@ public void OnMapStart()
 	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
 
+public void OnMapEnd()
+{
+	// Don't close because the timer is created with TIMER_FLAG_NO_MAPCHANGE
+	if (g_hTimer_GhostOvertime != INVALID_HANDLE)
+	{
+		g_hTimer_GhostOvertime = INVALID_HANDLE;
+	}
+}
+
 public void OnConfigsExecuted()
 {
 	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
@@ -362,7 +371,8 @@ public void OnGhostPickUp(int client)
 		}
 		g_bGhostOvertimeFirstTick = true;
 		// Inverval of 0.5 to tick before the second flips over to prevent HUD flicker
-		g_hTimer_GhostOvertime = CreateTimer(0.5, CheckGhostOvertime, _, TIMER_REPEAT);
+		g_hTimer_GhostOvertime = CreateTimer(0.5, CheckGhostOvertime, _,
+			TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		CheckGhostOvertime(g_hTimer_GhostOvertime);
 	}
 }
