@@ -1002,6 +1002,7 @@ void ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new ro
 	g_playersAlive[TEAM_NSF] = nsfPlayers;
 }
 
+// Copies the value "val" into each of the first "size" indices.
 void MemSetAny(any[] arr, int size, any val)
 {
 	for (int i = 0; i < size; ++i)
@@ -1010,6 +1011,8 @@ void MemSetAny(any[] arr, int size, any val)
 	}
 }
 
+// For a 2D array "arr", for its first "size_i" indices,
+// copies the value "val" into each of the first "size_j" indices.
 void MemSetAny2D(any[][] arr, int size_i, int size_j, any val)
 {
 	for (int i = 0; i < size_i; ++i)
@@ -1018,7 +1021,8 @@ void MemSetAny2D(any[][] arr, int size_i, int size_j, any val)
 	}
 }
 
-
+// Copies the first "size_j" chars of string "val" into each of the first
+// "size_i" indices.
 void MemSetChar2D(char[][] arr, int size_i, int size_j, const char[] val)
 {
 	for (int i = 0; i < size_i; ++i)
