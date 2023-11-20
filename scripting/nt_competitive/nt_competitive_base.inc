@@ -1002,6 +1002,31 @@ void ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new ro
 	g_playersAlive[TEAM_NSF] = nsfPlayers;
 }
 
+void MemSetAny(any[] arr, int size, any val)
+{
+	for (int i = 0; i < size; ++i)
+	{
+		arr[i] = val;
+	}
+}
+
+void MemSetAny2D(any[][] arr, int size_i, int size_j, any val)
+{
+	for (int i = 0; i < size_i; ++i)
+	{
+		MemSetAny(arr[i], size_j, val);
+	}
+}
+
+
+void MemSetChar2D(char[][] arr, int size_i, int size_j, const char[] val)
+{
+	for (int i = 0; i < size_i; ++i)
+	{
+		strcopy(arr[i], size_j, val);
+	}
+}
+
 void ResetGlobalVariables() // Make sure all global variables are reset properly
 {
 	// Reset global integers
@@ -1014,44 +1039,22 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	SetConVarInt(g_hNSFScore, correctInt);
 
 	int i;
-	for (i = 1; i < sizeof(g_playerSteamID); ++i)
-	{
-		g_playerSteamID[i] = correctInt;
-		for (int j = 0; j < sizeof(g_playerXP[]); ++j)
-		{
-			g_playerXP[i][j] = correctInt;
-			g_playerDeaths[i][j] = correctInt;
-		}
-	}
+	MemSetAny(g_playerSteamID, sizeof(g_playerSteamID), correctInt);
 
-	for (i = 0; i < MAX_ROUNDS_PLAYED; i++)
-	{
-		g_jinraiScore[i]	= correctInt;
-		g_nsfScore[i]		= correctInt;
-	}
+	MemSetAny2D(g_playerXP, sizeof(g_playerXP), sizeof(g_playerXP[]),
+		correctInt);
 
-	for (i = 0; i < sizeof(g_usedTimeouts); i++)
-	{
-		g_usedTimeouts[i] = correctInt;
-	}
+	MemSetAny(g_jinraiScore, sizeof(g_jinraiScore), correctInt);
+	MemSetAny(g_nsfScore, sizeof(g_nsfScore), correctInt);
+	MemSetAny(g_usedTimeouts, sizeof(g_usedTimeouts), correctInt);
 
 	correctInt = -1;
 
-	for (i = 0; i < sizeof(g_assignedTeamWhenLive); i++)
-	{
-		g_assignedTeamWhenLive[i] = correctInt;
-	}
+	MemSetAny(g_assignedTeamWhenLive, sizeof(g_assignedTeamWhenLive), correctInt);
 
 	// Reset global strings
-	for (i = 0; i < sizeof(g_livePlayers); i++)
-	{
-		strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), "");
-	}
-
-	for (i = 0; i <= MaxClients; i++)
-	{
-		g_killInfoBuffer[i][0] = '\0';
-	}
+	MemSetChar2D(g_livePlayers, sizeof(g_livePlayers), sizeof(g_livePlayers[]), "");
+	MemSetChar2D(g_killInfoBuffer, sizeof(g_killInfoBuffer), sizeof(g_killInfoBuffer[]), "");
 
 	// Reset global bools
 	bool correctBool = false; // Desired value
@@ -1078,6 +1081,7 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 		g_isWantingOverride[i]		= correctBool;
 	}
 
+	// Reset global timers
 	if (g_hTimer_GhostOvertime != INVALID_HANDLE)
 	{
 		CloseHandle(g_hTimer_GhostOvertime);
