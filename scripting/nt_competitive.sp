@@ -930,17 +930,17 @@ public Action Command_UnReady(int client, int argc)
 	return Plugin_Handled;
 }
 
-public any Competitive_IsLive(Handle plugin, int numParams)
+public int Competitive_IsLive(Handle plugin, int numParams)
 {
 	return g_isLive;
 }
 
-public any Competitive_IsMatchPoint(Handle plugin, int numParams)
+public int Competitive_IsMatchPoint(Handle plugin, int numParams)
 {
 	return g_isLive && !g_isPaused && IsMatchPoint();
 }
 
-public any Competitive_IsPaused(Handle plugin, int numParams)
+public int Competitive_IsPaused(Handle plugin, int numParams)
 {
 	return g_isPaused;
 }
