@@ -1029,59 +1029,38 @@ void MemSetChar2D(char[][] arr, int size_i, int size_j, const char[] val)
 
 void ResetGlobalVariables() // Make sure all global variables are reset properly
 {
-	// Reset global integers
-	int correctInt = 0; // Desired value
+	g_roundNumber = 0;
+	g_furthestPlayedRound = 0;
 
-	g_roundNumber = correctInt;
-	g_furthestPlayedRound = correctInt;
+	SetConVarInt(g_hJinraiScore, 0);
+	SetConVarInt(g_hNSFScore, 0);
 
-	SetConVarInt(g_hJinraiScore, correctInt);
-	SetConVarInt(g_hNSFScore, correctInt);
+	MemSetAny(g_playerSteamID, sizeof(g_playerSteamID), 0);
+	MemSetAny2D(g_playerXP, sizeof(g_playerXP), sizeof(g_playerXP[]), 0);
+	MemSetAny(g_jinraiScore, sizeof(g_jinraiScore), 0);
+	MemSetAny(g_nsfScore, sizeof(g_nsfScore), 0);
+	MemSetAny(g_usedTimeouts, sizeof(g_usedTimeouts), 0);
 
-	int i;
-	MemSetAny(g_playerSteamID, sizeof(g_playerSteamID), correctInt);
+	MemSetAny(g_assignedTeamWhenLive, sizeof(g_assignedTeamWhenLive), -1);
 
-	MemSetAny2D(g_playerXP, sizeof(g_playerXP), sizeof(g_playerXP[]),
-		correctInt);
-
-	MemSetAny(g_jinraiScore, sizeof(g_jinraiScore), correctInt);
-	MemSetAny(g_nsfScore, sizeof(g_nsfScore), correctInt);
-	MemSetAny(g_usedTimeouts, sizeof(g_usedTimeouts), correctInt);
-
-	correctInt = -1;
-
-	MemSetAny(g_assignedTeamWhenLive, sizeof(g_assignedTeamWhenLive), correctInt);
-
-	// Reset global strings
 	MemSetChar2D(g_livePlayers, sizeof(g_livePlayers), sizeof(g_livePlayers[]), "");
 	MemSetChar2D(g_killInfoBuffer, sizeof(g_killInfoBuffer), sizeof(g_killInfoBuffer[]), "");
 
-	// Reset global bools
-	bool correctBool = false; // Desired value
+	g_isExpectingOverride		= false;
+	g_isExpectingUnPauseTimer	= false;
+	g_isLive					= false;
+	g_isPaused					= false;
+	g_isSourceTVRecording		= false;
+	g_shouldPause				= false;
+	g_confirmLiveEnd			= false;
+	g_isSuddenDeathRound		= false;
 
-	g_isExpectingOverride		= correctBool;
-	g_isExpectingUnPauseTimer	= correctBool;
-	g_isLive					= correctBool;
-	g_isPaused					= correctBool;
-	g_isSourceTVRecording		= correctBool;
-	g_shouldPause				= correctBool;
-	g_confirmLiveEnd			= correctBool;
-	g_isSuddenDeathRound	= correctBool;
+	MemSetAny(g_isReady, sizeof(g_isReady), false);
+	MemSetAny(g_isSpawned, sizeof(g_isSpawned), false);
+	MemSetAny(g_shouldShowKillInfo, sizeof(g_shouldShowKillInfo), false);
+	MemSetAny(g_isTeamReadyForUnPause, sizeof(g_isTeamReadyForUnPause), false);
+	MemSetAny(g_isWantingOverride, sizeof(g_isWantingOverride), false);
 
-	for (i = 0; i <= MaxClients; i++)
-	{
-		g_isReady[i]	= correctBool;
-		g_isSpawned[i]	= correctBool;
-		g_shouldShowKillInfo[i]	= correctBool;
-	}
-
-	for (i = 0; i < sizeof(g_teamName); i++)
-	{
-		g_isTeamReadyForUnPause[i]	= correctBool;
-		g_isWantingOverride[i]		= correctBool;
-	}
-
-	// Reset global timers
 	if (g_hTimer_GhostOvertime != INVALID_HANDLE)
 	{
 		CloseHandle(g_hTimer_GhostOvertime);
