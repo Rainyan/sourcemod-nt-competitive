@@ -76,44 +76,20 @@ bool g_survivedLastRound[NEO_MAXPLAYERS+1];
 bool g_isSuddenDeathRound;
 bool g_isRecording[NEO_MAXPLAYERS+1];
 
-Handle g_hAlltalk;
-Handle g_hCommsBehaviour;
-Handle g_hCompetitionName;
-Handle g_hForceCamera;
-Handle g_hLogMode;
-Handle g_hMatchSize;
-Handle g_hMaxPauseLength;
-Handle g_hMaxPauseLength_Technical;
-Handle g_hMaxTimeouts;
-Handle g_hNeoScoreLimit;
-Handle g_hNeoRestartThis;
-Handle g_hPausable;
-Handle g_hRoundLimit;
-Handle g_hRoundStyle;
-Handle g_hSourceTVEnabled;
-Handle g_hSourceTVPath;
-Handle g_hJinraiName;
-Handle g_hNSFName;
-Handle g_hKillVersobity;
-Handle g_hClientRecording;
-Handle g_hLimitLiveTeams;
-Handle g_hLimitTeams;
-Handle g_hVerbosityDelay;
-Handle g_hPauseMode;
-Handle g_hCollectiveReady;
-Handle g_hPreventZanshiStrats;
-Handle g_hRoundTime;
-Handle g_hJinraiScore;
-Handle g_hNSFScore;
-Handle g_hSuddenDeath;
-Handle g_hCenteredDisplayRemaining;
-Handle g_hCenteredDisplayTarget;
-Handle g_hGhostOvertimeDecay;
-Handle g_hGhostOvertimeGrace;
-Handle g_hGhostOvertimeDecayExp;
-Handle g_hGhostOvertimeGraceReset;
-Handle g_hCenteredDisplayDivider;
+// ConVars
+Handle g_hAlltalk, g_hCommsBehaviour, g_hCompetitionName, g_hForceCamera,
+	g_hLogMode, g_hMatchSize, g_hMaxPauseLength, g_hMaxPauseLength_Technical,
+	g_hMaxTimeouts, g_hNeoScoreLimit, g_hNeoRestartThis, g_hPausable,
+	g_hRoundLimit, g_hRoundStyle, g_hSourceTVEnabled, g_hSourceTVPath,
+	g_hJinraiName, g_hNSFName, g_hKillVersobity, g_hClientRecording,
+	g_hLimitLiveTeams, g_hLimitTeams, g_hVerbosityDelay, g_hPauseMode,
+	g_hCollectiveReady, g_hPreventZanshiStrats, g_hRoundTime, g_hJinraiScore,
+	g_hNSFScore, g_hSuddenDeath, g_hCenteredDisplayRemaining,
+	g_hCenteredDisplayTarget, g_hGhostOvertimeDecay, g_hGhostOvertimeGrace,
+	g_hGhostOvertimeDecayExp, g_hGhostOvertimeGraceReset,
+	g_hCenteredDisplayDivider;
 
+// Timers
 Handle g_hTimer_LiveCountdown			= INVALID_HANDLE;
 Handle g_hTimer_GoLive						= INVALID_HANDLE;
 Handle g_hTimer_UnPause					= INVALID_HANDLE;
