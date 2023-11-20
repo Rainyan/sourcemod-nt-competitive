@@ -1,6 +1,6 @@
 /*
 	GPLv3
-		- SourceTV recording functions borrowed from Stevo.TVR's Auto Recorder plugin: http://forums.alliedmods.net/showthread.php?t=92072
+		- SourceTV recording functions borrowed from Stevo.TVR's Auto Recorder plugin: https://forums.alliedmods.net/showthread.php?t=92072
 */
 
 #pragma semicolon 1
@@ -165,7 +165,7 @@ public void OnClientAuthorized(int client, const char[] auth)
 	if (!g_isLive)
 		return;
 
-	if ( IsValidClient(client) && IsFakeClient(client) )
+	if ( IsFakeClient(client) )
 	{
 		g_assignedTeamWhenLive[client] = TEAM_NONE; // This is a bot, let them join whichever team they like
 		return;
@@ -478,9 +478,6 @@ public Action Command_Pause(int client, int argc)
 		return Plugin_Stop;
 	}
 
-	if ( !IsValidClient(client) )
-		return Plugin_Stop;
-
 	if (!g_isLive)
 	{
 		ReplyToCommand(client, "%s Game is not live.", g_tag);
@@ -652,12 +649,6 @@ void CancelPauseRequest(int client)
 
 void UnPauseRequest(int client)
 {
-	if ( client == 0 || !IsValidClient(client) || !IsClientInGame(client) )
-	{
-		LogError("Invalid client %i called UnPauseRequest", client);
-		return;
-	}
-
 	int team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
@@ -715,7 +706,7 @@ public Action Command_OverrideStart(int client, int argc)
 	int playersInTeamReady;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsValidClient(i))
+		if (!IsClientInGame(i))
 			continue;
 
 		if (GetClientTeam(i) == team)
@@ -840,7 +831,7 @@ public Action Command_Ready(int client, int argc)
 
 			for (int i = 1; i <= MaxClients; i++)
 			{
-				if ( !IsValidClient(i) )
+				if ( !IsClientInGame(i) )
 					continue;
 
 				if ( team != GetClientTeam(i) )
@@ -920,7 +911,7 @@ public Action Command_UnReady(int client, int argc)
 		{
 			for (int i = 1; i <= MaxClients; i++)
 			{
-				if ( !IsValidClient(i) )
+				if ( !IsClientInGame(i) )
 					continue;
 
 				if ( team != GetClientTeam(i) )

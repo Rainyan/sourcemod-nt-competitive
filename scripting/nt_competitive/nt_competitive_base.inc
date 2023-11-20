@@ -152,9 +152,6 @@ void CheckIfEveryoneIsReady()
 
 public Action Command_ReadyList(int client, int argc)
 {
-	if (!IsValidClient(client))
-		return Plugin_Stop;
-
 	ReplyToCommand(client, "%s List of readied players is printed in your console.", g_tag);
 
 	PrintToConsole(client, "\n%s Players and their READY state:", g_tag);
@@ -178,11 +175,9 @@ public Action Command_ReadyList(int client, int argc)
 	return Plugin_Handled;
 }
 
+// Assumes valid client
 void PlayerRecord(int client)
 {
-	if (!IsValidClient(client))
-		return;
-
 	char steamID[MAX_STEAMID_LENGTH];
 	GetClientAuthId(client, AuthId_Steam2, steamID, sizeof(steamID));
 
@@ -227,7 +222,7 @@ void ToggleRecording()
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if (!IsValidClient(i) || IsFakeClient(i))
+			if (!IsClientInGame(i) || IsFakeClient(i))
 				continue;
 
 			PlayerRecord(i);
@@ -237,7 +232,7 @@ void ToggleRecording()
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if (!IsValidClient(i) || IsFakeClient(i))
+			if (!IsClientInGame(i) || IsFakeClient(i))
 				continue;
 
 			ClientCommand(i, "stop");
@@ -304,7 +299,7 @@ void ToggleLive()
 		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if (!IsValidClient(i) || IsFakeClient(i) ||!IsClientInGame(i))
+			if (!IsClientInGame(i) || IsFakeClient(i))
 				continue;
 
 			if (!IsClientAuthorized(i))
@@ -395,7 +390,7 @@ void NeoRestartThis()
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsValidClient(i))
+		if (!IsClientInGame(i))
 			continue;
 
 		SetPlayerRank(i, 0);
@@ -588,7 +583,7 @@ void TogglePauseLoop()
 	for (int i = 1; i <= MaxClients; i++) // The server can't exec "pause" for some reason. So, instead, use the first valid client to execute it.
 	{
 		unspawnedClients[0] = unspawnedClients[1];
-		if (IsValidClient(i))
+		if (IsClientInGame(i))
 		{
 			if (IsFakeClient(i))
 			{
@@ -835,7 +830,8 @@ bool IsSourceTVBotConnected()
 	char clientName[MAX_NAME_LENGTH];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsValidClient(i) || !IsFakeClient(i)) // We are looking for a valid fake client (bot)
+		// We are looking for a valid fake client (bot)
+		if (!IsClientInGame(i) || !IsFakeClient(i))
 			continue;
 
 		GetClientName(i, clientName, sizeof(clientName));
@@ -856,7 +852,7 @@ int GetPlayerCount()
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if ( !IsValidClient(i) || !IsClientInGame(i) || IsFakeClient(i) )
+		if ( !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 
 		int team = GetClientTeam(i);
@@ -876,7 +872,7 @@ int GetPlayersReady()
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if ( !IsValidClient(i) || !g_isReady[i] || IsFakeClient(i) )
+		if ( !IsClientInGame(i) || !g_isReady[i] || IsFakeClient(i) )
 			continue;
 
 		int team = GetClientTeam(i);
@@ -945,7 +941,7 @@ void PrintToConsoleAll(const char[] message, any ...)
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if ( !IsValidClient(i) || !IsClientInGame(i) || IsFakeClient(i) )
+		if ( !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
 
 		PrintToConsole(i, formatMsg);
@@ -1074,9 +1070,6 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 
 void ShowKillInfoNextRound(int client, const char[] message)
 {
-	if ( !IsValidClient(client) )
-		return;
-
 	strcopy(g_killInfoBuffer[client], sizeof(g_killInfoBuffer), message);
 	g_shouldShowKillInfo[client] = true;
 }
@@ -1091,7 +1084,7 @@ int PrintToAdmins(bool toChat = true, bool toConsole = false,
 	int n;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if ( !IsValidClient(i) || !IsAdmin(i) )
+		if ( !IsClientInGame(i) || !IsAdmin(i) )
 			continue;
 
 		if (toChat)
@@ -1132,7 +1125,7 @@ void RestoreRound(int roundNumber, bool isZanshiRestore)
 		// Only recover previous XP/ranks if restoring previous match state (unpause etc)
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if ( !IsValidClient(i) || IsFakeClient(i) )
+			if ( !IsClientInGame(i) || IsFakeClient(i) )
 				continue;
 
 			SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][roundNumber]); // Restore deaths
@@ -1324,16 +1317,14 @@ void CheckGhostcapPlugin()
 
 bool DidPlayerReallySpawn(int client)
 {
-	if ( !IsValidClient(client) || !IsClientInGame(client) )
+	if (!IsClientInGame(client))
 	{
-//		PrintToServer("Client is not valid %i", client);
 		return false;
 	}
 
 	int team = GetClientTeam(client);
 	if (team != TEAM_JINRAI && team != TEAM_NSF)
 	{
-//		PrintToServer("Team is not valid %i", team);
 		return false;
 	}
 
@@ -1381,7 +1372,7 @@ void CenterText_DisplayRemaining()
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if ( !IsValidClient(i) || !IsClientInGame(i) )
+		if ( !IsClientInGame(i) )
 			continue;
 
 		int team = GetClientTeam(i);
@@ -1441,7 +1432,7 @@ void CancelLiveCountdown()
 
 bool IsAdmin(int client)
 {
-	if (!IsValidClient(client) || !IsClientAuthorized(client))
+	if (!IsClientInGame(client) || !IsClientAuthorized(client))
 	{
 		LogError("IsAdmin: Client %i is not valid. This shouldn't happen.", client);
 		return false;

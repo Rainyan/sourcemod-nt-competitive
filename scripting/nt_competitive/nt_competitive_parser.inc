@@ -175,7 +175,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 			// Get amount of survivors on both teams
 			for (int i = 1; i <= MaxClients; i++)
 			{
-				if ( !IsValidClient(i) || !IsClientInGame(i) )
+				if ( !IsClientInGame(i) )
 					continue;
 
 				int team = GetClientTeam(i);
@@ -207,7 +207,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if ( !IsValidClient(i) || IsFakeClient(i) )
+			if ( !IsClientInGame(i) || IsFakeClient(i) )
 				continue;
 
 			g_playerDeaths[i][g_roundNumber]	= GetEntProp(i, Prop_Data, "m_iDeaths");	// Save everyone's death count for this round
