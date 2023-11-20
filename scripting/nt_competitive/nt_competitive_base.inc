@@ -4,15 +4,11 @@
 #endif
 #define _base_included_
 
-#define PLUGIN_VERSION "0.6.1"
+#define PLUGIN_VERSION "1.0.1"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
 #define MAX_CVAR_LENGTH 64
-
-#if defined KV_DEBUG
-#define KV_IDENTIFIER "compdata"
-#endif
 
 new const String:g_tag[] = "[COMP]";
 new String:g_teamName[][64] = {
@@ -27,48 +23,6 @@ new const String:g_menuSoundCancel[] = "buttons/combine_button7.wav";
 new const String:g_soundLive[] = "buttons/button17.wav";
 new String:g_killInfoBuffer[NEO_MAXPLAYERS+1][512];
 new String:g_convarBeingEdited[128];
-
-#if DEBUG
-new String:g_path_logDebug[PLATFORM_MAX_PATH] = "logs/competitive";
-#endif
-
-#if defined KV_DEBUG
-new String:g_kvPath[PLATFORM_MAX_PATH] = "data/competitive/matches";
-new String:g_kvName[128];
-new String:g_kvName_Temp[NEO_MAXPLAYERS+1][sizeof(g_kvName)];
-
-new const String:g_kvKey_jinraiName[] = "jinrai_name";
-new const String:g_kvKey_nsfName[] = "nsf_name";
-new const String:g_kvKey_competitionName[] = "competition_name";
-new const String:g_kvKey_sourceTVPath[] = "sourcetv_path";
-new const String:g_kvKey_roundLimit[] = "round_limit";
-new const String:g_kvKey_matchSize[] = "match_size";
-new const String:g_kvKey_maxTimeouts[] = "max_timeouts";
-new const String:g_kvKey_maxPauseLength[] = "max_pause_length";
-new const String:g_kvKey_maxPauseLengthTechnical[] = "max_pause_length_technical";
-new const String:g_kvKey_commsBehaviour[] = "comms_behaviour";
-new const String:g_kvKey_logMode[] = "log_mode";
-new const String:g_kvKey_killVerbosity[] = "kill_verbosity";
-new const String:g_kvKey_killVerbosityDelay[] = "kill_verbosity_delay";
-new const String:g_kvKey_clientRecording[] = "client_recording";
-new const String:g_kvKey_limitLiveTeams[] = "limit_live_teams";
-new const String:g_kvKey_limitTeams[] = "limit_teams";
-new const String:g_kvKey_pauseMode[] = "pause_mode";
-new const String:g_kvKey_collectiveReady[] = "collective_ready";
-new const String:g_kvKey_noZanshi[] = "no_zanshi";
-new const String:g_kvKey_jinraiScore[] = "jinrai_score";
-new const String:g_kvKey_nsfScore[] = "nfs_score";
-new const String:g_kvKey_suddenDeath[] = "sudden_death";
-new const String:g_kvKey_centered_displayRemaining[] = "centered_display_remaining";
-new const String:g_kvKey_centered_displayTarget[] = "centered_display_target";
-new const String:g_kvKey_natives_alltalk[] = "natives_alltalk";
-new const String:g_kvKey_natives_forceCamera[] = "natives_forcecamera";
-new const String:g_kvKey_natives_pausable[] = "natives_pausable";
-new const String:g_kvKey_natives_roundTime[] = "natives_round_time";
-new const String:g_kvKey_natives_scoreLimit[] = "natives_scorelimit";
-new const String:g_kvKey_jinraiPauses[] = "jinrai_pauses_used";
-new const String:g_kvKey_nsfPauses[] = "nsf_pauses_used";
-#endif
 
 new g_assignedTeamWhenLive[NEO_MAXPLAYERS+1];
 new g_jinraiScore[MAX_ROUNDS_PLAYED];
@@ -126,10 +80,6 @@ new bool:g_survivedLastRound[NEO_MAXPLAYERS+1];
 new bool:g_isSuddenDeathRound;
 new bool:g_isRecording[NEO_MAXPLAYERS+1];
 
-#if defined KV_DEBUG
-new bool:g_goLiveAfterKvRestore[NEO_MAXPLAYERS+1] = true;
-#endif
-
 new Handle:g_hAlltalk;
 new Handle:g_hCommsBehaviour;
 new Handle:g_hCompetitionName;
@@ -168,20 +118,12 @@ new Handle:g_hGhostOvertimeDecayExp;
 new Handle:g_hGhostOvertimeGraceReset;
 new Handle:g_hCenteredDisplayDivider;
 
-#if defined KV_DEBUG
-new Handle:g_hDebugKeyValues;
-#endif
-
 new Handle:g_hTimer_LiveCountdown			= INVALID_HANDLE;
 new Handle:g_hTimer_GoLive						= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause					= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
 new Handle:g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
 new Handle:g_hTimer_GhostOvertime		= INVALID_HANDLE;
-
-#if defined KV_DEBUG
-KeyValues g_kv;
-#endif
 
 Menu g_clientMenu = null;
 
@@ -217,11 +159,6 @@ void CheckIfEveryoneIsReady()
 
 	new players = GetPlayerCount();
 	new playersReady = GetPlayersReady();
-
-#if DEBUG
-	LogDebug("%s Players found total: %i", g_tag, players);
-	LogDebug("%s Players ready: %i", g_tag, playersReady);
-#endif
 
 	if (players > playersReady) // Everyone isn't ready, stop here
 		return;
@@ -320,10 +257,6 @@ void PlayerRecord(client)
 	ClientCommand(client, "stop"); // Stop any previous recording, jic. This does nothing if a demo isn't running.
 	ClientCommand(client, "record %s", replayName); // Start recording. Format demo filename here. Note: replays can be overwritten using this.
 	g_isRecording[client] = true;
-
-#if DEBUG > 1
-	LogDebug("Client %i is now recording to: %s", client, replayName);
-#endif
 }
 
 void ToggleRecording()
@@ -349,10 +282,6 @@ void ToggleRecording()
 				continue;
 
 			ClientCommand(i, "stop");
-
-#if DEBUG > 1
-			LogDebug("Client %i has stopped recording.", i);
-#endif
 		}
 	}
 }
@@ -406,19 +335,8 @@ void ToggleLive(bool:isKvRestore = false)
 		g_isWantingOverride[TEAM_JINRAI] = false;
 		g_isWantingOverride[TEAM_NSF] = false;
 		g_isExpectingOverride = false;
-#if defined KV_DEBUG
-		if ( GetConVarBool(g_hDebugKeyValues) )
-		{
-			Kv_Generate();
-		}
-#endif
 		g_isLiveCountdown = false;
 		g_winner = 0; // Reset winner (overlay module queries this value)
-
-#if DEBUG
-		LogDebug("Creating SteamID array of players...");
-		new foundPlayers;
-#endif
 
 		// Save connected players' SteamIDs so they can be allowed to rejoin their teams if disconnected
 		for (new i = 1; i <= MaxClients; i++)
@@ -431,9 +349,6 @@ void ToggleLive(bool:isKvRestore = false)
 				new String:clientName[MAX_NAME_LENGTH];
 				GetClientName(i, clientName, sizeof(clientName));
 				PrintToChatAll("%s Player \"%s\" has no SteamID authorized yet! Stopped going live. Please try again in a moment.");
-#if DEBUG
-				LogDebug("%s Player \"%s\" has no SteamID authorized yet! Stopped going live.");
-#endif
 				g_isLive = false;
 
 				return;
@@ -455,11 +370,6 @@ void ToggleLive(bool:isKvRestore = false)
 				strcopy(g_livePlayers[i], sizeof(g_livePlayers[]), steamID);
 				PrintToServer("sizeof g_livePlayers: %i", sizeof(g_livePlayers[]));
 				g_assignedTeamWhenLive[i] = team;
-#if DEBUG
-				LogDebug("Found SteamID: %s", steamID);
-				LogDebug("Saved to array as: %s, team %s", g_livePlayers[i], g_teamName[g_assignedTeamWhenLive[i]]);
-				foundPlayers++;
-#endif
 
 				int acc_id = GetSteamAccountID(i);
 				if (acc_id == 0)
@@ -470,9 +380,6 @@ void ToggleLive(bool:isKvRestore = false)
 				g_playerSteamID[i] = acc_id;
 			}
 		}
-#if DEBUG
-		LogDebug("Completed SteamID array with %i results.", foundPlayers);
-#endif
 
 		// Set convars for competitive
 		SetConVarInt(g_hAlltalk, GetDesiredCommsBehaviour());
@@ -507,18 +414,6 @@ void ToggleLive(bool:isKvRestore = false)
 	// Stop live
 	else
 	{
-#if defined KV_DEBUG
-		if ( GetConVarBool(g_hDebugKeyValues) )
-		{
-			if ( Kv_IsValid(g_kv) )
-			{
-				Kv_Store(g_kv, g_kvName);
-				CloseHandle(g_kv);
-				g_kv = null;
-			}
-		}
-#endif
-
 		if (g_isPaused)
 			TogglePause();
 
@@ -588,10 +483,6 @@ void TogglePause()
 
 				PrintToChatAll( "%s Pause maximum duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
 				PrintToChatAll("%s Use !unpause when ready.", g_tag);
-
-#if DEBUG
-				LogDebug( "%s Pausing! Pause max duration: %i seconds.", g_tag, RoundToNearest(fPauseLength) );
-#endif
 
 				g_hTimer_UnPause = CreateTimer( (1.0 + fPauseLength ), Timer_Unpause ); // Add 1 second to timer for messages to appear in correct order during countdown
 
@@ -735,70 +626,6 @@ public Action:Timer_EnterPauseRound(Handle:timer)
 	}
 }
 
-#if DEBUG
-public Action:Command_UnpauseOther(client, args) // Pretend the other team made an unpause request. Debug command.
-{
-	if (client == 0)
-	{
-		ReplyToCommand(client, "%s This command can't be executed by the server.", g_tag);
-		return Plugin_Stop;
-	}
-
-	new bool:foundSomeoneInOtherTeam;
-	new team = GetClientTeam(client);
-	new otherTeam = GetOtherTeam(team);
-
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (!IsValidClient(i))
-			continue;
-
-		new forLoopTeam = GetClientTeam(i);
-		if (forLoopTeam == otherTeam)
-		{
-			foundSomeoneInOtherTeam = true;
-			UnPauseRequest(i); // Make someone from the other team perform an unpause request
-			break;
-		}
-	}
-
-	if (!foundSomeoneInOtherTeam)
-		ReplyToCommand(client, "%s Debug: Could not find any players in the other team to fake unpause.", g_tag);
-	else
-		ReplyToCommand(client, "%s Debug: Faked unpause request from the other team.", g_tag);
-
-	return Plugin_Handled;
-}
-
-public Action:Command_OverrideStartOther(client, args) // Pretend the other team made a force start request. Debug command.
-{
-	new bool:foundSomeoneInOtherTeam;
-	new team = GetClientTeam(client);
-	new otherTeam = GetOtherTeam(team);
-
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (!IsValidClient(i))
-			continue;
-
-		new forLoopTeam = GetClientTeam(i);
-		if (forLoopTeam == otherTeam)
-		{
-			foundSomeoneInOtherTeam = true;
-			Command_OverrideStart(i, 0); // Make someone from the other team perform a force start request. Args (0) not used, but the command expects them.
-			break;
-		}
-	}
-
-	if (!foundSomeoneInOtherTeam)
-		ReplyToCommand(client, "%s Debug: Could not find any players in the other team to fake force start.", g_tag);
-	else
-		ReplyToCommand(client, "%s Debug: Faked force start request from the other team.", g_tag);
-
-	return Plugin_Handled;
-}
-#endif
-
 public Action:Timer_TogglePauseLoop(Handle:timer)
 {
 	TogglePauseLoop();
@@ -829,15 +656,6 @@ void TogglePauseLoop()
 			if (forcePause || unspawnedClients[1] <= unspawnedClients[0])
 			{
 				ClientCommand(i, "pause");
-
-#if DEBUG > 1
-					if (forcePause)
-						LogDebug("Force pause detected.");
-
-					new String:clientName[MAX_NAME_LENGTH];
-					GetClientName(i, clientName, sizeof(clientName));
-					LogDebug("Found client to toggle pause. Client int: %i, name: %s", i, clientName);
-#endif
 				CreateTimer(0.05, Timer_DisablePause); // Pausable cvar toggling is too fast to register the pause without a tiny delay here. 0.01 was occasionally too fast, 0.05 seems pretty safe.
 
 				break;
@@ -849,28 +667,15 @@ void TogglePauseLoop()
 
 		if (i == MaxClients && unspawnedClients[1] > 0) // This will keep looping in 1 second intervals for as long as there are valid unspawned clients
 		{
-#if DEBUG > 1
-			LogDebug("Found %i invalid clients. Found %i valid unspawned clients.", invalidClients, unspawnedClients[1]);
-#endif
-
 			if (GetGameTime() > g_fRoundTime + 13.9)
 			{
 				forcePause = true;
 				i = 0; // Reset loop
-
-#if DEBUG > 1
-				LogDebug("New round is about to start! Force any valid client to toggle pause...");
-#endif
 				continue;
 			}
 
 			CreateTimer(1.0, Timer_TogglePauseLoop);
-
-#if DEBUG > 1
-			LogDebug("No valid spawned client found. Restarting loop in TogglePauseLoop");
-#endif
 		}
-
 		else if (invalidClients == MaxClients)
 			LogError("Attempted pause command whilst no valid clients were connected inside TogglePause. This shouldn't happen.");
 	}
@@ -1007,10 +812,6 @@ void ToggleSourceTV()
 	{
 		ServerCommand("tv_stoprecord");
 		g_isSourceTVRecording = false;
-
-#if DEBUG
-		LogDebug("ToggleSourceTV: tv_stoprecord");
-#endif
 	}
 
 	else
@@ -1020,9 +821,6 @@ void ToggleSourceTV()
 
 		if (!IsSourceTVBotConnected())
 		{
-#if DEBUG
-			LogDebug("ToggleSourceTV: SourceTV bot not found.");
-#endif
 			return;
 		}
 
@@ -1068,10 +866,6 @@ void ToggleSourceTV()
 		ServerCommand("tv_stoprecord"); // Stop any previous server record
 		ServerCommand("tv_record \"%s/%s\"", demoPath, replayName); // SourceTV bot needs to be connected for this to do anything. This is checked above with IsSourceTVBotConnected()
 		g_isSourceTVRecording = true;
-
-#if DEBUG
-		LogDebug("ToggleSourceTV: tv_record \"%s/%s\"", demoPath, replayName);
-#endif
 	}
 }
 
@@ -1096,10 +890,6 @@ bool:IsSourceTVBotConnected()
 
 	CloseHandle(hBotName);
 
-#if DEBUG > 1
-	LogDebug("Looking for a SourceTV bot...");
-#endif
-
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (!IsValidClient(i) || !IsFakeClient(i)) // We are looking for a valid fake client (bot)
@@ -1108,15 +898,8 @@ bool:IsSourceTVBotConnected()
 		decl String:clientName[MAX_NAME_LENGTH];
 		GetClientName(i, clientName, sizeof(clientName));
 
-#if DEBUG > 1
-		LogDebug("Found valid fake client, index: %i, name: %s", i, clientName);
-#endif
-
 		if (StrEqual(clientName, botName) || StrEqual(clientName, "SourceTV")) // Also check for default name "SourceTV", because sometimes tv_name doesn't work when bot first spawns
 		{
-#if DEBUG > 1
-			LogDebug("Fake client name %s matches tv_name cvar %s or \"SourceTV\"", clientName, botName);
-#endif
 			return true;
 		}
 	}
@@ -1212,7 +995,7 @@ void LogCompetitive(const String:message[])
 #if SOURCEMOD_V_MAJOR <= 1 && SOURCEMOD_V_MINOR < 9
 void PrintToConsoleAll(const String:message[], any ...)
 {
-	decl String:formatMsg[512];
+	decl String:formatMsg[256];
 	VFormat(formatMsg, sizeof(formatMsg), message, 2);
 
 	for (new i = 1; i <= MaxClients; i++)
@@ -1232,12 +1015,7 @@ void UpdatePlayersAlive() // Updates g_playersAlive array
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-#if !defined DEBUG || DEBUG == 0
-		if (IsFakeClient(i))
-			continue;
-#endif
-
-		if (!IsValidClient(i) || !IsClientInGame(i))
+		if (!IsClientInGame(i))
 			continue;
 
 		if (!IsPlayerAlive(i))
@@ -1263,12 +1041,7 @@ void ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new ro
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-#if !defined DEBUG || DEBUG == 0
-		if (IsFakeClient(i))
-			continue;
-#endif
-
-		if (!IsValidClient(i))
+		if (!IsClientInGame(i))
 			continue;
 
 		new team = GetClientTeam(i);
@@ -1664,61 +1437,8 @@ void RefereeMenu_ManualEdit_PlayerScore(client)
 
 void RefereeMenu_LoadMatch(client)
 {
-#if defined KV_DEBUG
-	Menu menu = CreateMenu(MenuHandler_RefereeMenu_LoadMatch);
-
-	menu.SetTitle("Load previous match state");
-
-	decl String:fullPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, fullPath, sizeof(fullPath), g_kvPath);
-
-	if ( !DirExists(fullPath) )
-	{
-		LogError("Failed to open KeyValues directory path: %s", fullPath);
-		return;
-	}
-
-	new Handle:dir = OpenDirectory(fullPath);
-	if (dir == null)
-	{
-		LogError("Failed to open KeyValues directory path: %s", fullPath);
-		return;
-	}
-
-	new results;
-	new max_files = 128;
-	decl String:buffer[PLATFORM_MAX_PATH];
-	FileType type;
-	while ( ReadDirEntry(dir, buffer, sizeof(buffer), type) )
-	{
-		results++;
-
-		if (results > max_files)
-		{
-			//fixme: unoptimised
-			LogError("Warning: Over %i file results found. Breaking out of the loop to avoid unresponsiveness.", max_files);
-			break;
-		}
-
-		// Not a file
-		if (type != FileType_File)
-			continue;
-
-		// Not a .kv file
-		if ( !Kv_IsValidFile(buffer) )
-			continue;
-
-//		PrintToServer("Found file: %s", buffer);
-		menu.AddItem(buffer, buffer);
-	}
-
-	CloseHandle(dir);
-
-	menu.Display(client, MENU_TIME_FOREVER);
-#else
 	PrintToChat(client, "This is a disabled experimental feature.");
 	Command_RefereeMenu(client, 1);
-#endif
 }
 
 void ChatCvarEdit(client, Handle:cvar)
@@ -1897,9 +1617,6 @@ void RestoreRound(roundNumber, bool:isAdminTriggered = false, client = 0, bool:i
 
 			SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][roundNumber]); // Restore deaths
 			SetPlayerXP(i, g_playerXP[i][roundNumber]); // Restore XP
-#if DEBUG > 1
-			LogDebug("Client %i has %i XP and %i deaths at round %i.", i, g_playerXP[i][roundNumber], g_playerDeaths[i][roundNumber], roundNumber);
-#endif
 			UpdatePlayerRank(i);
 		}
 	}
@@ -2013,17 +1730,19 @@ void ApplyPenalty(admin, team)
 	Command_RefereeMenu(admin, 1);
 }
 
+static void Notify(const String:message[], any ...)
+{
+	decl String:formatMsg[256];
+	VFormat(formatMsg, sizeof(formatMsg), message, 2);
+
+	PrintToChatAll(formatMsg);
+	PrintToConsoleAll(formatMsg);
+	LogCompetitive(formatMsg);
+}
+
 void CheckMatchState()
 {
-#if defined KV_DEBUG
-	if ( GetConVarBool(g_hDebugKeyValues) )
-	{
-		Kv_LogRound(g_kv);
-		Kv_Store(g_kv, g_kvName);
-	}
-#endif
 	new roundLimit = GetConVarInt(g_hRoundLimit);
-	decl String:msgBuffer[256];
 
 	// Win condition: Best of X rounds
 	if (GetConVarInt(g_hRoundStyle) == 1)
@@ -2032,15 +1751,7 @@ void CheckMatchState()
 		// Jinrai wins, NSF can't catch up anymore
 		if ( !g_isSuddenDeathRound && g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber] + roundLimit - (g_roundNumber - 1) ) // (g_roundNumber - 1) because we're counting rounds by incrementing inside the event. So first round is 1, not 0.
 		{
-	#if DEBUG
-			LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-			LogDebug("jinScore %i > nsfScore %i + roundLimit %i - roundCount %i", g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber], roundLimit, g_roundNumber);
-	#endif
-
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-
-			PrintToChatAll(msgBuffer);
-			LogCompetitive(msgBuffer);
+			Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 
 			g_winner = TEAM_JINRAI;
 		}
@@ -2048,15 +1759,7 @@ void CheckMatchState()
 		// NSF wins, Jinrai can't catch up anymore
 		else if ( !g_isSuddenDeathRound && g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber] + roundLimit - (g_roundNumber - 1))
 		{
-	#if DEBUG
-			LogDebug("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-			LogDebug("nsfScore %i > jinScore %i + roundLimit %i - roundCount %i", g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber], roundLimit, g_roundNumber);
-	#endif
-
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-
-			PrintToChatAll(msgBuffer);
-			LogCompetitive(msgBuffer);
+			Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 
 			g_winner = TEAM_NSF;
 		}
@@ -2065,28 +1768,17 @@ void CheckMatchState()
 		{
 			if (g_jinraiScore[g_roundNumber] > g_nsfScore[g_roundNumber])
 			{
-				Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
-
-				PrintToChatAll(msgBuffer);
-				LogCompetitive(msgBuffer);
-
+				Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber], g_nsfScore[g_roundNumber]);
 				g_winner = TEAM_JINRAI;
 			}
 			else if (g_nsfScore[g_roundNumber] > g_jinraiScore[g_roundNumber])
 			{
-				Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-
-				PrintToChatAll(msgBuffer);
-				LogCompetitive(msgBuffer);
-
+				Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 				g_winner = TEAM_NSF;
 			}
 			else
 			{
-				Format(msgBuffer, sizeof(msgBuffer), "%s SUDDEN DEATH. Next team to score wins.", g_tag);
-				PrintToChatAll(msgBuffer);
-				LogCompetitive(msgBuffer);
-
+				Notify("%s SUDDEN DEATH. Next team to score wins.", g_tag);
 				return;
 			}
 		}
@@ -2100,10 +1792,7 @@ void CheckMatchState()
 				if (!g_isSuddenDeathRound)
 				{
 					g_isSuddenDeathRound = true;
-					Format(msgBuffer, sizeof(msgBuffer), "%s SUDDEN DEATH. Next team to score wins.", g_tag);
-					PrintToChatAll(msgBuffer);
-					LogCompetitive(msgBuffer);
-
+					Notify("%s SUDDEN DEATH. Next team to score wins.", g_tag);
 					return;
 				}
 			}
@@ -2111,11 +1800,8 @@ void CheckMatchState()
 			// No sudden death. End match in a tie.
 			else
 			{
-				Format(msgBuffer, sizeof(msgBuffer), "%s MATCH TIED %i - %i", g_tag, g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
-				PrintToChatAll(msgBuffer);
+				Notify("%s MATCH TIED %i - %i", g_tag, g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 			}
-
-			LogCompetitive(msgBuffer);
 		}
 
 		// Check if game ended, and toggle off live mode if appropriate
@@ -2128,7 +1814,7 @@ void CheckMatchState()
 		// Match point, one team has almost won
 		else if (IsMatchPoint())
 		{
-			PrintToChatAll("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+			Notify("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
 		}
 
 		// Just another round, simply announce round number
@@ -2136,7 +1822,9 @@ void CheckMatchState()
 		{
 			// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
 			if (g_spamTimerCount <= 1)
-				PrintToChatAll("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
+			{
+				Notify("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+			}
 		}
 	}
 	// Win condition: First to X rounds
@@ -2145,12 +1833,10 @@ void CheckMatchState()
 		// Jinrai reached score required to win
 		if (g_jinraiScore[g_roundNumber] == roundLimit)
 		{
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i",
+			Notify("%s %s WINS %i - %i",
 				g_tag, g_teamName[TEAM_JINRAI], g_jinraiScore[g_roundNumber],
 				g_nsfScore[g_roundNumber]);
 
-			PrintToChatAll(msgBuffer);
-			LogCompetitive(msgBuffer);
 			g_winner = TEAM_JINRAI;
 
 			ToggleLive();
@@ -2159,12 +1845,10 @@ void CheckMatchState()
 		// NSF reached score required to win
 		else if (g_nsfScore[g_roundNumber] == roundLimit)
 		{
-			Format(msgBuffer, sizeof(msgBuffer), "%s %s WINS %i - %i",
+			Notify("%s %s WINS %i - %i",
 				g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber],
 				g_jinraiScore[g_roundNumber]);
 
-			PrintToChatAll(msgBuffer);
-			LogCompetitive(msgBuffer);
 			g_winner = TEAM_NSF;
 
 			ToggleLive();
@@ -2181,10 +1865,7 @@ Jinrai %i - NSF %i, round %i in a first to %i points game.",
 		}
 		else if (g_roundNumber > 1)
 		{
-			decl String:message[24];
-			Format(message, sizeof(message), "%s Round %i", g_tag, g_roundNumber);
-			PrintToChatAll(message);
-			LogCompetitive(message);
+			Notify("%s Round %i", g_tag, g_roundNumber);
 		}
 	}
 }
@@ -2205,31 +1886,6 @@ void CheckGhostcapPlugin()
 		SetConVarBool(g_hPreventZanshiStrats, false);
 	}
 }
-
-#if DEBUG
-void PrepareDebugLogFolder()
-{
-	decl String:path[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, path, sizeof(path), g_path_logDebug);
-	if ( !DirExists(path) )
-		CreateDirectory(path, 509);
-}
-
-void LogDebug(const String:message[], any ...)
-{
-	decl String:path[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, path, sizeof(path), g_path_logDebug);
-	StrCat(path, sizeof(path), "/competitive_debug.log");
-
-	// Format according to SM format rules
-	decl String:formatMsg[512];
-	VFormat(formatMsg, sizeof(formatMsg), message, 2);
-
-	new Handle:file = OpenFile(path, "a"); // fopen
-	WriteFileLine(file, formatMsg);
-	CloseHandle(file);
-}
-#endif
 
 bool DidPlayerReallySpawn(client)
 {
@@ -2312,587 +1968,6 @@ void CenterText_DisplayRemaining()
 			PrintCenterText(i, message);
 	}
 }
-
-#if defined KV_DEBUG
-// Purpose: Make sure handle holds valid KeyValues data, using the comp plugin's format.
-// This will also reset the entire traversal stack. Intended use: kv initialisation, import, export.
-bool Kv_IsValid(KeyValues kv)
-{
-	if (kv == INVALID_HANDLE)
-		return false;
-
-	kv.Rewind();
-
-	new identifier_length = strlen(KV_IDENTIFIER) +1; // strlen + terminator
-	decl String:sectionName[identifier_length];
-	kv.GetSectionName(sectionName, identifier_length);
-
-	if ( !StrEqual(sectionName, KV_IDENTIFIER) )
-	{
-		LogError("KeyValues handle points to a KeyValues that is not standard for the competitive plugin. This is most likely an error.");
-		LogError("Section name: %s Expected: %s", sectionName, KV_IDENTIFIER);
-		return false;
-	}
-
-	return true;
-}
-
-bool Kv_IsValidFile(const String:fileName[])
-{
-	new const String:extension[] = ".kv";
-	if ( StrContains(fileName, extension) != strlen(fileName) - strlen(extension) )
-		return false;
-
-	return true;
-}
-
-// Purpose: Logs current match status into round keyvalues entry
-void Kv_LogRound(KeyValues kv)
-{
-	if ( !Kv_IsValid(kv) )
-	{
-		LogError("Failed logging round to KeyValues");
-		return;
-	}
-
-	kv.Rewind();
-
-	// Create or jump to round key
-	decl String:roundKey[9];
-	Format(roundKey, sizeof(roundKey), "round%i", g_roundNumber);
-	kv.JumpToKey(roundKey, true);
-
-	// Set round specific values
-	kv.SetNum(g_kvKey_jinraiScore, g_jinraiScore[g_roundNumber]);
-	kv.SetNum(g_kvKey_nsfScore, g_nsfScore[g_roundNumber]);
-	kv.SetNum( g_kvKey_roundLimit, GetConVarInt(g_hRoundLimit) );
-	kv.SetNum(g_kvKey_jinraiPauses, g_usedTimeouts[TEAM_JINRAI]);
-	kv.SetNum(g_kvKey_nsfPauses, g_usedTimeouts[TEAM_NSF]);
-
-	// Set player values for round
-	kv.JumpToKey("client_values", true);
-	decl String:steamID[MAX_STEAMID_LENGTH];
-	new team;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if ( !IsValidClient(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
-			continue;
-
-		team = GetClientTeam(i);
-		if (0 > team > 3)
-			continue;
-
-		GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
-		kv.JumpToKey(steamID, true);
-
-		// Store current round values
-		kv.SetNum("team", team);
-		kv.SetNum( "xp", GetPlayerXP(i) );
-		kv.SetNum( "deaths", GetPlayerDeaths(i) );
-
-		// Insert client into meta client list
-		kv.Rewind();
-		kv.JumpToKey("meta");
-		kv.JumpToKey("clients");
-		kv.SetNum(steamID, team);
-
-		// Return cursor to client_values
-		kv.Rewind();
-		kv.JumpToKey(roundKey);
-		kv.JumpToKey("client_values");
-	}
-
-	g_kv = kv;
-}
-
-// Purpose: Generates new KeyValues structure
-void Kv_Generate()
-{
-	Format(g_kvName, sizeof(g_kvName), "comp_%i", g_epoch);
-
-	// Concatenate competition title (if any) to the end of filename
-	decl String:compTitle[MAX_CVAR_LENGTH];
-	GetConVarString( g_hCompetitionName, compTitle, sizeof(compTitle) );
-	if (strlen(compTitle) > 0)
-	{
-		StrCat(g_kvName, sizeof(g_kvName), "_");
-
-		// Clean up any non alphanumeric characters from the string
-		new String:compBuffer[sizeof(compTitle)];
-		new bufferPos;
-		for (new j = 0; j < sizeof(compTitle); j++)
-		{
-			if (IsCharAlpha(compTitle[j]) || IsCharNumeric(compTitle[j]) || !IsCharSpace(compTitle[j]))
-				compBuffer[bufferPos++] = compTitle[j];
-		}
-		compBuffer[bufferPos] = '\0'; // Terminate the string with 0
-		StrCat(g_kvName, sizeof(g_kvName), compBuffer);
-	}
-
-	StrCat(g_kvName, sizeof(g_kvName), ".kv");
-
-	g_kv = new KeyValues(KV_IDENTIFIER);
-	Kv_PopulateMeta(g_kv);
-}
-
-// Purpose: Populates metadata for competitive plugin's KeyValues
-void Kv_PopulateMeta(KeyValues kv)
-{
-	if ( !Kv_IsValid(kv) )
-	{
-		LogError("Failed populating KeyValues");
-		return;
-	}
-
-	kv.JumpToKey("meta", true);
-
-	kv.SetNum("timestamp", g_epoch);
-	kv.SetString("plugin_version", PLUGIN_VERSION);
-
-	// Store string cvars
-	new String:jinraiName[MAX_CVAR_LENGTH];
-	new String:nsfName[MAX_CVAR_LENGTH];
-	new String:competitionName[MAX_CVAR_LENGTH];
-	new String:sourceTVPath[MAX_CVAR_LENGTH];
-
-	GetConVarString( g_hJinraiName, jinraiName, sizeof(jinraiName) );
-	GetConVarString( g_hNSFName, nsfName, sizeof(nsfName) );
-	GetConVarString( g_hCompetitionName, competitionName, sizeof(competitionName) );
-	GetConVarString( g_hSourceTVPath, sourceTVPath, sizeof(sourceTVPath) );
-
-	kv.SetString(g_kvKey_jinraiName, jinraiName);
-	kv.SetString(g_kvKey_nsfName, nsfName);
-	kv.SetString(g_kvKey_competitionName, competitionName);
-	kv.SetString(g_kvKey_sourceTVPath, sourceTVPath);
-
-	// Store integer/boolean cvars
-	// Floats need SetFloat, but we're not expecting any as of now
-	kv.SetNum( g_kvKey_roundLimit, GetConVarInt(g_hRoundLimit) );
-	kv.SetNum( g_kvKey_matchSize, GetConVarInt(g_hMatchSize) );
-	kv.SetNum( g_kvKey_maxTimeouts, GetConVarInt(g_hMaxTimeouts) );
-	kv.SetNum( g_kvKey_maxPauseLength, GetConVarInt(g_hMaxPauseLength) );
-	kv.SetNum( g_kvKey_maxPauseLengthTechnical, GetConVarInt(g_hMaxPauseLength_Technical) );
-	kv.SetNum( g_kvKey_commsBehaviour, GetConVarInt(g_hCommsBehaviour) );
-	kv.SetNum( g_kvKey_logMode, GetConVarInt(g_hLogMode) );
-	kv.SetNum( g_kvKey_killVerbosity, GetConVarInt(g_hKillVersobity) );
-	kv.SetNum( g_kvKey_killVerbosityDelay, GetConVarInt(g_hVerbosityDelay) );
-	kv.SetNum( g_kvKey_clientRecording, GetConVarInt(g_hClientRecording) );
-	kv.SetNum( g_kvKey_limitLiveTeams, GetConVarInt(g_hLimitLiveTeams) );
-	kv.SetNum( g_kvKey_limitTeams, GetConVarInt(g_hLimitTeams) );
-	kv.SetNum( g_kvKey_pauseMode, GetConVarInt(g_hPauseMode) );
-	kv.SetNum( g_kvKey_collectiveReady, GetConVarInt(g_hCollectiveReady) );
-	kv.SetNum( g_kvKey_noZanshi, GetConVarInt(g_hPreventZanshiStrats) );
-	kv.SetNum( g_kvKey_jinraiScore, GetConVarInt(g_hJinraiScore) );
-	kv.SetNum( g_kvKey_nsfScore, GetConVarInt(g_hNSFScore) );
-	kv.SetNum( g_kvKey_suddenDeath, GetConVarInt(g_hSuddenDeath) );
-	kv.SetNum( g_kvKey_centered_displayRemaining, GetConVarInt(g_hCenteredDisplayRemaining) );
-	kv.SetNum( g_kvKey_centered_displayTarget, GetConVarInt(g_hCenteredDisplayTarget) );
-	kv.SetNum( g_kvKey_natives_alltalk, GetConVarInt(g_hAlltalk) );
-	kv.SetNum( g_kvKey_natives_forceCamera, GetConVarInt(g_hForceCamera) );
-	kv.SetNum( g_kvKey_natives_pausable, GetConVarInt(g_hPausable) );
-	kv.SetNum( g_kvKey_natives_roundTime, GetConVarInt(g_hRoundTime) );
-	kv.SetNum( g_kvKey_natives_scoreLimit, GetConVarInt(g_hNeoScoreLimit) );
-
-	// List clients and their teams
-	kv.JumpToKey("clients", true);
-
-	decl String:steamID[MAX_STEAMID_LENGTH];
-	new team;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if ( !IsValidClient(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
-			continue;
-
-		team = GetClientTeam(i);
-		// Valid teams are in range 0-3
-		if ( 0 > team > 3 )
-			continue;
-
-		GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
-		kv.SetNum(steamID, team);
-	}
-
-	Kv_Store(kv, g_kvName);
-}
-
-// Purpose: Stores KeyValues data globally and exports latest changes to file
-void Kv_Store(KeyValues kv, const String:exportName[] = "comp_debug.kv")
-{
-	if ( !Kv_IsValid(kv) )
-	{
-		LogError("Failed exporting KeyValues");
-		return;
-	}
-
-	g_kv = kv;
-
-	if ( !Kv_IsValidFile(exportName) )
-	{
-		LogError("exportName doesn't use a .kv extension. This shouldn't happen.");
-		return;
-	}
-
-	decl String:fullPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s", g_kvPath, exportName);
-
-	kv.ExportToFile(fullPath);
-}
-
-void Kv_RestoreFromFile(const String:fileName[], bool:goLive = false)
-{
-	if (strlen(fileName) < 1)
-	{
-		LogError("Attempted to restore KeyValues from zero length filename");
-		return;
-	}
-
-	if ( !Kv_IsValidFile(fileName) )
-	{
-		LogError("fileName doesn't use a .kv extension. This shouldn't happen.");
-		return;
-	}
-
-	decl String:fullPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s/%s", g_kvPath, fileName);
-
-	KeyValues kv = new KeyValues("");
-
-	if ( !kv.ImportFromFile(fullPath) )
-	{
-		LogError("Failed importing KeyValues from path: %s", fullPath);
-		return;
-	}
-
-	kv.JumpToKey("meta", false);
-
-	/*
-	// TODO: Do KeyValues compatibility check here if/when breaking compatibility
-	new String:pluginVersion[32];
-	kv.GetString( "plugin_version", pluginVersion, sizeof(pluginVersion) );
-	if ( !Kv_IsCompatible(pluginVersion) )
-	{
-		delete kv;
-		return;
-	}
-	*/
-
-	// Restore string variables
-	new String:jinraiName[MAX_CVAR_LENGTH];
-	new String:nsfName[MAX_CVAR_LENGTH];
-	new String:competitionName[MAX_CVAR_LENGTH];
-	new String:sourceTVPath[MAX_CVAR_LENGTH];
-
-	kv.GetString( g_kvKey_jinraiName, jinraiName, sizeof(jinraiName) );
-	kv.GetString( g_kvKey_nsfName, nsfName, sizeof(nsfName) );
-	kv.GetString( g_kvKey_competitionName, competitionName, sizeof(competitionName) );
-	kv.GetString( g_kvKey_sourceTVPath, sourceTVPath, sizeof(sourceTVPath) );
-
-	SetConVarString(g_hJinraiName, jinraiName);
-	SetConVarString(g_hNSFName, nsfName);
-	SetConVarString(g_hCompetitionName, competitionName);
-	SetConVarString(g_hSourceTVPath, sourceTVPath);
-
-	// Restore numerical values
-	SetConVarInt( g_hMatchSize, kv.GetNum(g_kvKey_matchSize) );
-	SetConVarInt( g_hMaxTimeouts, kv.GetNum(g_kvKey_maxTimeouts) );
-	SetConVarInt( g_hMaxPauseLength, kv.GetNum(g_kvKey_maxPauseLength) );
-	SetConVarInt( g_hMaxPauseLength_Technical, kv.GetNum(g_kvKey_maxPauseLengthTechnical) );
-	SetConVarInt( g_hCommsBehaviour, kv.GetNum(g_kvKey_commsBehaviour) );
-	SetConVarInt( g_hLogMode, kv.GetNum(g_kvKey_logMode) );
-	SetConVarInt( g_hKillVersobity, kv.GetNum(g_kvKey_killVerbosity) );
-	SetConVarInt( g_hVerbosityDelay, kv.GetNum(g_kvKey_killVerbosityDelay) );
-	SetConVarInt( g_hClientRecording, kv.GetNum(g_kvKey_clientRecording) );
-	SetConVarInt( g_hLimitLiveTeams, kv.GetNum(g_kvKey_limitLiveTeams) );
-	SetConVarInt( g_hLimitTeams, kv.GetNum(g_kvKey_limitTeams) );
-	SetConVarInt( g_hPauseMode, kv.GetNum(g_kvKey_pauseMode) );
-	SetConVarInt( g_hCollectiveReady, kv.GetNum(g_kvKey_collectiveReady) );
-	SetConVarInt( g_hPreventZanshiStrats, kv.GetNum(g_kvKey_noZanshi) );
-	SetConVarInt( g_hSuddenDeath, kv.GetNum(g_kvKey_suddenDeath) );
-	SetConVarInt( g_hCenteredDisplayRemaining, kv.GetNum(g_kvKey_centered_displayRemaining) );
-	SetConVarInt( g_hCenteredDisplayTarget, kv.GetNum(g_kvKey_centered_displayTarget) );
-	SetConVarInt( g_hAlltalk, kv.GetNum(g_kvKey_natives_alltalk) );
-	SetConVarInt( g_hForceCamera, kv.GetNum(g_kvKey_natives_forceCamera) );
-	SetConVarInt( g_hPausable, kv.GetNum(g_kvKey_natives_pausable) );
-	SetConVarInt( g_hRoundLimit, kv.GetNum(g_kvKey_roundLimit) );
-	SetConVarInt( g_hNeoScoreLimit, kv.GetNum(g_kvKey_natives_scoreLimit) );
-
-	kv.GoBack();
-
-	decl String:roundLabel[16] = "round";
-	new round = 1;
-	new i;
-	decl String:labelBuffer[16];
-	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
-
-	// Determine the highest played round
-	// When recovering from server crash, this is most likely what is desired
-	// TODO: Ability to specify where to load in
-	while ( kv.JumpToKey(labelBuffer, false) )
-	{
-//		PrintToServer("Found round %i", round);
-		g_roundNumber = round;
-		g_jinraiScore[g_roundNumber] = kv.GetNum("jinrai_score");
-		g_nsfScore[g_roundNumber] = kv.GetNum("nsf_score");
-
-		// Restore player scores etc. for specific round
-		kv.JumpToKey("client_values", false);
-		decl String:steamID[MAX_STEAMID_LENGTH];
-		new xp;
-		new deaths;
-		for (i = 1; i <= MaxClients; i++)
-		{
-			if ( !IsValidClient(i) || !IsClientConnected(i) || !IsClientAuthorized(i) || IsFakeClient(i) )
-				continue;
-
-			GetClientAuthId( i, AuthId_Steam2, steamID, sizeof(steamID) );
-
-			ClientCommand(i, "kill");
-			xp = 0;
-			deaths = 0;
-
-			// Player has xp/deaths stored in KeyValues for this round
-			if ( kv.JumpToKey(steamID, false) )
-			{
-				ClientCommand( i, "jointeam %i", kv.GetNum("team") );
-				xp = kv.GetNum("xp");
-				deaths = kv.GetNum("deaths");
-
-				g_playerXP[i][g_roundNumber] = xp;
-				g_playerDeaths[i][g_roundNumber] = deaths;
-
-				kv.GoBack();
-			}
-
-			DataPack pack = new DataPack();
-			CreateDataTimer(1.0, Timer_RestoreClientFromKeyValues, pack);
-			pack.WriteCell(i);
-			pack.WriteCell(xp);
-			pack.WriteCell(deaths);
-		}
-		kv.GoBack();
-
-		round++;
-		Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
-
-		kv.GoBack();
-	}
-	round--;
-//	PrintToServer("Rounds found total: %i", round);
-
-	Format(labelBuffer, sizeof(labelBuffer), "%s%i", roundLabel, round);
-	if (! kv.JumpToKey(labelBuffer, false) )
-	{
-		LogError("Failed restoring round %i labelled \"%s\" from KeyValues", round, labelBuffer);
-		delete kv;
-		return;
-	}
-
-	// Restore round specific match settings
-	SetConVarInt( g_hRoundLimit, kv.GetNum(g_kvKey_roundLimit) );
-	g_usedTimeouts[TEAM_JINRAI] = kv.GetNum(g_kvKey_jinraiPauses);
-	g_usedTimeouts[TEAM_NSF] = kv.GetNum(g_kvKey_nsfPauses);
-
-	DataPack pack = new DataPack();
-	CreateDataTimer(1.0, Timer_RestoreTeamScores, pack);
-	pack.WriteCell( kv.GetNum(g_kvKey_jinraiScore) );
-	pack.WriteCell( kv.GetNum(g_kvKey_nsfScore) );
-
-	g_kv = kv;
-	delete kv;
-	strcopy(g_kvName, sizeof(g_kvName), fileName);
-
-	if (strlen(competitionName) > 0)
-		PrintToChatAll("%s Match loaded: %s", g_tag, competitionName);
-	else
-		PrintToChatAll("%s Match loaded.", g_tag);
-
-	// Start restored match right away
-	if (goLive)
-	{
-		if (!g_isLive)
-		{
-			ToggleLive(true);
-		}
-		// Already live, subtract current round from count.
-		// Everyone was slayed earlier so newround is guaranteed.
-		else
-		{
-			g_roundNumber--;
-		}
-	}
-	// Just announce successful restore, but don't go live
-	else
-	{
-		PrintToChatAll("%s vs %s", jinraiName, nsfName);
-		PrintToChatAll("Loaded round: %i", g_roundNumber);
-	}
-}
-
-/*
-bool Kv_IsCompatible(const String:pluginVersion[])
-{
-	// Todo: actual version check
-	if ( !StrEqual(pluginVersion, pluginVersion) )
-		return false;
-
-	return true;
-}
-*/
-
-public Action:Timer_RestoreClientFromKeyValues(Handle:timer, DataPack:pack)
-{
-	pack.Reset();
-	new client = pack.ReadCell();
-	new xp = pack.ReadCell();
-	new deaths = pack.ReadCell();
-
-	SetPlayerXP(client, xp);
-	SetPlayerDeaths(client, deaths);
-	UpdatePlayerRank(client);
-}
-
-public Action:Timer_RestoreTeamScores(Handle:timer, DataPack:pack)
-{
-	pack.Reset();
-	new jinraiScore = pack.ReadCell();
-	new nsfScore = pack.ReadCell();
-
-	SetConVarInt(g_hJinraiScore, jinraiScore);
-	SetConVarInt(g_hNSFScore, nsfScore);
-
-	g_jinraiScore[g_roundNumber] = jinraiScore;
-	g_nsfScore[g_roundNumber] = nsfScore;
-
-	SetTeamScore(TEAM_JINRAI, jinraiScore);
-	SetTeamScore(TEAM_NSF, nsfScore);
-}
-
-void Kv_Menu_Details_GetParallelFile(client, const String:kvFileName[], bool:getPrevious = false)
-{
-	if ( !IsValidClient(client) || !IsClientInGame(client) )
-		return;
-
-	if (strlen(kvFileName) < 1)
-	{
-		LogError("Attempted to restore KeyValues from zero length filename");
-		return;
-	}
-
-	if ( !Kv_IsValidFile(kvFileName) )
-	{
-		LogError("KeyValues filename doesn't contain .kv extension. This shouldn't happen.");
-		return;
-	}
-
-	decl String:fullPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, fullPath, sizeof(fullPath), "%s", g_kvPath);
-
-	new Handle:dir = OpenDirectory(fullPath);
-	if (!DirExists(fullPath) || dir == null)
-	{
-		LogError("Failed to open KeyValues directory path: %s", fullPath);
-		return;
-	}
-
-	decl String:filePath[PLATFORM_MAX_PATH];
-	Format(filePath, sizeof(filePath), "%s/%s", fullPath, kvFileName);
-	if ( !FileExists(filePath) )
-	{
-		LogError("KeyValues file %s does not exist.", fullPath);
-		return;
-	}
-
-	new i;
-	new locatedPos;
-	new results;
-	new max_files = 128;
-	decl String:buffer[max_files][PLATFORM_MAX_PATH]; // fixme: this is expensive :-( dynamic array instead?
-	new bool:locatedFile;
-	new bool:servedFile;
-	FileType type;
-	while ( ReadDirEntry(dir, buffer[i], PLATFORM_MAX_PATH, type) )
-	{
-		results++;
-
-//		PrintToServer("Testing %s against %s", buffer[i], kvFileName);
-
-		if (results > max_files)
-		{
-			LogError("Warning: Over %i file results found. Breaking out of the loop to avoid unresponsiveness.", max_files);
-			break;
-		}
-
-		// Not a file
-		if (type != FileType_File)
-			continue;
-
-		// Not a .kv file
-		if ( !Kv_IsValidFile(buffer[i]) )
-			continue;
-
-		if (locatedFile)
-		{
-			if (getPrevious)
-			{
-				new prevIndex = locatedPos - 1;
-				// We're at the first key, can't return previous.
-				// Return current key and notify via boolean
-				if (prevIndex < 0)
-				{
-					Menu_KvDetails(client, buffer[locatedPos], true);
-				}
-				else
-				{
-					Menu_KvDetails(client, buffer[prevIndex]);
-				}
-			}
-			else
-			{
-				Menu_KvDetails(client, buffer[i]);
-			}
-
-			servedFile = true;
-			break;
-		}
-		else if ( StrEqual(buffer[i], kvFileName) )
-		{
-//			PrintToServer("Found it!");
-			locatedPos = i;
-			locatedFile = true;
-		}
-
-		i++;
-	}
-
-	// Failed to serve any next file after a match. Probably reached end of folder.
-	if (locatedFile && !servedFile)
-	{
-		if (getPrevious)
-		{
-			new prevIndex = locatedPos - 1;
-			// We're at the first key, can't return previous.
-			// Return current key and notify via boolean
-			if (prevIndex < 0)
-			{
-				Menu_KvDetails(client, buffer[i], true);
-			}
-			else
-			{
-//				PrintToServer("Going to previous index %i: %s", prevIndex, buffer[prevIndex]);
-				Menu_KvDetails(client, buffer[prevIndex]);
-			}
-
-			servedFile = true;
-		}
-		else
-		{
-			Menu_KvDetails(client, buffer[locatedPos], true);
-		}
-	}
-
-	CloseHandle(dir);
-}
-#endif
 
 // Purpose: Store current epoch globally so multiple functions can use it for identifying themselves
 void GenerateEpoch()

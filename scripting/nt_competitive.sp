@@ -5,12 +5,6 @@
 
 #pragma semicolon 1
 
-//#define DEBUG 0 // Release
-//#define DEBUG 1 // Basic debug
-#define DEBUG 2 // Extended debug
-
-//#define KV_DEBUG 1 // Don't enable outside dev testing
-
 #include <sourcemod>
 #include <sdktools>
 #include <neotokyo>
@@ -70,14 +64,6 @@ public OnPluginStart()
 	RegAdminCmd("sm_ref",			Command_RefereeMenu, ADMFLAG_GENERIC, "Competitive match referee/admin panel. Alternative for sm_referee.");
 	RegAdminCmd("sm_forcelive",			Command_ForceLive,			ADMFLAG_GENERIC,	"Force the competitive match to start.");
 
-#if DEBUG
-	RegAdminCmd("sm_pause_resetbool",	Command_ResetPauseBool,		ADMFLAG_GENERIC,	"Reset g_isPaused to FALSE. Debug command.");
-	RegAdminCmd("sm_logtest",			Command_LoggingTest,		ADMFLAG_GENERIC,	"Test competitive file logging. Logs the cmd argument. Debug command.");
-	RegAdminCmd("sm_unpause_other",		Command_UnpauseOther,		ADMFLAG_GENERIC,	"Pretend the other team requested unpause. Debug command.");
-	RegAdminCmd("sm_start_other",		Command_OverrideStartOther,	ADMFLAG_GENERIC,	"Pretend the other team requested force start. Debug command.");
-	RegAdminCmd("sm_manual_round_edit", Command_ManualRoundEdit, ADMFLAG_GENERIC, "Manually edit round int. Debug command.");
-#endif
-
 	HookEvent("game_round_start",	Event_RoundStart);
 	HookEvent("player_death",		Event_PlayerDeath);
 	HookEvent("player_hurt",			Event_PlayerHurt);
@@ -116,9 +102,6 @@ public OnPluginStart()
 	g_hGhostOvertimeGrace			= CreateConVar("sm_competitive_ghost_overtime_grace",		"15",					"Freeze the round timer at this many seconds while the ghost is held. Will decay and end at 0 when the overtime runs out. 0 = disabled", _, true, 0.0, true, 30.0);
 	g_hGhostOvertimeDecayExp		= CreateConVar("sm_competitive_ghost_overtime_decay_exp",	"0",					"Whether ghost overtime decay should be exponential or linear. Exponential requires grace reset to be enabled. 0 = linear, 1 = exponential", _, true, 0.0, true, 1.0);
 	g_hGhostOvertimeGraceReset		= CreateConVar("sm_competitive_ghost_overtime_grace_reset", "1", 					"When the ghost is picked up, reset the timer to where it would be on the decay curve if the ghost was never dropped. This means the full overtime can be used even when juggling.", _, true, 0.0, true, 1.0);
-#if defined KV_DEBUG
-	g_hDebugKeyValues				= CreateConVar("sm_competitive_keyvalues_test",				"1",					"Store match data into KeyValues file. Debug cvar.", _, true, 0.0, true, 1.0);
-#endif
 
 	g_hAlltalk			= FindConVar("sv_alltalk");
 	g_hForceCamera		= FindConVar("mp_forcecamera");
@@ -149,15 +132,6 @@ public OnPluginStart()
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
 	if (!DirExists(loggingPath))
 		InitDirectory(loggingPath);
-
-#if defined KV_DEBUG
-	if (!DirExists(g_kvPath))
-		InitDirectory(g_kvPath);
-#endif
-
-#if DEBUG
-	PrepareDebugLogFolder();
-#endif
 
 	g_liveTimer_OriginalValue = g_liveTimer;
 	g_unpauseTimer_OriginalValue = g_unpauseTimer;
@@ -201,10 +175,6 @@ public OnClientAuthorized(client, const String:authID[])
 
 	for (new i = 0; i < sizeof(g_livePlayers); i++)
 	{
-#if DEBUG > 1
-		LogDebug("Checking array index %i, array size %i", i, sizeof(g_livePlayers));
-		LogDebug("Contents: %s", g_livePlayers[i]);
-#endif
 		if ( StrEqual(authID, g_livePlayers[i]) )
 		{
 			isPlayerCompeting = true;
@@ -232,10 +202,6 @@ public OnClientAuthorized(client, const String:authID[])
 	{
 		g_assignedTeamWhenLive[client] = g_assignedTeamWhenLive[earlierUserid];
 	}
-
-#if DEBUG
-	LogDebug("Client connected when live. Assigned to team %s", g_teamName[g_assignedTeamWhenLive[client]]);
-#endif
 }
 
 // For a valid, authorized client, check if we hold their previous XP/deaths info,
@@ -343,9 +309,6 @@ public bool OnClientConnect(client)
 	{
 		decl String:clientName[MAX_NAME_LENGTH];
 		GetClientName(client, clientName, sizeof(clientName));
-#if DEBUG
-		LogDebug("[COMP] Pause join detected!");
-#endif
 		PrintToChatAll("%s Player \"%s\" is attempting to join.", g_tag, clientName);
 		PrintToChatAll("The server needs to be unpaused for joining to finish.");
 		PrintToChatAll("If you wish to unpause now, type !pause in chat.");
@@ -498,11 +461,7 @@ public Action:Command_RefereeMenu(client, args)
 
 	DrawPanelItem(panel, "Manually edit team score");
 	DrawPanelItem(panel, "Manually edit player score (does not work yet)");
-#if defined KV_DEBUG
-	DrawPanelItem(panel, "Load previous match");
-#else
 	DrawPanelItem(panel, "Load previous match (experimental, disabled)");
-#endif
 	DrawPanelItem(panel, "Exit");
 
 	SendPanelToClient(panel, client, PanelHandler_RefereeMenu_Main, MENU_TIME_FOREVER);
@@ -511,16 +470,6 @@ public Action:Command_RefereeMenu(client, args)
 
 	return Plugin_Handled;
 }
-
-#if DEBUG
-public Action:Command_ResetPauseBool(client, args)
-{
-	g_isPaused = false;
-	ReplyToCommand(client, "g_isPaused reset to FALSE");
-
-	return Plugin_Handled;
-}
-#endif
 
 public Action:Command_ForceLive(client, args)
 {
@@ -754,9 +703,6 @@ void UnPauseRequest(client)
 	if ( client == 0 || !IsValidClient(client) || !IsClientInGame(client) )
 	{
 		LogError("Invalid client %i called UnPauseRequest", client);
-#if DEBUG
-		PrintToAdmins(true, true, "Comp plugin error: Invalid client %i called UnPauseRequest", client);
-#endif
 		return;
 	}
 
@@ -1046,52 +992,6 @@ public Action:Command_UnReady(client, args)
 
 	return Plugin_Handled;
 }
-
-#if DEBUG
-public Action:Command_LoggingTest(client, args)
-{
-	if (args != 1)
-	{
-		ReplyToCommand(client, "Expected 1 argument.");
-
-		return Plugin_Stop;
-	}
-
-	new String:message[128];
-	GetCmdArg(1, message, sizeof(message));
-	LogCompetitive(message);
-
-	ReplyToCommand(client, "Debug log message sent.");
-
-	return Plugin_Handled;
-}
-
-public Action:Command_ManualRoundEdit(client, args)
-{
-	if (GetCmdArgs() != 1)
-	{
-		ReplyToCommand(client, "Usage: <round int>");
-		return Plugin_Stop;
-	}
-
-	decl String:sBuffer[6];
-	GetCmdArg( 1, sBuffer, sizeof(sBuffer) );
-
-	new round = StringToInt(sBuffer);
-	if (round < 1 || round > MAX_ROUNDS_PLAYED)
-	{
-		ReplyToCommand(client, "Invalid target round");
-		return Plugin_Stop;
-	}
-
-	g_roundNumber = round;
-	GameRules_SetProp("m_iRoundNumber", g_roundNumber - 1);
-
-	ReplyToCommand(client, "Set round int to %i", round);
-
-	return Plugin_Handled;
-}
-#endif
 
 public Competitive_IsLive(Handle:plugin, numParams)
 {
