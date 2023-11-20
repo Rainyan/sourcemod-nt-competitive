@@ -1077,6 +1077,12 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 		g_isTeamReadyForUnPause[i]	= correctBool;
 		g_isWantingOverride[i]		= correctBool;
 	}
+
+	if (g_hTimer_GhostOvertime != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_GhostOvertime);
+		g_hTimer_GhostOvertime = INVALID_HANDLE;
+	}
 }
 
 void ShowKillInfoNextRound(int client, const char[] message)
