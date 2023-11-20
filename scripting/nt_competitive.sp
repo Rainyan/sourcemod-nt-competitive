@@ -11,7 +11,7 @@
 
 #include <neotokyo>
 
-//#define FLATTEN_INCLUDE_PATHS 1
+//#define FLATTEN_INCLUDE_PATHS
 
 #if defined(FLATTEN_INCLUDE_PATHS)
 #include "nt_competitive_base"
