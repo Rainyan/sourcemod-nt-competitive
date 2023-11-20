@@ -135,8 +135,6 @@ public void OnPluginStart()
 	g_liveTimer_OriginalValue = g_liveTimer;
 	g_unpauseTimer_OriginalValue = g_unpauseTimer;
 
-	CheckGamedataFiles();
-
 	AutoExecConfig(true);
 }
 
@@ -598,14 +596,6 @@ public Action Command_Pause(int client, int argc)
 
 void PauseRequest(int client, int reason)
 {
-	// Gamedata is outdated, fall back to normal pausemode as stop clock mode would cause an error
-	if (g_isGamedataOutdated && ( GetConVarInt(g_hPauseMode) == PAUSEMODE_STOP_CLOCK) )
-	{
-		SetConVarInt(g_hPauseMode, PAUSEMODE_NORMAL);
-		PrintToAdmins(true, true, "Admins: Server gamedata is outdated. Falling back to default pause mode to avoid errors.");
-		PrintToAdmins(true, true, "See SM error logs for more info.");
-	}
-
 	int team = GetClientTeam(client);
 
 	if (g_shouldPause)

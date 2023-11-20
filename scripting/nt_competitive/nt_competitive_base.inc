@@ -68,7 +68,6 @@ bool g_shouldPause;
 bool g_shouldShowKillInfo[NEO_MAXPLAYERS+1];
 bool g_isLiveCountdown;
 bool g_confirmLiveEnd;
-bool g_isGamedataOutdated;
 bool g_isCurrentlyUnPausing;
 bool g_isCurrentlyRestoringRound;
 bool g_survivedLastRound[NEO_MAXPLAYERS+1];
@@ -476,17 +475,6 @@ void TogglePause()
 		// Stop game's round timer instead of a regular pause. This should be less glitchy overall.
 		case PAUSEMODE_STOP_CLOCK:
 		{
-			// Server's Neotokyo gamedata is outdated, GameRules_SetPropFloat probably wouldn't work.
-			// We have to switch pause modes to avoid running into errors.
-			if (g_isGamedataOutdated)
-			{
-				SetConVarInt(g_hPauseMode, PAUSEMODE_NORMAL); // Use the in-engine "normal" pause instead of PAUSEMODE_STOP_CLOCK
-
-				g_isPaused = !g_isPaused; // Flip the bool again, because...
-				TogglePause(); // ... we're going to call ourselves to land on the right pause mode! There's probably more elegant ways to achieve this, but oh well.
-				return; // Stop here
-			}
-
 			// Pause
 			if (g_isPaused)
 			{
@@ -1098,50 +1086,6 @@ void ShowKillInfoNextRound(int client, const char[] message)
 
 	strcopy(g_killInfoBuffer[client], sizeof(g_killInfoBuffer), message);
 	g_shouldShowKillInfo[client] = true;
-}
-
-// Make sure Neotokyo gamedata file is up to date, as some of the plugin features require it.
-void CheckGamedataFiles()
-{
-	char gamedataUrl[] = "https://github.com/alliedmodders/sourcemod/tree/master/gamedata"; // URL for the latest NT gamedata version
-
-	char filePath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, filePath, sizeof(filePath), "gamedata/sdktools.games/game.neotokyo.txt"); // Gamedata file path
-
-	// Do a filesize based check.
-	// This should be fairly safe as the NT gamedata is updated extremely rarely.
-	int fileSize					= FileSize(filePath, false);		// Filesize of the currently running server gamedata version
-	int correctFileSize		= 1933;								// Filesize of the correct gamedata version (30 Dec 2015 or 10 Oct 2015)
-	int oldFileSize_2014	= 1179;								// Old version filesize (23 Dec 2014)
-	int oldFileSize_2009	= 1075;								// Old version filesize (15 Dec 2009)
-
-	// File not found
-	if (fileSize == -1)
-	{
-		LogError("Neotokyo gamedata file %s could not be found! sm_competitive_pause_mode 2 is unavailable because of this. See %s for the latest gamedata version.", filePath, gamedataUrl);
-		g_isGamedataOutdated = true;
-	}
-	// Filesize mismatch
-	else if (fileSize != correctFileSize)
-	{
-		// Old file version
-		if (fileSize == oldFileSize_2014 || fileSize == oldFileSize_2009)
-		{
-			LogError("Neotokyo gamedata file %s has mismatching filesize %i bytes (expected %i bytes), it's most likely outdated. \"sm_competitive_pause_mode 2\" is unavailable because of this. See %s for the latest gamedata version.", filePath, fileSize, correctFileSize, gamedataUrl);
-			g_isGamedataOutdated = true;
-		}
-		// Unknown file version. Notify server, but don't treat as an error.
-		else
-		{
-			PrintToServer("%s Note: Neotokyo gamedata file %s has a nonstandard filesize %i bytes (expected %i bytes), has it been customized? \"sm_competitive_pause_mode 2\" may throw an error if the file is outdated.", g_tag, filePath, fileSize, correctFileSize);
-			g_isGamedataOutdated = false;
-		}
-	}
-	// Filesize matches
-	else
-	{
-		g_isGamedataOutdated = false;
-	}
 }
 
 void PrintToAdmins(bool toChat = true, bool toConsole = false,
