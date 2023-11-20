@@ -928,10 +928,13 @@ int GetOtherTeam(int team)
 	}
 }
 
-void LogCompetitive(const char[] message)
+void LogCompetitive(const char[] message, any ...)
 {
 	if (!g_loggingEnabled)
 		return;
+
+	char formatMsg[256];
+	VFormat(formatMsg, sizeof(formatMsg), message, 2);
 
 	char loggingPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
@@ -941,15 +944,15 @@ void LogCompetitive(const char[] message)
 
 	Handle hFile = OpenFile(loggingPath, "a");
 
-	WriteFileLine(hFile, message);
+	WriteFileLine(hFile, formatMsg);
 
 	CloseHandle(hFile);
 }
 
 #if SOURCEMOD_V_MAJOR <= 1 && SOURCEMOD_V_MINOR < 9
-void PrintToConsoleAll(const String:message[], any ...)
+void PrintToConsoleAll(const char[] message, any ...)
 {
-	decl String:formatMsg[256];
+	char formatMsg[256];
 	VFormat(formatMsg, sizeof(formatMsg), message, 2);
 
 	for (new i = 1; i <= MaxClients; i++)

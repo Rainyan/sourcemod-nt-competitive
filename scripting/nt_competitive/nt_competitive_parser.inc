@@ -221,21 +221,17 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
 	if (g_roundNumber == 1)
 	{
-		char msgBuffer[256];
 		char tournamentName[128];
 		GetConVarString(g_hCompetitionName, tournamentName, sizeof(tournamentName));
 
 		if (strlen(tournamentName) > 0)
 			LogCompetitive(tournamentName); // Log tournament name, if any
 
-		Format(msgBuffer, sizeof(msgBuffer), "Competitive match started: %s vs %s", g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
-
-		LogCompetitive(msgBuffer);
+		LogCompetitive("Competitive match started: %s vs %s",
+			g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
 	}
 
-	char roundBuffer[64];
-	Format(roundBuffer, sizeof(roundBuffer), "***** Round %i *****", g_roundNumber);
-	LogCompetitive(roundBuffer);
+	LogCompetitive("***** Round %i *****", g_roundNumber);
 	if (g_shouldPause)
 	{
 		g_shouldPause = false;
@@ -280,29 +276,25 @@ public Action Command_JoinTeam(int client, int argc)
 	GetCmdArg(1, team, sizeof(team));
 	int iTeam = StringToInt(team);
 
-	char msgBuffer[512];
-
 	// Team joining is not restricted by cvar, allow and log the team change
 	if ( GetConVarInt(g_hLimitLiveTeams) == 0 )
 	{
-		Format(msgBuffer, sizeof(msgBuffer), "%L joined team %s", client, g_teamName[g_assignedTeamWhenLive[client]]);
-		LogCompetitive(msgBuffer);
+		LogCompetitive("%L joined team %s",
+			client, g_teamName[g_assignedTeamWhenLive[client]]);
 		return Plugin_Continue;
 	}
 	// Team not explicitly restricted for this player, let them join (substitutes after going live etc)
 	if (g_assignedTeamWhenLive[client] == TEAM_NONE)
 	{
-		Format(msgBuffer, sizeof(msgBuffer), "%L joined team %s", client, g_teamName[g_assignedTeamWhenLive[client]]);
-		LogCompetitive(msgBuffer);
-
+		LogCompetitive("%L joined team %s",
+			client, g_teamName[g_assignedTeamWhenLive[client]]);
 		return Plugin_Continue;
 	}
 	// Player attempts to join their correct team, let them
 	else if (iTeam == g_assignedTeamWhenLive[client])
 	{
-		Format(msgBuffer, sizeof(msgBuffer), "%L joined team %s", client, g_teamName[g_assignedTeamWhenLive[client]]);
-		LogCompetitive(msgBuffer);
-
+		LogCompetitive("%L joined team %s",
+			client, g_teamName[g_assignedTeamWhenLive[client]]);
 		return Plugin_Continue;
 	}
 
@@ -320,8 +312,10 @@ public Action Command_JoinTeam(int client, int argc)
 			strcopy(tempTeamName, sizeof(tempTeamName), "as spectator");
 	}
 
-	Format(msgBuffer, sizeof(msgBuffer), "%L attempted to join team \"%s\" instead of their assigned team \"%s\". Blocked.", client, g_teamName[iTeam], g_teamName[g_assignedTeamWhenLive[client]]);
-	LogCompetitive(msgBuffer);
+	LogCompetitive("%L attempted to join team \"%s\" instead of their \
+assigned team \"%s\". Blocked.",
+		client, g_teamName[iTeam], g_teamName[g_assignedTeamWhenLive[client]]
+	);
 
 	PrintToChat(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
 	PrintToConsole(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
@@ -424,10 +418,7 @@ public void Event_TeamNameJinrai(ConVar convar, const char[] oldValue, const cha
 
 		if (g_isLive)
 		{
-			char msgBuffer[256];
-			Format(msgBuffer, sizeof(msgBuffer), "Jinrai changed team name to: %s", newValue);
-
-			LogCompetitive(msgBuffer);
+			LogCompetitive("Jinrai changed team name to: %s", newValue);
 		}
 	}
 }
@@ -458,10 +449,7 @@ public void Event_TeamNameNSF(ConVar convar, const char[] oldValue, const char[]
 
 		if (g_isLive)
 		{
-			char msgBuffer[256];
-			Format(msgBuffer, sizeof(msgBuffer), "NSF changed team name to: %s", newValue);
-
-			LogCompetitive(msgBuffer);
+			LogCompetitive("NSF changed team name to: %s", newValue);
 		}
 	}
 }
