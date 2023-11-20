@@ -939,7 +939,7 @@ void PrintToConsoleAll(const char[] message, any ...)
 	char formatMsg[256];
 	VFormat(formatMsg, sizeof(formatMsg), message, 2);
 
-	for (new i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if ( !IsClientInGame(i) || IsFakeClient(i) )
 			continue;
