@@ -1081,12 +1081,14 @@ void ShowKillInfoNextRound(int client, const char[] message)
 	g_shouldShowKillInfo[client] = true;
 }
 
-void PrintToAdmins(bool toChat = true, bool toConsole = false,
+// Returns the number of admins printed to.
+int PrintToAdmins(bool toChat = true, bool toConsole = false,
 	const char[] message, any ...)
 {
 	char formatMsg[256];
 	VFormat(formatMsg, sizeof(formatMsg), message, 4);
 
+	int n;
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if ( !IsValidClient(i) || !IsAdmin(i) )
@@ -1097,7 +1099,13 @@ void PrintToAdmins(bool toChat = true, bool toConsole = false,
 
 		if (toConsole)
 			PrintToConsole(i, formatMsg);
+
+		if (toChat || toConsole)
+		{
+			++n;
+		}
 	}
+	return n;
 }
 
 void RestoreRound(int roundNumber, bool isZanshiRestore)
@@ -1106,19 +1114,12 @@ void RestoreRound(int roundNumber, bool isZanshiRestore)
 	{
 		LogError("Attempted to restore a nonexistant round %i. Furthest played round is %i.", roundNumber, g_furthestPlayedRound);
 
-		bool adminsPresent;
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if ( !IsValidClient(i) || !IsAdmin(i) )
-				continue;
+		int n_admins = PrintToAdmins(_, _,
+			"Failed restoring round %i. Check SM error logs for details.",
+			roundNumber
+		);
 
-			adminsPresent = true;
-			break;
-		}
-
-		if (adminsPresent)
-			PrintToAdmins(_, _, "Failed restoring round %i. Check SM error logs for details.", roundNumber);
-		else
+		if (n_admins == 0)
 			PrintToChatAll("Round restore failed. Contact server admins for help.");
 		return;
 	}
