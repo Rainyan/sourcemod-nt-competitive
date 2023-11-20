@@ -3,13 +3,13 @@
 		- SourceTV recording functions borrowed from Stevo.TVR's Auto Recorder plugin: https://forums.alliedmods.net/showthread.php?t=92072
 */
 
-#pragma semicolon 1
-#pragma newdecls required
-
 #include <sourcemod>
 #include <sdktools>
 
 #include <neotokyo>
+
+#pragma semicolon 1
+#pragma newdecls required
 
 //#define FLATTEN_INCLUDE_PATHS
 
