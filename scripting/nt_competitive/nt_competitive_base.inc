@@ -90,12 +90,12 @@ Handle g_hAlltalk, g_hCommsBehaviour, g_hCompetitionName, g_hForceCamera,
 	g_hCenteredDisplayDivider;
 
 // Timers
-Handle g_hTimer_LiveCountdown			= INVALID_HANDLE;
-Handle g_hTimer_GoLive						= INVALID_HANDLE;
-Handle g_hTimer_UnPause					= INVALID_HANDLE;
-Handle g_hTimer_UnPause_Countdown	= INVALID_HANDLE;
-Handle g_hTimer_UnPause_HalfLeft		= INVALID_HANDLE;
-Handle g_hTimer_GhostOvertime		= INVALID_HANDLE;
+Handle g_hTimer_LiveCountdown = INVALID_HANDLE,
+	g_hTimer_GoLive = INVALID_HANDLE,
+	g_hTimer_UnPause = INVALID_HANDLE,
+	g_hTimer_UnPause_Countdown = INVALID_HANDLE,
+	g_hTimer_UnPause_HalfLeft = INVALID_HANDLE,
+	g_hTimer_GhostOvertime = INVALID_HANDLE;
 
 enum {
 	CVAR_NONE = 0,
