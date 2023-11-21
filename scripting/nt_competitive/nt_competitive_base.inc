@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.0.2"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -1001,7 +1001,6 @@ void ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new ro
 // Copies the value "val" into each of the first "size" indices.
 void MemSetAny(any[] arr, int size, any val)
 {
-	for (int i = 0; i < size; ++i)
 	{
 		arr[i] = val;
 	}
@@ -1046,11 +1045,12 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	MemSetChar2D(g_livePlayers, sizeof(g_livePlayers), sizeof(g_livePlayers[]), "");
 	MemSetChar2D(g_killInfoBuffer, sizeof(g_killInfoBuffer), sizeof(g_killInfoBuffer[]), "");
 
+	// NOTE: g_isSourceTVRecording can *not* be set here,
+	// because the SourceTV toggling behaviour wants to track its state!!
 	g_isExpectingOverride		= false;
 	g_isExpectingUnPauseTimer	= false;
 	g_isLive					= false;
 	g_isPaused					= false;
-	g_isSourceTVRecording		= false;
 	g_shouldPause				= false;
 	g_confirmLiveEnd			= false;
 	g_isSuddenDeathRound		= false;
@@ -1189,7 +1189,6 @@ void CheckMatchState()
 			Notify("%s %s WINS %i - %i", g_tag, g_teamName[TEAM_NSF], g_nsfScore[g_roundNumber], g_jinraiScore[g_roundNumber]);
 
 			g_winner = TEAM_NSF;
-			g_isLive = false;
 		}
 
 		else if (g_isSuddenDeathRound)
