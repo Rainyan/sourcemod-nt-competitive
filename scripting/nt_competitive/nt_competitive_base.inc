@@ -397,8 +397,6 @@ void ToggleLive(bool:isKvRestore = false)
 {
 	g_isLive = !g_isLive;
 
-	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
-
 	if (g_isLive)
 	{
 		SetGameState(GAMESTATE_NORMAL);
@@ -532,6 +530,8 @@ void ToggleLive(bool:isKvRestore = false)
 
 		SetGameState(GAMESTATE_WARMUP);
 	}
+
+	ToggleSourceTV(); // This has to be called after modifying the g_isLive boolean
 }
 
 void NeoRestartThis()
