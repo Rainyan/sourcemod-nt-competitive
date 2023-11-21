@@ -1111,13 +1111,14 @@ void ResetGlobalVariables() // Make sure all global variables are reset properly
 	}
 
 	// Reset global bools
+	// NOTE: g_isSourceTVRecording can *not* be set here,
+	// because the SourceTV toggling behaviour wants to track its state!!
 	new bool:correctBool = false; // Desired value
 
 	g_isExpectingOverride		= correctBool;
 	g_isExpectingUnPauseTimer	= correctBool;
 	g_isLive					= correctBool;
 	g_isPaused					= correctBool;
-	g_isSourceTVRecording		= correctBool;
 	g_shouldPause				= correctBool;
 	g_confirmLiveEnd			= correctBool;
 	g_confirmRoundChange	= correctBool;
