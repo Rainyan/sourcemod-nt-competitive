@@ -1001,6 +1001,7 @@ void ResetPlayersAlive() // Reset g_playersAlive array. Only call this on new ro
 // Copies the value "val" into each of the first "size" indices.
 void MemSetAny(any[] arr, int size, any val)
 {
+	for (int i = 0; i < size; ++i)
 	{
 		arr[i] = val;
 	}
