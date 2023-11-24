@@ -35,6 +35,8 @@ Some optional features also require:
 - Up-to-date <a target="_blank" href="https://github.com/alliedmodders/sourcemod/tree/master/gamedata">Neotokyo gamedata</a>
 - <a target="_blank" href="https://github.com/softashell/nt-sourcemod-plugins">Ghostcap event plugin</a> 1.9.0 or later
 
+Foo
+
 ## Cvars
 ### nt_competitive.sp
 * sm_competitive_version
