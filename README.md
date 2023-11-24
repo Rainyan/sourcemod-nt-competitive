@@ -316,11 +316,6 @@ Some optional features also require:
   * Description: `Whether ghost overtime decay should be exponential or linear. Exponential requires grace reset to be enabled. 0 = linear, 1 = exponential`
   * Min: `0.0`
   * Max: `1.0`
-* sm_competitive_ghost_overtime_grace_reset
-  * Default value: `1`
-  * Description: `When the ghost is picked up, reset the timer to where it would be on the decay curve if the ghost was never dropped. This means the full overtime can be used even when juggling.`
-  * Min: `0.0`
-  * Max: `1.0`
 
 #### Ghost overtime
 To illustrate how the timer behaves with default settings:
