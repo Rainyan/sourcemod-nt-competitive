@@ -24,4 +24,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Update docs
-        uses: Rainyan/action-sp-cvar-docs@v2
+        uses: Rainyan/action-sp-cvar-docs@v3
