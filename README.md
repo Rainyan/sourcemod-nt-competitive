@@ -26,10 +26,10 @@ To-do:
 - Log competitive matches (wins, kills, weapons used, etc)
 
 Compile dependencies:
-  - <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">SourceMod NT include</a>, version 1.2 or newer
+- <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">SourceMod NT include</a>, version 1.2 or newer
 
 Server requirements:
-  - <a target="_blank" href="http://www.sourcemod.net/downloads.php?branch=stable">SourceMod</a> 1.7.3 or newer
+- <a target="_blank" href="http://www.sourcemod.net/downloads.php?branch=stable">SourceMod</a> 1.7.3 or newer
 
 Some optional features also require:
 - Up-to-date <a target="_blank" href="https://github.com/alliedmodders/sourcemod/tree/master/gamedata">Neotokyo gamedata</a>
