@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.0.2"
+#define PLUGIN_VERSION "1.0.3"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 255 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -1251,7 +1251,7 @@ void CheckMatchState()
 			// Don't announce match number during the initial "LIVE LIVE LIVE" chat spam
 			if (g_spamTimerCount <= 1)
 			{
-				Notify("%s Round %i/%i (MATCH POINT)", g_tag, g_roundNumber, roundLimit);
+				Notify("%s Round %i/%i", g_tag, g_roundNumber, roundLimit);
 			}
 		}
 	}
