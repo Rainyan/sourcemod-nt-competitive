@@ -170,6 +170,7 @@ Some optional features also require:
   * Min: `0.0`
   * Max: `1.0`
 
+
 ## Ghost overtime
 To illustrate how the timer behaves with default settings:
 Ghost overtime kicks in at 15 seconds on the clock and will add a maximum of 45 seconds to the round. This gives us a total of 15 + 45 = 60 seconds for the timer of 15 seconds to decay. 60 / 15 = 4, meaning each second on the clock during ghost overtime will last for 4 real seconds.
