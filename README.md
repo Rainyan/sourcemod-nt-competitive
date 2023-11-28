@@ -10,20 +10,11 @@ SourceMod plugin for competitive Neotokyo. WIP.
 * * *
 
 Features:
-- Automatic demo recording
-- Automatic SourceTV recording
 - Count rounds, announce winner
+- Automatic player demo and SourceTV recording
 - Handle dis/reconnecting players and teams
-- Pausing system
-- Ready up system
-- ~~Panel menus for admins~~
-- ~~Ability to fall back to previous rounds~~
+- Pausing and ready-up systems
 - Option to disable timeout round wins
-
-To-do:
-- Panel menus for players
-- Panel menus for casters
-- Log competitive matches (wins, kills, weapons used, etc)
 
 Compile dependencies:
 - <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">SourceMod NT include</a>, version 1.2 or newer
@@ -34,8 +25,6 @@ Server requirements:
 Some optional features also require:
 - Up-to-date <a target="_blank" href="https://github.com/alliedmodders/sourcemod/tree/master/gamedata">Neotokyo gamedata</a>
 - <a target="_blank" href="https://github.com/softashell/nt-sourcemod-plugins">Ghostcap event plugin</a> 1.9.0 or later
-
-Foo
 
 ## Cvars
 ### nt_competitive.sp
@@ -180,7 +169,6 @@ Foo
   * Description: `When the ghost is picked up, reset the timer to where it would be on the decay curve if the ghost was never dropped. This means the full overtime can be used even when juggling.`
   * Min: `0.0`
   * Max: `1.0`
-
 
 ## Ghost overtime
 To illustrate how the timer behaves with default settings:
