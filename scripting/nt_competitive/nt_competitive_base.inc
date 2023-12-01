@@ -152,8 +152,6 @@ void CheckIfEveryoneIsReady()
 
 public Action Command_ReadyList(int client, int argc)
 {
-	ReplyToCommand(client, "%s List of readied players is printed in your console.", g_tag);
-
 	PrintToConsole(client, "\n%s Players and their READY state:", g_tag);
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -171,6 +169,11 @@ public Action Command_ReadyList(int client, int argc)
 		);
 	}
 	PrintToConsole(client, "\n");
+
+	if (GetCmdReplySource() == SM_REPLY_TO_CHAT)
+	{
+		PrintToChat(client, "%s List of readied players is printed in your console.", g_tag);
+	}
 
 	return Plugin_Handled;
 }
