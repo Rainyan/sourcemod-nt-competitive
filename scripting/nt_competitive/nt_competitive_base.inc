@@ -1130,9 +1130,8 @@ void RestoreRound(int roundNumber, bool isZanshiRestore)
 			if ( !IsClientInGame(i) || IsFakeClient(i) )
 				continue;
 
-			SetEntProp(i, Prop_Data, "m_iDeaths", g_playerDeaths[i][roundNumber]); // Restore deaths
+			SetPlayerDeaths(i, g_playerDeaths[i][roundNumber]); // Restore deaths
 			SetPlayerXP(i, g_playerXP[i][roundNumber]); // Restore XP
-			UpdatePlayerRank(i);
 		}
 	}
 
