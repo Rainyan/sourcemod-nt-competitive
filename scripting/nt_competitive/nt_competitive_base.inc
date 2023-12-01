@@ -206,7 +206,6 @@ void PlayerRecord(int client)
 		if (IsCharAlpha(replayName[j]) || IsCharNumeric(replayName[j]) || !IsCharSpace(replayName[j]))
 			replayBuffer[bufferPos++] = replayName[j];
 	}
-	replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
 
 	ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitization
 	strcopy(replayName, sizeof(replayName), replayBuffer);
@@ -804,7 +803,6 @@ void ToggleSourceTV()
 			if (IsCharAlpha(replayName[j]) || IsCharNumeric(replayName[j]) || !IsCharSpace(replayName[j]))
 				replayBuffer[bufferPos++] = replayName[j];
 		}
-		replayBuffer[bufferPos] = '\0'; // Terminate the string with 0
 
 		ReplaceString(replayBuffer, sizeof(replayBuffer), ":", ""); // Remove : characters from the SteamID. To-do: proper sanitization
 		strcopy(replayName, sizeof(replayName), replayBuffer);
