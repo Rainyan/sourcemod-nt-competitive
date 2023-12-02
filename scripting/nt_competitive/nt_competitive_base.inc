@@ -681,7 +681,7 @@ public Action Timer_UnpauseNotice_Half(Handle timer)
 	// Show notification when half of the max pause time has elapsed
 	if (g_isPaused)
 	{
-		PrintToChatAll("%s Pause time left: %i seconds", g_tag, (RoundToNearest(GetConVarFloat(g_hMaxPauseLength)) / 2));
+		PrintToChatAll("%s Pause time left: %i seconds", g_tag, RoundToNearest(GetConVarFloat(g_hMaxPauseLength)) / 2);
 		return Plugin_Continue;
 	}
 
