@@ -395,7 +395,7 @@ void NeoRestartThis()
 		if (!IsClientInGame(i))
 			continue;
 
-		SetPlayerRank(i, 0);
+		SetPlayerRank(i, RANK_PRIVATE);
 	}
 }
 
