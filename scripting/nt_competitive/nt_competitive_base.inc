@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.0.3"
+#define PLUGIN_VERSION "1.0.6"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 128 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -908,7 +908,7 @@ int GetOtherTeam(int team)
 
 	else
 	{
-		LogError("Requested other team for invalid team (%i), returning -1 instead.");
+		LogError("Requested other team for invalid team (%i), returning -1 instead.", team);
 		return -1;
 	}
 }
