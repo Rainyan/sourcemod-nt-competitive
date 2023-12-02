@@ -210,8 +210,8 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 			if ( !IsClientInGame(i) || IsFakeClient(i) )
 				continue;
 
-			g_playerDeaths[i][g_roundNumber]	= GetEntProp(i, Prop_Data, "m_iDeaths");	// Save everyone's death count for this round
-			g_playerXP[i][g_roundNumber]		= GetEntProp(i, Prop_Data, "m_iFrags");	// Save everyone's XP for this round
+			g_playerDeaths[i][g_roundNumber]	= GetPlayerDeaths(i);	// Save everyone's death count for this round
+			g_playerXP[i][g_roundNumber]		= GetPlayerXP(i);	// Save everyone's XP for this round
 		}
 	}
 
