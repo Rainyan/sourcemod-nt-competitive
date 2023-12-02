@@ -115,11 +115,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 		{
 			g_damageDealt[i][j] = 0;
 		}
-		// We want to display last round's kill info
-		if ( GetConVarBool(g_hVerbosityDelay) && g_shouldShowKillInfo[i] )
-			PrintToConsole(i, g_killInfoBuffer[i]);
-
-		g_shouldShowKillInfo[i] = false;
+		PrintKillInfoBuffer(i);
 	}
 
 	CreateTimer(5.0, Timer_ClearGhostCapper);

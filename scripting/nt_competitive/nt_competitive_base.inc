@@ -23,7 +23,7 @@ char g_livePlayers[NEO_MAXPLAYERS+1][MAX_STEAMID_LENGTH]; // Array for storing S
 char g_menuSoundOk[] = "buttons/button14.wav";
 char g_menuSoundCancel[] = "buttons/combine_button7.wav";
 char g_soundLive[] = "buttons/button17.wav";
-char g_killInfoBuffer[NEO_MAXPLAYERS+1][sizeof(g_tag) + MAX_NAME_LENGTH + 53];
+static char g_killInfoBuffer[NEO_MAXPLAYERS+1][sizeof(g_tag) + MAX_NAME_LENGTH + 53];
 
 int g_assignedTeamWhenLive[NEO_MAXPLAYERS+1];
 int g_jinraiScore[MAX_ROUNDS_PLAYED];
@@ -1495,4 +1495,14 @@ bool IsMatchPoint()
 	}
 
 	return false;
+}
+
+// Display previous round kill info (if applicable)
+void PrintKillInfoBuffer(int client)
+{
+	if ( GetConVarBool(g_hVerbosityDelay) && g_shouldShowKillInfo[client] )
+	{
+		PrintToConsole(client, g_killInfoBuffer[client]);
+	}
+	g_shouldShowKillInfo[client] = false;
 }
