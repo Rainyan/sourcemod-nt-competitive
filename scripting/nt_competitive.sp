@@ -35,11 +35,11 @@ public Plugin myinfo = {
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Competitive_GetTeamScore",	Competitive_GetTeamScore);
+	CreateNative("Competitive_GetWinner",		Competitive_GetWinner);
 	CreateNative("Competitive_IsLive",			Competitive_IsLive);
 	CreateNative("Competitive_IsMatchPoint",	Competitive_IsMatchPoint);
 	CreateNative("Competitive_IsPaused",		Competitive_IsPaused);
-	CreateNative("Competitive_GetTeamScore",	Competitive_GetTeamScore);
-	CreateNative("Competitive_GetWinner",		Competitive_GetWinner);
 
 	return APLRes_Success;
 }
