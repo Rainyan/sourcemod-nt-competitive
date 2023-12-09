@@ -15,19 +15,19 @@
 
 #if defined(FLATTEN_INCLUDE_PATHS)
 #include "nt_competitive_base"
+#include "nt_competitive_hooks"
 #include "nt_competitive_panel"
-#include "nt_competitive_parser"
 #else
 // If you're compiling using Spider or other in-browser compiler,
 // and these include paths are failing, un-comment the FLATTEN_INCLUDE_PATHS compile flag above.
 #include "nt_competitive/nt_competitive_base"
+#include "nt_competitive/nt_competitive_hooks"
 #include "nt_competitive/nt_competitive_panel"
-#include "nt_competitive/nt_competitive_parser"
 #endif
 
 public Plugin myinfo = {
 	name		=	"Neotokyo Competitive Plugin",
-	description	=	"Count score, announce winner, perform other competitive tasks",
+	description	=	"SourceMod plugin for competitive Neotokyo.",
 	author		=	"Rain",
 	version		=	PLUGIN_VERSION,
 	url			=	"https://github.com/Rainyan/sourcemod-nt-competitive"
@@ -429,6 +429,84 @@ public Action CheckGhostOvertime(Handle timer)
 	}
 
 	return Plugin_Continue;
+}
+
+public Action Command_JoinTeam(int client, int argc)
+{
+	// This client should be recording their gameplay
+	if (g_isLive && !g_isRecording[client] && GetConVarBool(g_hClientRecording))
+	{
+		PlayerRecord(client);
+	}
+	else if (!g_isLive || !GetConVarBool(g_hLimitLiveTeams) )
+	{
+		if (g_isReady[client])
+		{
+			g_isReady[client] = false;
+			PrintToChatAll("%s Player %N is NOT READY.", g_tag, client);
+		}
+
+		return Plugin_Continue;
+	}
+
+	char steamID[MAX_STEAMID_LENGTH];
+	if (!GetClientAuthId(client, AuthId_Steam2, steamID, sizeof(steamID)))
+	{
+		LogError("Failed fetching auth string for %L", client);
+		return Plugin_Continue;
+	}
+
+	char team[10];
+	GetCmdArg(1, team, sizeof(team));
+	int iTeam = StringToInt(team);
+
+	// Team joining is not restricted by cvar, allow and log the team change
+	if ( GetConVarInt(g_hLimitLiveTeams) == 0 )
+	{
+		LogCompetitive("%L joined team %s",
+			client, g_teamName[g_assignedTeamWhenLive[client]]);
+		return Plugin_Continue;
+	}
+	// Team not explicitly restricted for this player, let them join (substitutes after going live etc)
+	if (g_assignedTeamWhenLive[client] == TEAM_NONE)
+	{
+		LogCompetitive("%L joined team %s",
+			client, g_teamName[g_assignedTeamWhenLive[client]]);
+		return Plugin_Continue;
+	}
+	// Player attempts to join their correct team, let them
+	else if (iTeam == g_assignedTeamWhenLive[client])
+	{
+		LogCompetitive("%L joined team %s",
+			client, g_teamName[g_assignedTeamWhenLive[client]]);
+		return Plugin_Continue;
+	}
+
+	// We use this variable here for clarity, since teams can rename themselves
+	char tempTeamName[13];
+	switch (g_assignedTeamWhenLive[client])
+	{
+		case TEAM_JINRAI:
+			strcopy(tempTeamName, sizeof(tempTeamName), "Jinrai");
+
+		case TEAM_NSF:
+			strcopy(tempTeamName, sizeof(tempTeamName), "NSF");
+
+		case TEAM_SPECTATOR:
+			strcopy(tempTeamName, sizeof(tempTeamName), "as spectator");
+	}
+
+	LogCompetitive("%L attempted to join team \"%s\" instead of their \
+assigned team \"%s\". Blocked.",
+		client, g_teamName[iTeam], g_teamName[g_assignedTeamWhenLive[client]]
+	);
+
+	PrintToChat(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
+	PrintToConsole(client, "%s Game is live! You can only join %s.", g_tag, tempTeamName);
+
+	ClientCommand(client, "jointeam %i", g_assignedTeamWhenLive[client]); // ChangeClientTeam glitches respawn, so we use client command instead
+
+	return Plugin_Stop;
 }
 
 public Action Command_ForceLive(int client, int argc)
