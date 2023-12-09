@@ -1,8 +1,8 @@
 // Double-include prevention
-#if defined _base_included_
+#if defined _NT_COMPETITIVE_BASE_INC_
 	#endinput
 #endif
-#define _base_included_
+#define _NT_COMPETITIVE_BASE_INC_
 
 #pragma semicolon 1
 #pragma newdecls required

@@ -1,8 +1,8 @@
 // Double-include prevention
-#if defined _natives_included_
+#if defined _NT_COMPETITIVE_NATIVES_INC_
 	#endinput
 #endif
-#define _natives_included_
+#define _NT_COMPETITIVE_NATIVES_INC_
 
 /****
 	* Returns competitive match's live state.

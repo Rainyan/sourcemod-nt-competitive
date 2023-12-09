@@ -1,8 +1,8 @@
 // Double-include prevention
-#if defined _panel_included_
+#if defined _NT_COMPETITIVE_PANEL_INC_
 	#endinput
 #endif
-#define _panel_included_
+#define _NT_COMPETITIVE_PANEL_INC_
 
 #pragma semicolon 1
 #pragma newdecls required
