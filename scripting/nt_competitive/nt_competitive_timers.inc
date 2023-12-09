@@ -13,7 +13,13 @@
 #endif
 
 
-public Action CheckGhostOvertime(Handle timer)
+public Action Timer_CancelLiveEndConfirmation(Handle timer)
+{
+	g_confirmLiveEnd = false;
+	return Plugin_Stop;
+}
+
+public Action Timer_CheckGhostOvertime(Handle timer)
 {
 	int gameState = GameRules_GetProp("m_iGameState");
 	if (gameState != GAMESTATE_ROUND_ACTIVE)
@@ -68,41 +74,15 @@ public Action CheckGhostOvertime(Handle timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_PostAuthXpRecovery(Handle timer, int userid)
+public Action Timer_ClearGhostCapper(Handle timer)
 {
-	int client = GetClientOfUserId(userid);
-	// If userid->client == 0, this client has disconnected again.
-	if (client == 0)
-	{
-		return Plugin_Stop;
-	}
-	// Not authorized yet, keep trying
-	if (!IsClientAuthorized(client))
-	{
-		return Plugin_Continue;
-	}
-	PostAuthXpRecovery(client);
+	g_ghostCapturingTeam = TEAM_NONE;
 	return Plugin_Stop;
 }
 
-public Action Timer_GoLive(Handle timer)
+public Action Timer_DisablePause(Handle timer)
 {
-	EmptyScore(); // Make sure everyone starts private so we avoid the no weapon spawn bug
-	CreateTimer(0.1, Timer_ToggleLive); // A slight delay so the score reset above takes effect in time
-
-	g_hTimer_GoLive = INVALID_HANDLE;
-	return Plugin_Stop;
-}
-
-public Action Timer_ToggleLive(Handle timer)
-{
-	ToggleLive();
-	return Plugin_Stop;
-}
-
-public Action Timer_CancelLiveEndConfirmation(Handle timer)
-{
-	g_confirmLiveEnd = false;
+	SetConVarBool(g_hPausable, false);
 	return Plugin_Stop;
 }
 
@@ -126,22 +106,46 @@ public Action Timer_EnterPauseRound(Handle timer)
 	return Plugin_Stop;
 }
 
-public Action Timer_TogglePauseLoop(Handle timer)
+public Action Timer_GoLive(Handle timer)
 {
-	TogglePauseLoop();
+	EmptyScore(); // Make sure everyone starts private so we avoid the no weapon spawn bug
+	CreateTimer(0.1, Timer_ToggleLive); // A slight delay so the score reset above takes effect in time
+
+	g_hTimer_GoLive = INVALID_HANDLE;
+	return Plugin_Stop;
+}
+
+public Action Timer_Live_SecondsCountdown(Handle timer)
+{
+	if (g_liveTimer > 0)
+	{
+		PrintToChatAll("%s Match starting in: %i", g_tag, g_liveTimer);
+		g_liveTimer--;
+
+		PlayLiveBeep();
+
+		return Plugin_Continue;
+	}
+
+	g_liveTimer = g_liveTimer_OriginalValue; // Reset the timer to its original value
 
 	return Plugin_Stop;
 }
 
-public Action Timer_TogglePause(Handle timer)
+public Action Timer_PostAuthXpRecovery(Handle timer, int userid)
 {
-	TogglePause();
-	return Plugin_Stop;
-}
-
-public Action Timer_DisablePause(Handle timer)
-{
-	SetConVarBool(g_hPausable, false);
+	int client = GetClientOfUserId(userid);
+	// If userid->client == 0, this client has disconnected again.
+	if (client == 0)
+	{
+		return Plugin_Stop;
+	}
+	// Not authorized yet, keep trying
+	if (!IsClientAuthorized(client))
+	{
+		return Plugin_Continue;
+	}
+	PostAuthXpRecovery(client);
 	return Plugin_Stop;
 }
 
@@ -164,6 +168,34 @@ public Action Timer_SpamLive(Handle timer)
 	}
 
 	return Plugin_Continue;
+}
+
+public Action Timer_StartTenSecondsLeft(Handle timer)
+{
+	if (g_isPaused)
+		CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
+
+	g_hTimer_UnPause_Countdown = INVALID_HANDLE;
+
+	return Plugin_Handled;
+}
+
+public Action Timer_ToggleLive(Handle timer)
+{
+	ToggleLive();
+	return Plugin_Stop;
+}
+
+public Action Timer_TogglePause(Handle timer)
+{
+	TogglePause();
+	return Plugin_Stop;
+}
+
+public Action Timer_TogglePauseLoop(Handle timer)
+{
+	TogglePauseLoop();
+	return Plugin_Stop;
 }
 
 public Action Timer_Unpause(Handle timer)
@@ -194,33 +226,6 @@ public Action Timer_UnpauseNotice_Half(Handle timer)
 	return Plugin_Handled;
 }
 
-public Action Timer_StartTenSecondsLeft(Handle timer)
-{
-	if (g_isPaused)
-		CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
-
-	g_hTimer_UnPause_Countdown = INVALID_HANDLE;
-
-	return Plugin_Handled;
-}
-
-public Action Timer_Live_SecondsCountdown(Handle timer)
-{
-	if (g_liveTimer > 0)
-	{
-		PrintToChatAll("%s Match starting in: %i", g_tag, g_liveTimer);
-		g_liveTimer--;
-
-		PlayLiveBeep();
-
-		return Plugin_Continue;
-	}
-
-	g_liveTimer = g_liveTimer_OriginalValue; // Reset the timer to its original value
-
-	return Plugin_Stop;
-}
-
 public Action Timer_Unpause_SecondsCountdown(Handle timer)
 {
 	if (!g_isLive || !g_isPaused) // Pause has properly ended or the match is not live anymore (which implies the pause was properly ended already)
@@ -237,11 +242,5 @@ public Action Timer_Unpause_SecondsCountdown(Handle timer)
 
 	g_unpauseTimer = g_unpauseTimer_OriginalValue; // Reset the timer to its original value
 
-	return Plugin_Stop;
-}
-
-public Action Timer_ClearGhostCapper(Handle timer)
-{
-	g_ghostCapturingTeam = TEAM_NONE;
 	return Plugin_Stop;
 }

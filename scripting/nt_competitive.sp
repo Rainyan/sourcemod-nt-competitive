@@ -347,8 +347,8 @@ public void OnGhostPickUp(int client)
 		}
 		g_bGhostOvertimeFirstTick = true;
 		// Inverval of 0.5 to tick before the second flips over to prevent HUD flicker
-		g_hTimer_GhostOvertime = CreateTimer(0.5, CheckGhostOvertime, _, TIMER_REPEAT);
-		CheckGhostOvertime(g_hTimer_GhostOvertime);
+		g_hTimer_GhostOvertime = CreateTimer(0.5, Timer_CheckGhostOvertime, _, TIMER_REPEAT);
+		Timer_CheckGhostOvertime(g_hTimer_GhostOvertime);
 	}
 }
 
