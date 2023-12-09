@@ -9,14 +9,14 @@ SourceMod plugin for competitive Neotokyo. WIP.
 
 * * *
 
-Features:
+## Features
 - Count rounds, announce winner
 - Automatic player demo and SourceTV recording
 - Handle dis/reconnecting players and teams
 - Pausing and ready-up systems
 - Option to disable timeout round wins
 
-Build requirements:
+## Build requirements
 - <a target="_blank" href="http://www.sourcemod.net/downloads.php?branch=stable">SourceMod</a>, version 1.7.3 or newer
 - <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">neotokyo.inc include</a>, version 1.2 or newer
 
