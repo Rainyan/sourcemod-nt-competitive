@@ -16,14 +16,12 @@ Features:
 - Pausing and ready-up systems
 - Option to disable timeout round wins
 
-Compile dependencies:
-- <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">SourceMod NT include</a>, version 1.2 or newer
-
-Server requirements:
-- <a target="_blank" href="http://www.sourcemod.net/downloads.php?branch=stable">SourceMod</a> 1.7.3 or newer
+Build requirements:
+- <a target="_blank" href="http://www.sourcemod.net/downloads.php?branch=stable">SourceMod</a>, version 1.7.3 or newer
+- <a target="_blank" href="https://github.com/softashell/sourcemod-nt-include">neotokyo.inc include</a>, version 1.2 or newer
 
 Some optional features also require:
-- <a target="_blank" href="https://github.com/softashell/nt-sourcemod-plugins">Ghostcap event plugin</a> 1.9.0 or later
+- <a target="_blank" href="https://github.com/softashell/nt-sourcemod-plugins">Ghostcap event plugin</a>, version 1.9.0 or newer
 
 ## Cvars
 ### nt_competitive.sp
