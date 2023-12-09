@@ -17,12 +17,14 @@
 #include "nt_competitive_base"
 #include "nt_competitive_hooks"
 #include "nt_competitive_panel"
+#include "nt_competitive_timers"
 #else
 // If you're compiling using Spider or other in-browser compiler,
 // and these include paths are failing, un-comment the FLATTEN_INCLUDE_PATHS compile flag above.
 #include "nt_competitive/nt_competitive_base"
 #include "nt_competitive/nt_competitive_hooks"
 #include "nt_competitive/nt_competitive_panel"
+#include "nt_competitive/nt_competitive_timers"
 #endif
 
 public Plugin myinfo = {
@@ -272,23 +274,6 @@ void PostAuthXpRecovery(int client)
 	g_playerSteamID[client] = acc_id;
 }
 
-public Action Timer_PostAuthXpRecovery(Handle timer, int userid)
-{
-	int client = GetClientOfUserId(userid);
-	// If userid->client == 0, this client has disconnected again.
-	if (client == 0)
-	{
-		return Plugin_Stop;
-	}
-	// Not authorized yet, keep trying
-	if (!IsClientAuthorized(client))
-	{
-		return Plugin_Continue;
-	}
-	PostAuthXpRecovery(client);
-	return Plugin_Stop;
-}
-
 public void OnClientPutInServer(int client)
 {
 	// Can't do this directly in OnClientAuthorized because whether the player
@@ -374,61 +359,6 @@ public void OnGhostDrop(int client)
 		CloseHandle(g_hTimer_GhostOvertime);
 		g_hTimer_GhostOvertime = INVALID_HANDLE;
 	}
-}
-
-public Action CheckGhostOvertime(Handle timer)
-{
-	int gameState = GameRules_GetProp("m_iGameState");
-	if (gameState != GAMESTATE_ROUND_ACTIVE)
-	{
-		g_hTimer_GhostOvertime = INVALID_HANDLE;
-		return Plugin_Stop;
-	}
-
-	float timeLeft = GameRules_GetPropFloat("m_fRoundTimeLeft");
-	float graceTime = GetConVarFloat(g_hGhostOvertimeGrace);
-	if (timeLeft < graceTime)
-	{
-		float realTimeLeft;
-		float decayTime = GetConVarFloat(g_hGhostOvertimeDecay) + graceTime;
-		bool graceReset = GetConVarBool(g_hGhostOvertimeGraceReset);
-		if (graceReset)
-		{
-			float roundTime = GetConVarFloat(g_hRoundTime) * 60;
-			float overtime = GetGameTime() - (g_fRoundTime + roundTime - graceTime);
-			bool decayExp = GetConVarBool(g_hGhostOvertimeDecayExp);
-			if (decayExp)
-			{
-				g_fGhostOvertime = graceTime + 1 - Pow(graceTime + 1, overtime / decayTime);
-			}
-			else
-			{
-				g_fGhostOvertime = graceTime - graceTime * overtime / decayTime;
-			}
-			realTimeLeft = decayTime - overtime;
-		}
-		else
-		{
-			float timePassed = g_fGhostOvertimeTick - timeLeft;
-			g_fGhostOvertime -= timePassed * graceTime / decayTime;
-			g_fGhostOvertimeTick = float(RoundToCeil(g_fGhostOvertime));
-			realTimeLeft = g_fGhostOvertime * decayTime / graceTime;
-		}
-		// Round up to nearest int to prevent HUD flicker
-		GameRules_SetPropFloat("m_fRoundTimeLeft", float(RoundToCeil(g_fGhostOvertime)));
-
-		// Everything's multiplied by 2 because we want to tick every second, but the interval is 0.5
-		bool printTick = g_bGhostOvertimeFirstTick
-			|| (RoundToCeil(realTimeLeft * 2) % RoundToCeil(graceTime * 2) == 0) // Divisible by graceTime
-			|| (realTimeLeft < graceTime && RoundToCeil(realTimeLeft * 2) % 10 == 0) // Divisible by 5
-			|| (realTimeLeft < 5 && RoundToCeil(realTimeLeft * 2) % 2 == 0); // Every second for the last 5
-		if (printTick) {
-			PrintToChatAll("Ghost overtime engaged. %d seconds remaining.", RoundToCeil(realTimeLeft));
-			g_bGhostOvertimeFirstTick = false;
-		}
-	}
-
-	return Plugin_Continue;
 }
 
 public Action Command_JoinTeam(int client, int argc)

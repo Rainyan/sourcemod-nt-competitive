@@ -262,27 +262,6 @@ void LiveCountDown()
 	g_hTimer_GoLive = CreateTimer((float(g_liveTimer) + 1.0), Timer_GoLive);
 }
 
-public Action Timer_GoLive(Handle timer)
-{
-	EmptyScore(); // Make sure everyone starts private so we avoid the no weapon spawn bug
-	CreateTimer(0.1, Timer_ToggleLive); // A slight delay so the score reset above takes effect in time
-
-	g_hTimer_GoLive = INVALID_HANDLE;
-	return Plugin_Stop;
-}
-
-public Action Timer_ToggleLive(Handle timer)
-{
-	ToggleLive();
-	return Plugin_Stop;
-}
-
-public Action Timer_CancelLiveEndConfirmation(Handle timer)
-{
-	g_confirmLiveEnd = false;
-	return Plugin_Stop;
-}
-
 void ToggleLive()
 {
 	g_isLive = !g_isLive;
@@ -549,33 +528,6 @@ void KillTimers_UnPause()
 	}
 }
 
-public Action Timer_EnterPauseRound(Handle timer)
-{
-	SetGameState(GAMESTATE_WAITING_FOR_PLAYERS);
-
-	float pauseLength;
-	if (g_pauseReason == REASON_TECHNICAL)
-		pauseLength = GetConVarFloat(g_hMaxPauseLength_Technical);
-	else
-		pauseLength = GetConVarFloat(g_hMaxPauseLength);
-
-	GameRules_SetPropFloat( "m_fRoundTimeLeft", pauseLength ); // Pause round uses max pause length roundtime
-
-	for (int i = 0; i < 3; i++)
-	{
-		PrintToChatAll("GAME IS PAUSED");
-	}
-
-	return Plugin_Stop;
-}
-
-public Action Timer_TogglePauseLoop(Handle timer)
-{
-	TogglePauseLoop();
-
-	return Plugin_Stop;
-}
-
 void TogglePauseLoop()
 {
 	int invalidClients;
@@ -624,116 +576,9 @@ void TogglePauseLoop()
 	}
 }
 
-public Action Timer_TogglePause(Handle timer)
-{
-	TogglePause();
-	return Plugin_Stop;
-}
-
-public Action Timer_DisablePause(Handle timer)
-{
-	SetConVarBool(g_hPausable, false);
-	return Plugin_Stop;
-}
-
-public Action Timer_SpamLive(Handle timer)
-{
-	// Print the LIVE message X times, then kill the repeat timer calling this
-	int spamLiveTimes = 3;
-	g_spamTimerCount++;
-
-	if (g_spamTimerCount == 1) // Don't spam "LIVE" during the first increment. This has to do with chat message ordering (round number msgs) during match start, in Event_RoundStart.
-		return Plugin_Continue;
-
-	else if (g_spamTimerCount <= (spamLiveTimes + 1)) // spamLiveTimes+1, because we won't trigger during first increment (see comment above)
-		PrintToChatAll("%s LIVE", g_tag);
-
-	else
-	{
-		g_spamTimerCount = 0;
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
 void SpamTimer()
 {
 	CreateTimer(0.25, Timer_SpamLive, _, TIMER_REPEAT); // This repeat timer is killed inside the callback after X repeats
-}
-
-public Action Timer_Unpause(Handle timer)
-{
-	if (g_isPaused)
-	{
-		PrintToChatAll("%s Maximum pause time has ended!", g_tag);
-		PrintToChatAll("%s Unpausing...", g_tag);
-		TogglePause();
-	}
-
-	g_hTimer_UnPause = INVALID_HANDLE;
-
-	return Plugin_Handled;
-}
-
-public Action Timer_UnpauseNotice_Half(Handle timer)
-{
-	// Show notification when half of the max pause time has elapsed
-	if (g_isPaused)
-	{
-		PrintToChatAll("%s Pause time left: %i seconds", g_tag, RoundToNearest(GetConVarFloat(g_hMaxPauseLength)) / 2);
-		return Plugin_Continue;
-	}
-
-	g_hTimer_UnPause_HalfLeft = INVALID_HANDLE;
-
-	return Plugin_Handled;
-}
-
-public Action Timer_StartTenSecondsLeft(Handle timer)
-{
-	if (g_isPaused)
-		CreateTimer(1.0, Timer_Unpause_SecondsCountdown, _, TIMER_REPEAT); // This repeat timer is killed inside the callback
-
-	g_hTimer_UnPause_Countdown = INVALID_HANDLE;
-
-	return Plugin_Handled;
-}
-
-public Action Timer_Live_SecondsCountdown(Handle timer)
-{
-	if (g_liveTimer > 0)
-	{
-		PrintToChatAll("%s Match starting in: %i", g_tag, g_liveTimer);
-		g_liveTimer--;
-
-		PlayLiveBeep();
-
-		return Plugin_Continue;
-	}
-
-	g_liveTimer = g_liveTimer_OriginalValue; // Reset the timer to its original value
-
-	return Plugin_Stop;
-}
-
-public Action Timer_Unpause_SecondsCountdown(Handle timer)
-{
-	if (!g_isLive || !g_isPaused) // Pause has properly ended or the match is not live anymore (which implies the pause was properly ended already)
-		return Plugin_Stop;
-
-	if (g_unpauseTimer > 0)
-	{
-		//PlayLiveBeep(); Does not work whilst paused
-		PrintToChatAll("%s Unpausing in: %i", g_tag, g_unpauseTimer);
-		g_unpauseTimer--;
-
-		return Plugin_Continue;
-	}
-
-	g_unpauseTimer = g_unpauseTimer_OriginalValue; // Reset the timer to its original value
-
-	return Plugin_Stop;
 }
 
 void InitDirectory(const char[] sDir)
@@ -1137,12 +982,6 @@ void RestoreRound(int roundNumber, bool isZanshiRestore)
 
 	SetTeamScore(TEAM_JINRAI, g_jinraiScore[roundNumber]); // Set Jinrai score
 	SetTeamScore(TEAM_NSF, g_nsfScore[roundNumber]); // Set NFS score
-}
-
-public Action Timer_ClearGhostCapper(Handle timer)
-{
-	g_ghostCapturingTeam = TEAM_NONE;
-	return Plugin_Stop;
 }
 
 void EmptyScore()
