@@ -189,13 +189,8 @@ void PlayerRecord(int client)
 	GetCurrentMap(mapName, sizeof(mapName));
 	// Omit "nt_" and "_ctg" from map name, for shorter file names.
 	bool caseSensitiveSearch = false;
-	ReplaceStringEx(mapName, sizeof(mapName), "nt_", "", 3, caseSensitiveSearch);
-	int ctgPos = StrContains(mapName, "_ctg", caseSensitiveSearch);
-	if (ctgPos != -1)
-	{
-		ReplaceStringEx(mapName, sizeof(mapName), "_ctg", "", ctgPos + 4,
-			caseSensitiveSearch);
-	}
+	ReplaceStringEx(mapName, sizeof(mapName), "nt_", "", 3, _, caseSensitiveSearch);
+	ReplaceStringEx(mapName, sizeof(mapName), "_ctg", "", _, _, caseSensitiveSearch);
 
 	char timestamp[15];
 	FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
