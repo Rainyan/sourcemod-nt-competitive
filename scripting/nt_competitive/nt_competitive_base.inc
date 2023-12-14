@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "2.0.0"
+#define PLUGIN_VERSION "2.0.1"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 128 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -183,6 +183,19 @@ void PlayerRecord(int client)
 {
 	char steamID[MAX_STEAMID_LENGTH];
 	GetClientAuthId(client, AuthId_Steam2, steamID, sizeof(steamID));
+	ReplaceString(steamID, sizeof(steamID), "steam_", "", false);
+
+	char mapName[32];
+	GetCurrentMap(mapName, sizeof(mapName));
+	// Omit "nt_" and "_ctg" from map name, for shorter file names.
+	bool caseSensitiveSearch = false;
+	ReplaceStringEx(mapName, sizeof(mapName), "nt_", "", 3, caseSensitiveSearch);
+	int ctgPos = StrContains(mapName, "_ctg", caseSensitiveSearch);
+	if (ctgPos != -1)
+	{
+		ReplaceStringEx(mapName, sizeof(mapName), "_ctg", "", ctgPos + 4,
+			caseSensitiveSearch);
+	}
 
 	char timestamp[15];
 	FormatTime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M");
@@ -190,12 +203,20 @@ void PlayerRecord(int client)
 	char competitionName[32];
 	GetConVarString(g_hCompetitionName, competitionName, sizeof(competitionName));
 
-	char replayName[sizeof(steamID)+sizeof(timestamp)+sizeof(competitionName)+2];
+	char replayName[sizeof(steamID) + sizeof(timestamp) +
+		sizeof(competitionName) + sizeof(mapName) + 2
+	];
 
 	if (strlen(competitionName) > 0)
-		Format(replayName, sizeof(replayName), "%s_%s_%s", competitionName, timestamp, steamID);
+	{
+		Format(replayName, sizeof(replayName), "%s_%s_%s_%s", competitionName,
+			timestamp, mapName, steamID);
+	}
 	else
-		Format(replayName, sizeof(replayName), "%s_%s", timestamp, steamID);
+	{
+		Format(replayName, sizeof(replayName), "%s_%s_%s",
+			timestamp, mapName, steamID);
+	}
 
 	// Clean up any non alphanumeric characters from the string
 	char replayBuffer[sizeof(replayName) + 1];
