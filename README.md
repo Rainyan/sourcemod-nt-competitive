@@ -209,7 +209,7 @@ public void OnAllPluginsLoaded()
 }
 
 // listener for the global forward from nt_competitive
-public Action Competitive_OnPlayerScoreChange(XpChangeReason reason, int client)
+public Action Competitive_OnPlayerScoreChange(PlayerScoreChangeReason reason, int client)
 {
     bool allow = true;
 
