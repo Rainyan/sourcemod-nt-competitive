@@ -6,7 +6,7 @@
 
 
 // Whenever nt_competitive changes player score, it will emit the global forward
-// "Competitive_OnPlayerScoreChange(PlayerScoreChangeReason reason, int client)".
+// "function Action Competitive_OnPlayerScoreChange(PlayerScoreChangeReason reason, int client)".
 // If you want to override this forward, you can check this reason to make a
 // decision on what should happen.
 enum PlayerScoreChangeReason {
