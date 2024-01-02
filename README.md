@@ -181,6 +181,9 @@ The nt_competitive plugin modifies player score/deaths values under some conditi
 ```sp
 function Action Competitive_OnPlayerScoreChange(PlayerScoreChangeReason reason, int client);
 ```
+
+The shared header is available at [scripting/nt_competitive/nt_competitive_shared.inc](./scripting/nt_competitive/nt_competitive_shared.inc).
+
 Example of overriding the score change behaviour from your plugin:
 ```sp
 #include <sourcemod>
