@@ -188,7 +188,27 @@ Example of overriding the score change behaviour from your plugin:
 // needed for the PlayerScoreChangeReason enum definition
 #include "nt_competitive/nt_competitive_shared"
 
+// optional: handle cases where the forward doesn't exist,
+// if it's critical to your plugin
+public void OnAllPluginsLoaded()
+{
+    if (!LibraryExists("CompetitiveFwds"))
+    {
+        PrintToServer("Competitive forwards don't exist!");
 
+        if (null != FindConVar("sm_competitive_version"))
+        {
+            // nt_competitive exists, but it doesn't have the forward.
+            // Is the nt_competitive plugin out of date?
+        }
+        else
+        {
+            // nt_competitive plugin does not exist
+        }
+    }
+}
+
+// listener for the global forward from nt_competitive
 public Action Competitive_OnPlayerScoreChange(XpChangeReason reason, int client)
 {
     bool allow = true;
