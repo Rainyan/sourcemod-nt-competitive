@@ -45,6 +45,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Competitive_IsMatchPoint",	Competitive_IsMatchPoint);
 	CreateNative("Competitive_IsPaused",		Competitive_IsPaused);
 
+	RegPluginLibrary("CompetitiveFwds"); // Added in 2.1.0
+
 	return APLRes_Success;
 }
 
