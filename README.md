@@ -216,7 +216,7 @@ public Action Competitive_OnPlayerScoreChange(PlayerScoreChangeReason reason, in
 {
     bool allow = true;
 
-    if ( /* my custom condition */ )
+    if ( true /* replace with your custom condition! */ )
     {
         allow = false; // Block the nt_competitive score change!
     }
