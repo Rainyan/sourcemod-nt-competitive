@@ -175,3 +175,30 @@ Ghost overtime kicks in at 15 seconds on the clock and will add a maximum of 45 
     * Ghost is picked up at 15 seconds and is held for 16 seconds. The timer shows 10 (15 - 16/4 = 11, rounded down to 10 for simplicity).
     * The ghost is dropped, making the timer speed up.
     * 8 seconds later the ghost is picked up again. Since grace reset is enabled, the timer jumps from 2 to 8 seconds (10 - 8/4 = 8).
+
+## Player score manipulation
+The nt_competitive plugin modifies player score/deaths values under some conditions. If you're a plugin developer and would like to override this behaviour, a global forward is exposed for this:
+```sp
+function Action Competitive_OnPlayerScoreChange(PlayerScoreChangeReason reason, int client);
+```
+Example of overriding the score change behaviour from your plugin:
+```sp
+#include <sourcemod>
+
+// needed for the PlayerScoreChangeReason enum definition
+#include "nt_competitive/nt_competitive_shared"
+
+
+public Action Competitive_OnPlayerScoreChange(XpChangeReason reason, int client)
+{
+    bool allow = true;
+
+    if ( /* my custom condition */ )
+    {
+        allow = false; // Block the nt_competitive score change!
+    }
+
+    return allow ? Plugin_Continue : Plugin_Handled;
+}
+
+```
