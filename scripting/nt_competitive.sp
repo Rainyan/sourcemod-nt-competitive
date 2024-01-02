@@ -14,6 +14,7 @@
 //#define FLATTEN_INCLUDE_PATHS
 
 #if defined(FLATTEN_INCLUDE_PATHS)
+#include "nt_competitive_shared"
 #include "nt_competitive_base"
 #include "nt_competitive_hooks"
 #include "nt_competitive_panel"
@@ -21,6 +22,7 @@
 #else
 // If you're compiling using Spider or other in-browser compiler,
 // and these include paths are failing, un-comment the FLATTEN_INCLUDE_PATHS compile flag above.
+#include "nt_competitive/nt_competitive_shared"
 #include "nt_competitive/nt_competitive_base"
 #include "nt_competitive/nt_competitive_hooks"
 #include "nt_competitive/nt_competitive_panel"
@@ -48,6 +50,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	g_hGFwd_OnPlayerScoreChange = CreateGlobalForward("Competitive_OnPlayerScoreChange",
+		ET_Hook, Param_Any, Param_Cell);
+
 	RegConsoleCmd("sm_ready",		Command_Ready,				"Mark yourself as ready for a competitive match.");
 
 	RegConsoleCmd("sm_unready",		Command_UnReady,			"Mark yourself as not ready for a competitive match.");
@@ -256,9 +261,15 @@ void PostAuthXpRecovery(int client)
 			}
 		}
 
+		if (!StartPlayerScoreChange(PLRSCORECHANGE_REASON_PLAYER_REJOIN, client))
+		{
+			continue;
+		}
+
 		// Set the actual XP & deaths
 		SetPlayerXP(client, xp);
 		SetPlayerDeaths(client, deaths);
+
 		break;
 	}
 

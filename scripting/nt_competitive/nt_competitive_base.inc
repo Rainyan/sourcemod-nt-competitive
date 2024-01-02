@@ -4,10 +4,11 @@
 #endif
 #define _NT_COMPETITIVE_BASE_INC_
 
+
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "2.0.1"
+#define PLUGIN_VERSION "2.1.0"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 128 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -94,6 +95,8 @@ Handle g_hTimer_LiveCountdown = INVALID_HANDLE,
 	g_hTimer_UnPause_Countdown = INVALID_HANDLE,
 	g_hTimer_UnPause_HalfLeft = INVALID_HANDLE,
 	g_hTimer_GhostOvertime = INVALID_HANDLE;
+
+Handle g_hGFwd_OnPlayerScoreChange = INVALID_HANDLE;
 
 enum {
 	CVAR_NONE = 0,
@@ -964,6 +967,19 @@ int PrintToAdmins(bool toChat = true, bool toConsole = false,
 	return n;
 }
 
+bool StartPlayerScoreChange(PlayerScoreChangeReason reason, int client)
+{
+	Call_StartForward(g_hGFwd_OnPlayerScoreChange);
+	Call_PushCell(reason);
+	Call_PushCell(client);
+	Action res = Plugin_Continue;
+	if (Call_Finish(res) != SP_ERROR_NONE)
+	{
+		ThrowError("Global forward call failed: error code %d", res);
+	}
+	return (res == Plugin_Continue);
+}
+
 void RestoreRound(int roundNumber, bool isZanshiRestore)
 {
 	if (roundNumber > g_furthestPlayedRound || roundNumber <= 0)
@@ -989,7 +1005,14 @@ void RestoreRound(int roundNumber, bool isZanshiRestore)
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if ( !IsClientInGame(i) || IsFakeClient(i) )
+			{
 				continue;
+			}
+
+			if (!StartPlayerScoreChange(PLRSCORECHANGE_REASON_ROUND_RESTORE, i))
+			{
+				continue;
+			}
 
 			SetPlayerDeaths(i, g_playerDeaths[i][roundNumber]); // Restore deaths
 			SetPlayerXP(i, g_playerXP[i][roundNumber]); // Restore XP
@@ -1005,6 +1028,10 @@ void EmptyScore()
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i))
+		{
+			continue;
+		}
+		if (!StartPlayerScoreChange(PLRSCORECHANGE_REASON_ROUND_RESTORE, i))
 		{
 			continue;
 		}
