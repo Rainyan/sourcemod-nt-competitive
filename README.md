@@ -221,6 +221,8 @@ public Action Competitive_OnPlayerScoreChange(PlayerScoreChangeReason reason, in
         allow = false; // Block the nt_competitive score change!
     }
 
+    // return Plugin_Continue to allow the nt_competitive score change.
+    // return Plugin_Handled to block the nt_competitive score change.
     return allow ? Plugin_Continue : Plugin_Handled;
 }
 
