@@ -57,17 +57,27 @@ public Action Timer_CheckGhostOvertime(Handle timer)
 			g_fGhostOvertimeTick = float(RoundToCeil(g_fGhostOvertime));
 			realTimeLeft = g_fGhostOvertime * decayTime / graceTime;
 		}
-		// Round up to nearest int to prevent HUD flicker
-		GameRules_SetPropFloat("m_fRoundTimeLeft", float(RoundToCeil(g_fGhostOvertime)));
+		// Round up to nearest int - 0.1 to prevent HUD flicker. The HUD rounds down.
+		GameRules_SetPropFloat("m_fRoundTimeLeft", float(RoundToCeil(g_fGhostOvertime)) - 0.1);
 
-		// Everything's multiplied by 2 because we want to tick every second, but the interval is 0.5
-		bool printTick = g_bGhostOvertimeFirstTick
-			|| (RoundToCeil(realTimeLeft * 2) % RoundToCeil(graceTime * 2) == 0) // Divisible by graceTime
-			|| (realTimeLeft < graceTime && RoundToCeil(realTimeLeft * 2) % 10 == 0) // Divisible by 5
-			|| (realTimeLeft < 5 && RoundToCeil(realTimeLeft * 2) % 2 == 0); // Every second for the last 5
-		if (printTick) {
+		if (realTimeLeft <= 0.0)
+		{
+			return Plugin_Continue;
+		}
+		if (g_bGhostOvertimeFirstTick)
+		{
 			PrintToChatAll("Ghost overtime engaged. %d seconds remaining.", RoundToCeil(realTimeLeft));
 			g_bGhostOvertimeFirstTick = false;
+		}
+		// Everything's multiplied by 2 because we want to tick every second, but the interval is 0.5
+		else if ((RoundToCeil(realTimeLeft * 2) % RoundToCeil(graceTime * 2) == 0) // Divisible by graceTime
+			|| (realTimeLeft < graceTime && RoundToCeil(realTimeLeft * 2) % 10 == 0)) // Divisible by 5
+		{
+			PrintToChatAll("%d seconds remaining.", RoundToCeil(realTimeLeft));
+		}
+		else if (realTimeLeft < 5 && RoundToCeil(realTimeLeft * 2) % 2 == 0) // Every second for the last 5
+		{
+			PrintToChatAll("%d", RoundToCeil(realTimeLeft));
 		}
 	}
 
