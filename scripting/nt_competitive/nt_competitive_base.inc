@@ -8,7 +8,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "2.1.0"
+#define PLUGIN_VERSION "2.1.1"
 
 #define MAX_STEAMID_LENGTH 44
 #define MAX_ROUNDS_PLAYED 128 // This is just a random large number used for 1d int arrays because it's cheap and simple. A single comp game should never have more rounds than this to avoid weirdness.
@@ -1188,12 +1188,15 @@ void CheckGhostcapPlugin()
 
 	Handle ghostcapPlugin = FindConVar("sm_ntghostcap_version");
 
-	// Look for ghost cap plugin's version variable
+	// Disable features that require nt_ghostcap plugin, if it's missing
 	if (ghostcapPlugin == null)
 	{
 		char ghostcapUrl[] = "https://github.com/softashell/nt-sourcemod-plugins";
-		LogError("Using sm_competitive_nozanshi 1 setting requires Soft as HELL's Ghost cap event plugin, version 1.5.4 or newer: %s", ghostcapUrl);
+		LogError("Using \"sm_competitive_nozanshi 1\" or \"ghost overtime\" \
+setting requires Soft as HELL's Ghost cap event plugin, version 1.5.4 or newer: %s",
+			ghostcapUrl);
 		SetConVarBool(g_hPreventZanshiStrats, false);
+		SetConVarInt(g_hGhostOvertimeDecay, 0);
 	}
 }
 
