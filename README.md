@@ -42,7 +42,7 @@ Some optional features also require:
   * Default value: `10`
   * Description: `How many players total are expected to ready up before starting a competitive match.`
 * sm_competitive_max_timeouts
-  * Default value: `1`
+  * Default value: `2`
   * Description: `How many time-outs are allowed per match per team.`
   * Min: `0.0`
 * sm_competitive_max_pause_length
@@ -91,7 +91,7 @@ Some optional features also require:
   * Min: `0.0`
   * Max: `1.0`
 * sm_competitive_record_clients
-  * Default value: `0`
+  * Default value: `1`
   * Description: `Should clients automatically record when going live.`
   * Min: `0.0`
   * Max: `1.0`
@@ -134,17 +134,17 @@ Some optional features also require:
   * Min: `0.0`
   * Max: `1.0`
 * sm_competitive_display_remaining_players_centered
-  * Default value: `2`
+  * Default value: `1`
   * Description: `How the number of remaining players is displayed to clients in a competitive game. 0 = disabled, 1 = show remaining player numbers, 2 = show team names and remaining player numbers`
   * Min: `0.0`
   * Max: `2.0`
 * sm_competitive_display_remaining_players_target
-  * Default value: `2`
+  * Default value: `3`
   * Description: `Who to center display remaining players to. 1 = spectators only, 2 = spectators and dead players, 3 = everyone`
   * Min: `1.0`
   * Max: `3.0`
 * sm_competitive_display_remaining_players_divider
-  * Default value: `—`
+  * Default value: `vs`
   * Description: `What kind of divider to use between the scores (eg. 3 vs 2, 3 v 2, 3--2)`
 * sm_competitive_ghost_overtime
   * Default value: `45`
