@@ -617,7 +617,7 @@ void InitDirectory(const char[] sDir)
 // todo: check for redundant code in this
 void ToggleSourceTV()
 {
-	if (g_isSourceTVRecording)
+	if (g_isSourceTVRecording && !g_isLive)
 	{
 		ServerCommand("tv_stoprecord");
 		g_isSourceTVRecording = false;
