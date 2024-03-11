@@ -163,6 +163,14 @@ public void OnMapStart()
 	ResetGlobalVariables(); // Make sure all global variables are reset properly
 }
 
+public void OnMapEnd()
+{
+	if (g_isLive)
+	{
+		ToggleLive();
+	}
+}
+
 public void OnConfigsExecuted()
 {
 	g_isAlltalkByDefault = GetConVarBool(g_hAlltalk);
