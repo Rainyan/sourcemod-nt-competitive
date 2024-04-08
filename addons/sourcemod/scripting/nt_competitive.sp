@@ -10,6 +10,8 @@
 #define MAX_CUSTOM_TEAM_NAME_LEN 64
 char _plugin_tag[] = "[COMP]";
 
+#define TIMER_SPAMLIVE 0.25
+
 static int _prev_winner = TEAM_NONE;
 
 public Plugin myinfo = {
@@ -112,9 +114,7 @@ public void OnRoundStart(Event event, const char[] name, bool dontBroadcast)
 	if (round_number == 1) // one-indexed
 	{
 		// This repeat timer is killed inside the callback after X repeats
-		CreateTimer(0.25, Timer_SpamLive, 0,
-			TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE
-		);
+		CreateTimer(TIMER_SPAMLIVE, Timer_SpamLive, 0, TIMER_FLAG_NO_MAPCHANGE);
 		return;
 	}
 
@@ -122,24 +122,20 @@ public void OnRoundStart(Event event, const char[] name, bool dontBroadcast)
 	{
 		case WinCondition_BestOfX:
 		{
-			Notify("%s Round %d/%d",
-				_plugin_tag,
+			Notify("Round %d/%d",
 				round_number,
 				sm_competitive_limit.IntValue
 			);
 		}
 		case WinCondition_FirstToX:
 		{
-			Notify("%s Round %d",
-				_plugin_tag,
+			Notify("Round %d",
 				round_number
 			);
 		}
 		case WinCondition_SuddenDeath:
 		{
-			Notify("%s SUDDEN DEATH. Next team to score wins.",
-				_plugin_tag
-			);
+			Notify("SUDDEN DEATH. Next team to score wins.");
 		}
 	}
 }
@@ -147,14 +143,12 @@ public void OnRoundStart(Event event, const char[] name, bool dontBroadcast)
 public Action Timer_SpamLive(Handle timer, int n)
 {
 	int n_timer_loops = 3;
-	if (n++ >= n_timer_loops)
+	if (n++ < n_timer_loops)
 	{
-		return Plugin_Stop;
+		PrintToChatAll("%s LIVE", _plugin_tag);
+		CreateTimer(TIMER_SPAMLIVE, Timer_SpamLive, n, TIMER_FLAG_NO_MAPCHANGE);
 	}
-
-	PrintToChatAll("%s LIVE", _plugin_tag);
-
-	return Plugin_Continue;
+	return Plugin_Stop;
 }
 
 public void OnRoundConcluded(const int winner)
@@ -213,7 +207,7 @@ stock void ConcludeMatch(int winner)
 
 	if (winner == TEAM_NONE)
 	{
-		Notify("%s MATCH TIED %d – %d", _plugin_tag, nsf_score, jin_score);
+		Notify("MATCH TIED %d – %d", nsf_score, jin_score);
 	}
 	else
 	{
@@ -221,16 +215,15 @@ stock void ConcludeMatch(int winner)
 		{
 			// This can happen if we're passed an invalid winner index
 			// by a third party plugin via the global forward.
-			Notify("%s ERROR: indeterminate winner. Please see error logs.",
-				_plugin_tag);
+			Notify("ERROR: indeterminate winner. Please see error logs.");
 			ThrowError("Got invalid winning team index: %d", winner);
 		}
 
 		char winner_team_name[MAX_CUSTOM_TEAM_NAME_LEN];
 		GetCompetitiveTeamName(winner, winner_team_name, sizeof(winner_team_name));
 
-		Notify("%s %s WINS %d – %d",
-			_plugin_tag, winner_team_name,
+		Notify("WINS %d – %d",
+			winner_team_name,
 			GetConVarInt((winner == TEAM_NSF)
 				? sm_competitive_nsf_score : sm_competitive_jinrai_score),
 			GetConVarInt((winner == TEAM_NSF)
@@ -274,9 +267,8 @@ void Notify(const char[] message, any ...)
 	char format_msg[256];
 	VFormat(format_msg, sizeof(format_msg), message, 2);
 
-	PrintToChatAll(format_msg);
-	PrintToConsoleAll(format_msg);
-	LogCompetitive(format_msg);
+	PrintToChatAndConsoleAll("%s %s", _plugin_tag, format_msg);
+	LogCompetitive("%s", format_msg);
 }
 
 void LogCompetitive(const char[] message, any ...)
@@ -295,21 +287,10 @@ void LogCompetitive(const char[] message, any ...)
 	{
 		ThrowError("Failed to build path");
 	}
-
-	char log_file[] = "logfile.log";
+	char log_file[] = "competitive.log";
 	Format(logging_path, sizeof(logging_path), "%s/%s", logging_path, log_file);
 
-	Handle file = OpenFile(logging_path, "a");
-	if (file == null)
-	{
-		ThrowError("Failed to open log file: \"%s\"", logging_path);
-	}
-	if (!WriteFileLine(file, format_msg))
-	{
-		ThrowError("Failed to write log line: \"%s\"", format_msg);
-	}
-
-	CloseHandle(file);
+	LogToFileEx(logging_path, "%s", format_msg);
 }
 
 int GetWinner(const Team team1, const Team team2, const Rules rules,
@@ -448,4 +429,19 @@ public int Competitive_GetTeamScore(Handle plugin, int num_params)
 public int Competitive_GetWinner(Handle plugin, int num_params)
 {
 	return _prev_winner;
+}
+
+stock void PrintToChatAndConsoleAll(const char[] format, any ...)
+{
+	char buffer[254];
+	for (int i = 1; i <= MaxClients; ++i)
+	{
+		if (IsClientInGame(i))
+		{
+			SetGlobalTransTarget(i);
+			VFormat(buffer, sizeof(buffer), format, 2);
+			PrintToChat(i, "%s", buffer);
+			PrintToConsole(i, "%s", buffer);
+		}
+	}
 }
