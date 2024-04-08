@@ -25,7 +25,6 @@ public Plugin myinfo = {
 enum {
 	WinCondition_BestOfX = 0,
 	WinCondition_FirstToX,
-	WinCondition_SuddenDeath,
 
 	WinCondition_EnumCount
 };
@@ -50,7 +49,7 @@ ConVar sm_competitive_live,
 	sm_competitive_log_lvl,
 	neo_restart_this;
 
-Handle _fwd_match_conclusion = INVALID_HANDLE;
+GlobalForward _fwd_match_conclusion = null;
 
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -64,8 +63,12 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	_fwd_match_conclusion = CreateGlobalForward("Competitive_OnMatchConclusion",
-		ET_Hook, Param_Cell);
+	_fwd_match_conclusion = new GlobalForward("Competitive_OnMatchConclusion",
+		ET_Hook, Param_CellByRef);
+	if (_fwd_match_conclusion == null)
+	{
+		SetFailState("Failed to create global forward");
+	}
 
 	if (!HookEventEx("game_round_start", OnRoundStart, EventHookMode_PostNoCopy))
 	{
@@ -143,9 +146,10 @@ public void OnRoundStart(Event event, const char[] name, bool dontBroadcast)
 	{
 		case WinCondition_BestOfX:
 		{
-			Notify("Round %d/%d",
+			Notify("Round %d/%d%s",
 				round_number,
-				sm_competitive_limit.IntValue
+				sm_competitive_limit.IntValue,
+				(round_number >= sm_competitive_limit.IntValue) ? " (SUDDEN DEATH)" : ""
 			);
 		}
 		case WinCondition_FirstToX:
@@ -154,10 +158,11 @@ public void OnRoundStart(Event event, const char[] name, bool dontBroadcast)
 				round_number
 			);
 		}
-		case WinCondition_SuddenDeath:
-		{
-			Notify("SUDDEN DEATH. Next team to score wins.");
-		}
+	}
+
+	if (IsMatchPoint())
+	{
+		Notify("Match point!");
 	}
 }
 
@@ -202,11 +207,11 @@ public void OnRoundConcluded(const int winner)
 
 	if (winner == TEAM_NONE)
 	{
-		Notify("Round has tied; team point not awarded");
+		Notify("Round has tied; no team point awarded");
 		return;
 	}
 
-	Notify("Team point awarded to %s", winner == TEAM_NSF ? "NSF" : "Jinrai");
+	Notify("Team point awarded to: %s", winner == TEAM_NSF ? "NSF" : "Jinrai");
 }
 
 bool Forward_ConcludeMatch(int& winner)
@@ -252,7 +257,7 @@ stock void ConcludeMatch(int winner)
 		char winner_team_name[MAX_CUSTOM_TEAM_NAME_LEN];
 		GetCompetitiveTeamName(winner, winner_team_name, sizeof(winner_team_name));
 
-		Notify("WINS %d – %d",
+		Notify("%s WINS %d – %d",
 			winner_team_name,
 			GetConVarInt((winner == TEAM_NSF)
 				? sm_competitive_nsf_score : sm_competitive_jinrai_score),
@@ -328,13 +333,34 @@ int GetWinner(const Team team1, const Team team2, const Rules rules,
 {
 	if (team1.score.IntValue == team2.score.IntValue)
 	{
+		PrintToServer("NONE!!!");
 		return TEAM_NONE;
 	}
+
+	PrintToServer("alt: %d %d",
+		team1.score.IntValue,
+		team2.score.IntValue
+	);
+
 	int num_rounds_remaining = rules.score_limit - num_rounds_played;
 	switch (rules.win_condition)
 	{
 		case WinCondition_BestOfX:
 		{
+			// Sudden death
+			if (num_rounds_remaining <= 0)
+			{
+				if (team1.score.IntValue > team2.score.IntValue)
+				{
+					return team1.index;
+				}
+				if (team2.score.IntValue > team1.score.IntValue)
+				{
+					return team2.index;
+				}
+				return TEAM_NONE;
+			}
+
 			if  (rules.score_limit > team1.score.IntValue + num_rounds_remaining &&
 				 rules.score_limit > team2.score.IntValue + num_rounds_remaining)
 			{
@@ -345,18 +371,6 @@ int GetWinner(const Team team1, const Team team2, const Rules rules,
 				return team1.index;
 			}
 			if (team2.score.IntValue >= rules.score_limit)
-			{
-				return team2.index;
-			}
-			return TEAM_NONE;
-		}
-		case WinCondition_SuddenDeath:
-		{
-			if (team1.score.IntValue > team2.score.IntValue)
-			{
-				return team1.index;
-			}
-			if (team2.score.IntValue > team1.score.IntValue)
 			{
 				return team2.index;
 			}
@@ -383,11 +397,6 @@ bool IsMatchPoint()
 		return false;
 	}
 
-	if (sm_competitive_win_condition.IntValue == WinCondition_SuddenDeath)
-	{
-		return true;
-	}
-
 	// TODO: unimplemented for other modes
 	if (sm_competitive_win_condition.IntValue != WinCondition_BestOfX)
 	{
@@ -398,19 +407,9 @@ bool IsMatchPoint()
 	// Subtract 1 because rounds are one-indexed
 	int rounds_remaining = sm_competitive_limit.IntValue - (round_number - 1);
 
-	if (rounds_remaining < 0)
-	{
-		LogError("Had %d rounds remaining, but expected 0 or more \
-(%d - (%d - 1) = %d)",
-			rounds_remaining,
-			sm_competitive_limit.IntValue,
-			round_number,
-			rounds_remaining
-		);
-		return false;
-	}
 	// Can't be match point because the match is over.
-	else if (rounds_remaining == 0)
+	// As a special case, we don't consider sudden death mode as "match point" here.
+	if (rounds_remaining <= 0)
 	{
 		return false;
 	}
