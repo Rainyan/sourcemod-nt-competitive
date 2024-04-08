@@ -37,17 +37,18 @@ enum struct Rules {
 
 enum struct Team {
 	int index;
-	int score;
+	ConVar score;
 }
 
-ConVar sm_competitive_live = null;
-ConVar sm_competitive_jinrai_score = null;
-ConVar sm_competitive_nsf_score = null;
-ConVar sm_competitive_limit = null;
-ConVar sm_competitive_win_condition = null;
-ConVar sm_competitive_jinrai_name = null;
-ConVar sm_competitive_nsf_name = null;
-ConVar sm_competitive_log_lvl = null;
+ConVar sm_competitive_live,
+	sm_competitive_jinrai_score,
+	sm_competitive_nsf_score,
+	sm_competitive_limit,
+	sm_competitive_win_condition,
+	sm_competitive_jinrai_name,
+	sm_competitive_nsf_name,
+	sm_competitive_log_lvl,
+	neo_restart_this;
 
 Handle _fwd_match_conclusion = INVALID_HANDLE;
 
@@ -70,6 +71,13 @@ public void OnPluginStart()
 	{
 		SetFailState("Failed to hook event");
 	}
+
+	neo_restart_this = FindConVar("neo_restart_this");
+	if (neo_restart_this == null)
+	{
+		SetFailState("Failed to find convar");
+	}
+	neo_restart_this.AddChangeHook(OnNeoRestartThis);
 
 	sm_competitive_live = CreateConVar("sm_competitive_live",
 		"0", "Whether the match is live",
@@ -98,6 +106,22 @@ on \"sm_competitive_win_condition\" value.",
 		_, true, float(0));
 }
 
+void OnNeoRestartThis(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	bool went_live = StringToBool(newValue) && !StringToBool(oldValue);
+	if (went_live)
+	{
+		GameRules_SetProp("m_iRoundNumber", 1);
+	}
+}
+
+bool StringToBool(const char[] s)
+{
+	int i;
+	int n_consumed = StringToIntEx(s, i, 10);
+	return n_consumed != 0 && !!i;
+}
+
 public void OnRoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!sm_competitive_live.BoolValue)
@@ -105,18 +129,15 @@ public void OnRoundStart(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 
-	Rules rules;
-	rules.win_condition = sm_competitive_win_condition.IntValue;
-	rules.score_limit = sm_competitive_limit.IntValue;
-
 	int round_number = GameRules_GetProp("m_iRoundNumber");
 
 	if (round_number == 1) // one-indexed
 	{
-		// This repeat timer is killed inside the callback after X repeats
 		CreateTimer(TIMER_SPAMLIVE, Timer_SpamLive, 0, TIMER_FLAG_NO_MAPCHANGE);
-		return;
 	}
+
+	Rules rules;
+	GetRules(rules);
 
 	switch (rules.win_condition)
 	{
@@ -145,7 +166,7 @@ public Action Timer_SpamLive(Handle timer, int n)
 	int n_timer_loops = 3;
 	if (n++ < n_timer_loops)
 	{
-		PrintToChatAll("%s LIVE", _plugin_tag);
+		Notify("LIVE");
 		CreateTimer(TIMER_SPAMLIVE, Timer_SpamLive, n, TIMER_FLAG_NO_MAPCHANGE);
 	}
 	return Plugin_Stop;
@@ -159,24 +180,33 @@ public void OnRoundConcluded(const int winner)
 	}
 
 	Rules rules;
-	rules.win_condition = sm_competitive_win_condition.IntValue;
-	rules.score_limit = sm_competitive_limit.IntValue;
+	GetRules(rules);
 
 	Team jinrai = { TEAM_JINRAI };
-	jinrai.score = sm_competitive_jinrai_score.IntValue;
-
+	jinrai.score = sm_competitive_jinrai_score;
 	Team nsf = { TEAM_NSF };
-	nsf.score = sm_competitive_nsf_score.IntValue;
+	nsf.score = sm_competitive_nsf_score;
+	if (winner != TEAM_NONE)
+	{
+		((winner == TEAM_NSF) ? nsf : jinrai).score.IntValue += 1;
+	}
 
 	int round_number = GameRules_GetProp("m_iRoundNumber");
 	int comp_winner = GetWinner(jinrai, nsf, rules, round_number);
 
-	if (comp_winner == TEAM_NONE)
+	if (comp_winner != TEAM_NONE)
 	{
+		ConcludeMatch(comp_winner);
 		return;
 	}
 
-	ConcludeMatch(comp_winner);
+	if (winner == TEAM_NONE)
+	{
+		Notify("Round has tied; team point not awarded");
+		return;
+	}
+
+	Notify("Team point awarded to %s", winner == TEAM_NSF ? "NSF" : "Jinrai");
 }
 
 bool Forward_ConcludeMatch(int& winner)
@@ -296,7 +326,7 @@ void LogCompetitive(const char[] message, any ...)
 int GetWinner(const Team team1, const Team team2, const Rules rules,
 	const int num_rounds_played)
 {
-	if (team1.score == team2.score)
+	if (team1.score.IntValue == team2.score.IntValue)
 	{
 		return TEAM_NONE;
 	}
@@ -305,16 +335,16 @@ int GetWinner(const Team team1, const Team team2, const Rules rules,
 	{
 		case WinCondition_BestOfX:
 		{
-			if  (rules.score_limit > team1.score + num_rounds_remaining &&
-				 rules.score_limit > team2.score + num_rounds_remaining)
+			if  (rules.score_limit > team1.score.IntValue + num_rounds_remaining &&
+				 rules.score_limit > team2.score.IntValue + num_rounds_remaining)
 			{
 				return TEAM_NONE;
 			}
-			if (team1.score >= rules.score_limit)
+			if (team1.score.IntValue >= rules.score_limit)
 			{
 				return team1.index;
 			}
-			if (team2.score >= rules.score_limit)
+			if (team2.score.IntValue >= rules.score_limit)
 			{
 				return team2.index;
 			}
@@ -322,22 +352,22 @@ int GetWinner(const Team team1, const Team team2, const Rules rules,
 		}
 		case WinCondition_SuddenDeath:
 		{
-			if (team1.score > team2.score)
+			if (team1.score.IntValue > team2.score.IntValue)
 			{
 				return team1.index;
 			}
-			if (team2.score > team1.score)
+			if (team2.score.IntValue > team1.score.IntValue)
 			{
 				return team2.index;
 			}
 		}
 		case WinCondition_FirstToX:
 		{
-			if (team1.score > rules.score_limit)
+			if (team1.score.IntValue > rules.score_limit)
 			{
 				return team1.index;
 			}
-			if (team2.score > rules.score_limit)
+			if (team2.score.IntValue > rules.score_limit)
 			{
 				return team2.index;
 			}
@@ -444,4 +474,10 @@ stock void PrintToChatAndConsoleAll(const char[] format, any ...)
 			PrintToConsole(i, "%s", buffer);
 		}
 	}
+}
+
+void GetRules(Rules rules)
+{
+	rules.win_condition = sm_competitive_win_condition.IntValue;
+	rules.score_limit = sm_competitive_limit.IntValue;
 }
