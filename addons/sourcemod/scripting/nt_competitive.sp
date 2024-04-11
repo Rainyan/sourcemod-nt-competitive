@@ -120,9 +120,7 @@ void OnNeoRestartThis(ConVar convar, const char[] oldValue, const char[] newValu
 
 bool StringToBool(const char[] s)
 {
-	int i;
-	int n_consumed = StringToIntEx(s, i, 10);
-	return n_consumed != 0 && !!i;
+	return StringToInt(s) != 0;
 }
 
 public void OnRoundStart(Event event, const char[] name, bool dontBroadcast)
