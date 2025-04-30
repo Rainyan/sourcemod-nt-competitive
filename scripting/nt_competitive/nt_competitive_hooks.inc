@@ -215,14 +215,20 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
 	if (g_roundNumber == 1)
 	{
+		char zone[10];
+		FormatTime(zone, sizeof(zone), "%z");
+		char time[64];
+		FormatTime(time, sizeof(time), "%F %R", GetTime());
+		
 		char tournamentName[128];
 		GetConVarString(g_hCompetitionName, tournamentName, sizeof(tournamentName));
-		LogCompetitive("%s\nCompetitive match started: %s vs %s",
+		LogCompetitive("\n%s\nCompetitive match started:\n%s vs %s\n%s (%s)",
 			tournamentName,
-			g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF]);
+			g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF],
+			time, zone);
 	}
 
-	LogCompetitive("***** Round %i *****", g_roundNumber);
+	//LogCompetitive("***** Round %i *****", g_roundNumber);
 	if (g_shouldPause)
 	{
 		g_shouldPause = false;
