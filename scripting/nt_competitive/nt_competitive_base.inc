@@ -785,17 +785,7 @@ void LogCompetitive(const char[] message, any ...)
 	char formatMsg[256];
 	VFormat(formatMsg, sizeof(formatMsg), message, 2);
 
-	char loggingPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, loggingPath, sizeof(loggingPath), "logs/competitive");
-
-	char debugFile[] = "logfile.log";
-	Format(loggingPath, sizeof(loggingPath), "%s/%s", loggingPath, debugFile);
-
-	Handle hFile = OpenFile(loggingPath, "a");
-
-	WriteFileLine(hFile, formatMsg);
-
-	CloseHandle(hFile);
+	LogToGame(formatMsg);
 }
 
 #if SOURCEMOD_V_MAJOR <= 1 && SOURCEMOD_V_MINOR < 9
