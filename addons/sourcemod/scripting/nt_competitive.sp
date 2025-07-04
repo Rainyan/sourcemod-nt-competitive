@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "4.0.0"
+#define PLUGIN_VERSION "5.0.0"
 
 #define MAX_CUSTOM_TEAM_NAME_LEN 64
 char _plugin_tag[] = "[COMP]";
