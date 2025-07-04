@@ -220,12 +220,16 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 		char time[64];
 		FormatTime(time, sizeof(time), "%F %R", GetTime());
 		
+		char mapName[32];
+		GetCurrentMap(mapName, sizeof(mapName));
+		
 		char tournamentName[128];
 		GetConVarString(g_hCompetitionName, tournamentName, sizeof(tournamentName));
-		LogCompetitive("\n%s\nCompetitive match started:\n%s vs %s\n%s (%s)",
+		
+		LogCompetitive("\n%s\nCompetitive match started:\n%s vs %s\n%s (%s)\n%s",
 			tournamentName,
 			g_teamName[TEAM_JINRAI], g_teamName[TEAM_NSF],
-			time, zone);
+			time, zone, mapName);
 	}
 
 	//LogCompetitive("***** Round %i *****", g_roundNumber);
